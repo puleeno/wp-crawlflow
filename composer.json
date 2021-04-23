@@ -1,0 +1,14 @@
+{
+    "name": "puleeno/rake-wordpress-migration-example",
+    "description": "Use Rake migration framework to migrate other website to WordPress",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Puleeno Nguyen",
+            "email": "puleeno@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
