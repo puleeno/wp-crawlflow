@@ -1,6 +1,9 @@
 <?php
 namespace App;
 
+use Ramphor\Rake\Feeds\Sitemap\Sitemap;
+use Ramphor\Rake\Feeds\Sitemap\SitemapIndex;
+
 class Migrator
 {
     protected static $instance;
@@ -76,5 +79,19 @@ class Migrator
                 do_action(TaskRunner::TASK_CRON_NAME);
             }
         }
+    }
+
+
+    public static function get_support_feeds()
+    {
+        $default_feeds = array(
+            'sitemap' => Sitemap::class,
+            'sitemap_index' => SitemapIndex::class,
+        );
+
+        return apply_filters(
+            'migration_support_feeds',
+            $default_feeds
+        );
     }
 }

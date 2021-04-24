@@ -1,6 +1,6 @@
 <?php
 namespace App\Tooths;
 
-class TheSourceName
+class GeneralTooth
 {
 }
