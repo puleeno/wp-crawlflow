@@ -3,6 +3,7 @@ namespace App;
 
 use Ramphor\Rake\Feeds\Sitemap\Sitemap;
 use Ramphor\Rake\Feeds\Sitemap\SitemapIndex;
+use Ramphor\Rake\Feeds\CsvFile;
 
 class Migrator
 {
@@ -38,7 +39,7 @@ class Migrator
         );
 
         if ($this->is_request('cron')) {
-            add_action('init', array($this, 'setupTaskEvents'));
+            add_action('init', array($this, 'setup_task_events'));
         }
     }
 
@@ -56,42 +57,55 @@ class Migrator
         }
     }
 
-    protected function isDebug()
+    protected function is_debug()
     {
         return defined('PLUGIN_MIGRATION_DEBUG') && boolval(PLUGIN_MIGRATION_DEBUG);
     }
 
-    public function setupTaskEvents()
+    public function setup_task_events()
     {
-        $tasks          = new Tasks();
-        $availableTasks = $tasks->get_available_tasks();
+        $tasks           = new Tasks();
+        $available_tasks = $tasks->get_available_tasks();
 
-        if (count($availableTasks) > 0 || $this->isDebug()) {
+        if (count($available_tasks) > 0 || $this->is_debug()) {
             $runner = TaskRunner::get_instance();
-            $runner->set_tasks($availableTasks);
+            $runner->set_tasks($available_tasks);
 
             add_action(TaskRunner::TASK_CRON_NAME, array($runner, 'run'));
 
-            if ($this->isDebug()) {
+            if ($this->is_debug()) {
                 $timestamp = wp_next_scheduled(TaskRunner::TASK_CRON_NAME);
-                wp_unschedule_event($timestamp, TaskRunner::TASK_CRON_NAME);
+                wp_unschedule_event(
+                    $timestamp,
+                    TaskRunner::TASK_CRON_NAME
+                );
 
                 do_action(TaskRunner::TASK_CRON_NAME);
             }
         }
     }
 
-
     public static function get_support_feeds()
     {
         $default_feeds = array(
             'sitemap' => Sitemap::class,
             'sitemap_index' => SitemapIndex::class,
+            'csv_file' => CsvFile::class,
         );
 
         return apply_filters(
             'migration_support_feeds',
             $default_feeds
+        );
+    }
+
+    public static function get_support_tooths()
+    {
+        $default_tooths = array();
+
+        return apply_filters(
+            'migration_support_tooths',
+            $default_tooths
         );
     }
 }

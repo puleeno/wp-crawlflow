@@ -36,15 +36,26 @@ class TaskRunner
 
     public function run()
     {
+        if (empty($this->tasks)) {
+            return;
+        }
+
         $rake = new Rake(static::RAKE_ID, new Driver());
 
         foreach ($this->tasks as $task) {
-            $tooth = $task->createTooth();
+            $tooth   = $task->create_tooth($rake);
+            $sources = $task->get_sources();
 
-            $sources = $task->getSources();
             foreach ($sources as $source) {
-                $source->createFeed();
+                $feed = $source->createFeed();
+                $feed->setTooth($tooth);
+                $tooth->addFeed($feed);
             }
+
+            $rake->addTooth($tooth);
         }
+
+        // Execute all tooths
+        $rake->execute();
     }
 }
