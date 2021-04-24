@@ -36,6 +36,7 @@ class TaskRunner
 
     public function run()
     {
+        die('zo');
         $rake = new Rake(static::RAKE_ID, new Driver());
 
         foreach ($this->tasks as $task) {

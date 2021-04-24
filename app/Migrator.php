@@ -53,16 +53,28 @@ class Migrator
         }
     }
 
+    protected function isDebug()
+    {
+        return defined('PLUGIN_MIGRATION_DEBUG') && boolval(PLUGIN_MIGRATION_DEBUG);
+    }
+
     public function setupTaskEvents()
     {
         $tasks          = new Tasks();
         $availableTasks = $tasks->get_available_tasks();
 
-        if (count($availableTasks) > 0) {
+        if (count($availableTasks) > 0 || $this->isDebug()) {
             $runner = TaskRunner::get_instance();
             $runner->set_tasks($availableTasks);
 
             add_action(TaskRunner::TASK_CRON_NAME, array($runner, 'run'));
+
+            if ($this->isDebug()) {
+                $timestamp = wp_next_scheduled(TaskRunner::TASK_CRON_NAME);
+                wp_unschedule_event($timestamp, TaskRunner::TASK_CRON_NAME);
+
+                do_action(TaskRunner::TASK_CRON_NAME);
+            }
         }
     }
 }
