@@ -34,15 +34,32 @@ class Migrator
             array(Installer::class, 'deactive')
         );
 
-        add_action('init', array($this, 'setupTaskEvents'));
+        if ($this->is_request('cron')) {
+            add_action('init', array($this, 'setupTaskEvents'));
+        }
+    }
+
+    private function is_request($type)
+    {
+        switch ($type) {
+            case 'admin':
+                return is_admin();
+            case 'ajax':
+                return defined('DOING_AJAX');
+            case 'cron':
+                return defined('DOING_CRON');
+            case 'frontend':
+                return ( ! is_admin() || defined('DOING_AJAX') ) && ! defined('DOING_CRON');
+        }
     }
 
     public function setupTaskEvents()
     {
-        $tasks = new Tasks();
+        $tasks          = new Tasks();
         $availableTasks = $tasks->get_available_tasks();
+
         if (count($availableTasks) > 0) {
-            $runner = new TaskRunner();
+            $runner = TaskRunner::get_instance();
             $runner->set_tasks($availableTasks);
 
             add_action(TaskRunner::TASK_CRON_NAME, array($runner, 'run'));

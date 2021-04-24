@@ -19,4 +19,4 @@ if (!class_exists(\App\Migrator::class)) {
     return error_log(__('The migrator is not found', 'rake-wordpress-migration-example'));
 }
 
-$GLOBALS['migrator'] = Migrator::get_instance();
+$GLOBALS['migrator'] = \App\Migrator::get_instance();
