@@ -1,9 +1,13 @@
 <?php
 namespace App;
 
+use Ramphor\Rake\Rake;
+use Puleeno\Rake\WordPress\Driver;
+
 class TaskRunner
 {
     const TASK_CRON_NAME = 'rake-wordpress-migration-example';
+    const RAKE_ID        = 'rake-wordpress-migration-example';
 
     protected static $instance;
 
@@ -32,5 +36,15 @@ class TaskRunner
 
     public function run()
     {
+        $rake = new Rake(static::RAKE_ID, new Driver());
+
+        foreach ($this->tasks as $task) {
+            $tooth = $task->createTooth();
+
+            $sources = $task->getSources();
+            foreach ($sources as $source) {
+                $source->createFeed();
+            }
+        }
     }
 }
