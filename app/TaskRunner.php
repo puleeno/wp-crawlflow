@@ -5,27 +5,32 @@ class TaskRunner
 {
     const TASK_CRON_NAME = 'rake-wordpress-migration-example';
 
+    protected static $instance;
+
+    protected $tasks = array();
+
     private function __construct()
     {
     }
 
     public static function get_instance()
     {
-        if (is_null(static::$intance)) {
-            static::$intance = new static();
+        if (is_null(static::$instance)) {
+            static::$instance = new static();
         }
-        return static::$intance;
+        return static::$instance;
     }
 
-
-    protected $tasks = array();
-
-    public function set_tasks()
+    public function set_tasks($tasks)
     {
+        foreach ($tasks as $task) {
+            if (is_a($task, Task::class)) {
+                $this->tasks[] = $task;
+            }
+        }
     }
 
     public function run()
     {
-        die('zo');
     }
 }

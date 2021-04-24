@@ -49,7 +49,7 @@ class Migrator
             case 'cron':
                 return defined('DOING_CRON');
             case 'frontend':
-                return ( ! is_admin() || defined('DOING_AJAX') ) && ! defined('DOING_CRON');
+                return ( !is_admin() || defined('DOING_AJAX') ) && ! defined('DOING_CRON');
         }
     }
 

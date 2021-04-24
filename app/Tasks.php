@@ -5,6 +5,6 @@ class Tasks
 {
     public function get_available_tasks()
     {
-        return array();
+        return array(1);
     }
 }
