@@ -1,9 +1,13 @@
 <?php
-namespace App;
+namespace App\Core;
 
 class Source
 {
     protected $type = 'general';
+
+    public function __construct($args)
+    {
+    }
 
     public function set_type($type)
     {
@@ -16,5 +20,9 @@ class Source
             $clsFeed = $support_feeds[$this->type];
             $feed    = new $clsFeed();
         }
+    }
+
+    public function validate()
+    {
     }
 }
