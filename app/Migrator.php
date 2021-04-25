@@ -116,4 +116,15 @@ class Migrator
             $default_tooths
         );
     }
+
+    public static function get_support_processors()
+    {
+        $default_processors = array(
+        );
+
+        return apply_filters(
+            'migration_support_processors',
+            $default_processors
+        );
+    }
 }

@@ -8,6 +8,7 @@ class Task
     protected $id;
     protected $format;
     protected $type = 'general';
+    protected $source_cms = 'general';
 
     protected $sources = array();
     protected $data_rules = array();
@@ -23,6 +24,10 @@ class Task
         $this->type = $type;
     }
 
+    public function create_processor()
+    {
+    }
+
     public function create_tooth()
     {
         $support_tooths = Migrator::get_support_tooths();
@@ -34,10 +39,26 @@ class Task
             ));
             return;
         }
+
+        $processor = $this->create_processor();
+        if (!$processor) {
+            error_log(__('Processor is not created to register to tooth', 'rake-wordpress-migration-example'));
+            return;
+        }
+
         $clsTooth = $support_tooths[$this->type];
         $tooth = new $clsTooth($this->id);
 
+        $tooth->registerProcessor($processor);
+
         return $tooth;
+    }
+
+    public function set_cms_name($cms_name)
+    {
+        if ($cms_name) {
+            $this->source_cms = $cms_name;
+        }
     }
 
     public function add_source($source)

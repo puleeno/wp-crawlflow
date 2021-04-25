@@ -11,4 +11,6 @@ class FileTooth extends Tooth
     const NAME = 'file';
 
     use WordPressTooth, WooCommerceProcessor;
+
+    protected $filePath;
 }

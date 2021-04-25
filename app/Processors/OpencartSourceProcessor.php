@@ -7,6 +7,8 @@ use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 
 class OpencartSourceProcessor extends OpencartSource
 {
+    const NAME = 'general';
+
     use WooCommerceProcessor;
     use WordPressProcessor;
 }

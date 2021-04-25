@@ -49,13 +49,23 @@ class TaskRunner
                 continue;
             }
 
-            var_dump($tooth);
-            die;
+            $data_rules = $task->get_data_rules();
+
+            foreach ($data_rules as $data_rule) {
+                $tooth->addMappingField(
+                    $data_rule->get_field_name(),
+                    $data_rule->create_mapping_field()
+                );
+            }
+
 
             $sources = $task->get_sources();
 
             foreach ($sources as $source) {
                 $feed = $source->create_feed();
+                if (is_null($feed)) {
+                    continue;
+                }
                 $feed->setTooth($tooth);
                 $tooth->addFeed($feed);
             }

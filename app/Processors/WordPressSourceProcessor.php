@@ -7,6 +7,8 @@ use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 
 class WordPressSourceProcessor extends WordPressSource
 {
+    const NAME = 'general';
+
     use WooCommerceProcessor;
     use WordPressProcessor;
 }

@@ -8,6 +8,10 @@ class DataRule
         return true;
     }
 
+    public function get_field_name()
+    {
+    }
+
     public function create_mapping_field()
     {
     }
