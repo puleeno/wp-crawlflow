@@ -3,6 +3,7 @@ namespace App;
 
 use Ramphor\Rake\Rake;
 use Puleeno\Rake\WordPress\Driver;
+use App\Core\Task;
 
 class TaskRunner
 {
@@ -44,10 +45,11 @@ class TaskRunner
 
         foreach ($this->tasks as $task) {
             $tooth   = $task->create_tooth($rake);
+
             $sources = $task->get_sources();
 
             foreach ($sources as $source) {
-                $feed = $source->createFeed();
+                $feed = $source->create_feed();
                 $feed->setTooth($tooth);
                 $tooth->addFeed($feed);
             }

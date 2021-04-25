@@ -5,5 +5,6 @@ class DataRule
 {
     public function validate()
     {
+        return true;
     }
 }

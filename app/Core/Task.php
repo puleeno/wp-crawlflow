@@ -1,6 +1,8 @@
 <?php
 namespace App\Core;
 
+use App\Migrator;
+
 class Task
 {
     protected $id;

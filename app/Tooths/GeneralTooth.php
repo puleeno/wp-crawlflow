@@ -1,6 +1,8 @@
 <?php
 namespace App\Tooths;
 
-class GeneralTooth
+use Ramphor\Rake\Abstracts\CrawlerTooth;
+
+class GeneralTooth extends CrawlerTooth
 {
 }

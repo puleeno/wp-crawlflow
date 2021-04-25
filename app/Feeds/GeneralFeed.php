@@ -1,6 +1,8 @@
 <?php
 namespace App\Feeds;
 
-class GeneralFeed
+use Ramphor\Rake\Abstracts\Feed;
+
+class GeneralFeed extends Feed
 {
 }

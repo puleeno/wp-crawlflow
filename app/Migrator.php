@@ -4,6 +4,9 @@ namespace App;
 use Ramphor\Rake\Feeds\Sitemap\Sitemap;
 use Ramphor\Rake\Feeds\Sitemap\SitemapIndex;
 use Ramphor\Rake\Feeds\CsvFile;
+use App\Feeds\GeneralFeed;
+
+use App\Tooths\GeneralTooth;
 
 class Migrator
 {
@@ -88,6 +91,7 @@ class Migrator
     public static function get_support_feeds()
     {
         $default_feeds = array(
+            'general' => GeneralFeed::class,
             'sitemap' => Sitemap::class,
             'sitemap_index' => SitemapIndex::class,
             'csv_file' => CsvFile::class,
@@ -101,7 +105,9 @@ class Migrator
 
     public static function get_support_tooths()
     {
-        $default_tooths = array();
+        $default_tooths = array(
+            'general' => GeneralTooth::class,
+        );
 
         return apply_filters(
             'migration_support_tooths',
