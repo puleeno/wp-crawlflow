@@ -9,7 +9,9 @@ class Source
 
     public function __construct($args)
     {
-        // var_dump($args);die;
+        if (isset($args['type'])) {
+            $this->set_type($args['type']);
+        }
     }
 
     public function set_type($type)
