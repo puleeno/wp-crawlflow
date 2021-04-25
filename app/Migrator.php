@@ -91,10 +91,10 @@ class Migrator
     public static function get_support_feeds()
     {
         $default_feeds = array(
-            'general' => GeneralFeed::class,
-            'sitemap' => Sitemap::class,
-            'sitemap_index' => SitemapIndex::class,
-            'csv_file' => CsvFile::class,
+            GeneralFeed::NAME  => GeneralFeed::class,
+            Sitemap::NAME      => Sitemap::class,
+            SitemapIndex::NAME => SitemapIndex::class,
+            CsvFile::FEED_NAME => CsvFile::class,
         );
 
         return apply_filters(
