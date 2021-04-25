@@ -37,8 +37,12 @@ class Tasks
 
             $task = new Task($raw_task['id'], $raw_task['format']);
             if (trim($raw_task['type']) != false) {
-                $task->setType($raw_task['type']);
+                $task->set_type($raw_task['type']);
             }
+            if (trim($raw_task['source_cms']) != false) {
+                $task->set_cms_name($raw_task['source_cms']);
+            }
+
             $task->set_data_rules($raw_task['data_rules']);
             $task->set_sources($raw_task['sources']);
 

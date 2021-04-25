@@ -45,6 +45,7 @@ class TaskRunner
 
         foreach ($this->tasks as $task) {
             $tooth   = $task->create_tooth();
+            $tooth->setRake($rake);
             if (is_null($tooth)) {
                 continue;
             }

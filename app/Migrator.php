@@ -9,6 +9,10 @@ use App\Feeds\GeneralFeed;
 use App\Tooths\GeneralTooth;
 use App\Tooths\FileTooth;
 
+use App\Processors\GeneralProcessor;
+use App\Processors\OpencartSourceProcessor;
+use App\Processors\WordPressSourceProcessor;
+
 class Migrator
 {
     protected static $instance;
@@ -120,6 +124,9 @@ class Migrator
     public static function get_support_processors()
     {
         $default_processors = array(
+            GeneralProcessor::NAME         => GeneralProcessor::class,
+            OpencartSourceProcessor::NAME  => OpencartSourceProcessor::class,
+            WordPressSourceProcessor::NAME => WordPressSourceProcessor::class,
         );
 
         return apply_filters(

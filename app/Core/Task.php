@@ -19,13 +19,21 @@ class Task
         $this->format = $format;
     }
 
-    public function setType($type)
+    public function set_type($type)
     {
         $this->type = $type;
     }
 
     public function create_processor()
     {
+        $support_processors = Migrator::get_support_processors();
+
+        if (isset($support_processors[$this->source_cms])) {
+            $clsProcessor = $support_processors[$this->source_cms];
+            $processor = new $clsProcessor();
+
+            return $processor;
+        }
     }
 
     public function create_tooth()
@@ -59,6 +67,11 @@ class Task
         if ($cms_name) {
             $this->source_cms = $cms_name;
         }
+    }
+
+    public function get_cms_name()
+    {
+        return $this->source_cms;
     }
 
     public function add_source($source)
