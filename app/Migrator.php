@@ -7,6 +7,7 @@ use Ramphor\Rake\Feeds\CsvFile;
 use App\Feeds\GeneralFeed;
 
 use App\Tooths\GeneralTooth;
+use App\Tooths\FileTooth;
 
 class Migrator
 {
@@ -106,7 +107,8 @@ class Migrator
     public static function get_support_tooths()
     {
         $default_tooths = array(
-            'general' => GeneralTooth::class,
+            GeneralTooth::NAME => GeneralTooth::class,
+            FileTooth::NAME    => FileTooth::class
         );
 
         return apply_filters(

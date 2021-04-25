@@ -5,4 +5,5 @@ use Ramphor\Rake\Abstracts\CrawlerTooth;
 
 class GeneralTooth extends CrawlerTooth
 {
+    const NAME = 'general';
 }

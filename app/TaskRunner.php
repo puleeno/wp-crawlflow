@@ -44,7 +44,13 @@ class TaskRunner
         $rake = new Rake(static::RAKE_ID, new Driver());
 
         foreach ($this->tasks as $task) {
-            $tooth   = $task->create_tooth($rake);
+            $tooth   = $task->create_tooth();
+            if (is_null($tooth)) {
+                continue;
+            }
+
+            var_dump($tooth);
+            die;
 
             $sources = $task->get_sources();
 

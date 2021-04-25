@@ -21,6 +21,7 @@ class Tasks
             $raw_task = wp_parse_args($raw_task, array(
                 'id' => '',
                 'format' => '',
+                'type' => '',
                 'data_rules' => array(),
                 'sources' => array(),
             ));
@@ -35,6 +36,9 @@ class Tasks
             }
 
             $task = new Task($raw_task['id'], $raw_task['format']);
+            if (trim($raw_task['type']) != false) {
+                $task->setType($raw_task['type']);
+            }
             $task->set_data_rules($raw_task['data_rules']);
             $task->set_sources($raw_task['sources']);
 

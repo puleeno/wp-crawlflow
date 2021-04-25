@@ -7,6 +7,7 @@ class Task
 {
     protected $id;
     protected $format;
+    protected $type = 'general';
 
     protected $sources = array();
     protected $data_rules = array();
@@ -17,9 +18,26 @@ class Task
         $this->format = $format;
     }
 
-    public function create_tooth($rake)
+    public function setType($type)
+    {
+        $this->type = $type;
+    }
+
+    public function create_tooth()
     {
         $support_tooths = Migrator::get_support_tooths();
+
+        if (!isset($support_tooths[$this->type])) {
+            error_log(sprintf(
+                __('The "%s" tooth is not supported', 'rake-wordpress-migration-example'),
+                $this->type
+            ));
+            return;
+        }
+        $clsTooth = $support_tooths[$this->type];
+        $tooth = new $clsTooth($this->id);
+
+        return $tooth;
     }
 
     public function add_source($source)

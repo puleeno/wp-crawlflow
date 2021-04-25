@@ -7,4 +7,8 @@ class DataRule
     {
         return true;
     }
+
+    public function create_mapping_field()
+    {
+    }
 }
