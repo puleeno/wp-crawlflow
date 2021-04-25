@@ -10,6 +10,5 @@ class FileTooth extends Tooth
 {
     const NAME = 'file';
 
-    use WordPressTooth;
-    use WooCommerceProcessor;
+    use WordPressTooth, WooCommerceProcessor;
 }
