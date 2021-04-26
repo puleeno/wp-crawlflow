@@ -108,7 +108,9 @@ class Tasks
                 continue;
             }
 
-            $task = new Task($raw_task['id'], $raw_task['format']);
+            $task = new Task($raw_task['id'], $raw_task['format'], array_filter($raw_task, function ($key) {
+                return !in_array($key, array('id', 'format', 'sources', 'data_rules'));
+            }, ARRAY_FILTER_USE_KEY));
             if (trim($raw_task['type']) != false) {
                 $task->set_type($raw_task['type']);
             }

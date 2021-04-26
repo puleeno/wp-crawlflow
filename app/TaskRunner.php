@@ -59,7 +59,6 @@ class TaskRunner
                 );
             }
 
-
             $sources = $task->get_sources();
 
             foreach ($sources as $source) {

@@ -1,6 +1,7 @@
 <?php
 namespace App\Core;
 
+use Ramphor\Rake\Abstracts\Tooth;
 use App\Migrator;
 
 class Task
@@ -10,13 +11,18 @@ class Task
     protected $type = 'general';
     protected $source_cms = 'general';
 
+    protected $args = array();
     protected $sources = array();
     protected $data_rules = array();
 
-    public function __construct($task_id, $format)
+    public function __construct($task_id, $format, $args = array())
     {
         $this->id     = $task_id;
         $this->format = $format;
+
+        if (!empty($args)) {
+            $this->args = $args;
+        }
     }
 
     public function set_type($type)
@@ -33,6 +39,17 @@ class Task
             $processor = new $clsProcessor();
 
             return $processor;
+        }
+    }
+
+    public function transformFormat()
+    {
+        $formats = array(
+            'csv' => Tooth::FORMAT_CSV,
+            'html' => Tooth::FORMAT_HTML
+        );
+        if (isset($formats[$this->format])) {
+            return $formats[$this->format];
         }
     }
 
@@ -57,6 +74,16 @@ class Task
         $clsTooth = $support_tooths[$this->type];
         $tooth = new $clsTooth($this->id);
 
+        $parseArgsCallback = array($tooth, 'parseArgs');
+
+        if (is_callable($parseArgsCallback)) {
+            call_user_func($parseArgsCallback, $this->args);
+        }
+
+        $format = $this->transformFormat();
+        if ($format) {
+            $tooth->setFormat($format);
+        }
         $tooth->registerProcessor($processor);
 
         return $tooth;
@@ -113,8 +140,8 @@ class Task
         if (!is_array($rules)) {
             return;
         }
-        foreach ($rules as $rule) {
-            $data_rule = new DataRule($rule);
+        foreach ($rules as $field_name => $rule) {
+            $data_rule = new DataRule($field_name, $rule);
             if (!$data_rule->validate()) {
                 continue;
             }

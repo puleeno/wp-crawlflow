@@ -4,13 +4,29 @@ namespace App\Tooths;
 use Ramphor\Rake\Abstracts\Tooth;
 
 use Puleeno\Rake\WordPress\Traits\WordPressTooth;
-use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
 
 class FileTooth extends Tooth
 {
     const NAME = 'file';
 
-    use WordPressTooth, WooCommerceProcessor;
+    use WordPressTooth;
 
-    protected $filePath;
+    protected $csvHasHeader = false;
+
+    public function parseArgs($args)
+    {
+        if (isset($args['csv_has_header'])) {
+            $this->csvHasHeader = boolval($args['csv_has_header']);
+        }
+    }
+
+    function parserOptions()
+    {
+        $options = array();
+        if (in_array($this->toothFormat, array(static::FORMAT_CSV))) {
+            $options['header'] = $this->csvHasHeader;
+        }
+
+        return $options;
+    }
 }
