@@ -15,7 +15,5 @@ class GeneralProcessor extends Processor
 
     public function execute()
     {
-        var_dump($this);
-        die;
     }
 }
