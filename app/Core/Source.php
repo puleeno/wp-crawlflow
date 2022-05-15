@@ -22,13 +22,13 @@ class Source
         $this->type = $type;
     }
 
-    public function create_feed()
+    public function create_feed($tooth)
     {
         $support_feeds = Migrator::get_support_feeds();
 
         if (isset($support_feeds[$this->type])) {
             $clsFeed = $support_feeds[$this->type];
-            $feed    = new $clsFeed();
+            $feed    = new $clsFeed($this->generateFeedId(), $tooth);
 
             $parseArgCallback = array($feed, 'parseArgs');
             if (is_callable($parseArgCallback)) {
@@ -47,5 +47,31 @@ class Source
     public function validate()
     {
         return true;
+    }
+
+    protected function getHashFromArgs($args)
+    {
+        if (isset($args['url'])) {
+            return md5($args['url']);
+        }
+        return md5(var_export($args, true));
+    }
+
+    protected function generateFeedId()
+    {
+        $hash = $this->getHashFromArgs($this->args);
+
+        return sprintf('%s_%s', $this->type, $hash);
+    }
+
+    public function getArgs($name = null)
+    {
+        if (is_null($name)) {
+            return $this->args;
+        }
+        if (isset($this->args[$name])) {
+            return $this->args[$name];
+        }
+        return null;
     }
 }

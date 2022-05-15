@@ -12,6 +12,7 @@ use App\Tooths\FileTooth;
 use App\Processors\GeneralProcessor;
 use App\Processors\OpencartSourceProcessor;
 use App\Processors\WordPressSourceProcessor;
+use App\Tooths\UrlTooth;
 
 class Migrator
 {
@@ -112,7 +113,8 @@ class Migrator
     {
         $default_tooths = array(
             GeneralTooth::NAME => GeneralTooth::class,
-            FileTooth::NAME    => FileTooth::class
+            FileTooth::NAME    => FileTooth::class,
+            UrlTooth::NAME     => UrlTooth::class,
         );
 
         return apply_filters(

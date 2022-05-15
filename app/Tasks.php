@@ -12,83 +12,79 @@ class Tasks
         $this->load_tasks();
     }
 
+    private function loadFromContent()
+    {
+        $tasksDir = sprintf('%s/tasks', rtrim(constant('WP_CONTENT_DIR'), '/'));
+        $globalTasksFile = sprintf('%s/tasks.php', rtrim(constant('WP_CONTENT_DIR'), '/'));
+        $taskFiles = glob($tasksDir . '/*.php');
+        if (!file_exists($globalTasksFile) && count($taskFiles) <= 0) {
+            return null;
+        }
+
+        $tasks = [];
+
+        if (file_exists($globalTasksFile)) {
+            // Create tasks from global
+            $globalTasks = require $globalTasksFile;
+            if (is_array($globalTasks)) {
+                foreach ($globalTasks as $task) {
+                    if (!isset($task['id'])) {
+                        continue;
+                    }
+                    $tasks[$task['id']] = $task;
+                }
+            }
+        }
+
+        foreach ($taskFiles as $taskFile) {
+            $task = require $taskFile;
+            if (!is_array($task)) {
+                continue;
+            }
+
+            if (!isset($task['id'])) {
+                error_log(sprintf('The task is do not have the ID: %s', json_encode($task)));
+                continue;
+            }
+            $id = $task['id'];
+            $task = array_merge(
+                isset($tasks[$id]) ? $tasks[$id] : [],
+                $task
+            );
+
+            $tasks[$id] = $task;
+        }
+
+        return $tasks;
+    }
+
+    private function loadFromDefaultPath()
+    {
+        $configDir = dirname(RAKE_WORDPRESS_MIGRATION_EXAMPLE_PLUGIN_FILE);
+        $taskConfigFile = sprintf('%s/configs/tasks.php', $configDir);
+
+        $tasks = require $taskConfigFile;
+        if (!is_array($tasks)) {
+            return [];
+        }
+        return $tasks;
+    }
+
+    protected function get_tasks_from_config()
+    {
+        $tasks = $this->loadFromContent();
+        if (!is_null($tasks)) {
+            return $tasks;
+        }
+        return $this->loadFromDefaultPath();
+    }
+
     public function load_tasks()
     {
-        $raw_tasks = array(
-            array(
-                'id' => 'your_task_id',
-                'format' => 'html',
-                'type' => 'url',
-                'source_cms' => 'opencart',
-                'data_rules' => array(
-                    'title' => array(
-                        'type'    => 'xpath',
-                        'pattern' => '.product-view h1.title-product, #blog-info h1.blog-title',
-                    ),
-                    'seo_title' => array(
-                        'type'    => 'xpath',
-                        'pattern' => 'title',
-                        'get'     => 'text',
-                    ),
-                    'seo_description' => array(
-                        'type'      => 'xpath',
-                        'pattern'   => 'meta[name="description"]',
-                        'get'       => 'attribute',
-                        'attribute' => 'content',
-                    ),
-                    'product_content' => array(
-                        'type'    => 'xpath',
-                        'pattern' => '#tab-description',
-                        'get'     => 'innerHtml',
-                    ),
-                    'product_attributes' => array(
-                        'type'    => 'xpath',
-                        'pattern' => '#tab-specification',
-                        'get'     => 'innerHtml',
-                    ),
-                    'product_price' => array(
-                        'type'      => 'regex',
-                        'pattern'   => '/\"price\":\s?\"([^\"]+)/',
-                        'group'     => 1,
-                        'callbacks' => array(
-                            'str_replace' => array( array( '.' ), '', '%%argument%%' ),
-                        ),
-                    ),
-                    'product_metas' => array(
-                        'type'    => 'xpath',
-                        'pattern' => '.product-view > ul.list-unstyled li',
-                        'get'     => 'innerHtml',
-                        'return'  => 'array',
-                    ),
-                    'categories' => array(
-                        'type'    => 'xpath',
-                        'pattern' => '.breadcrumbs .breadcrumb-links li a, #page .breadcrumb li a, .breadcrumbs .breadcrumb-links li a',
-                        'get'     => 'text',
-                        'return'  => 'array',
-                    ),
-                    'coverImage' => array(
-                        'type'      => 'xpath',
-                        'pattern'   => 'meta[property="og:image"]',
-                        'get'       => 'attribute',
-                        'attribute' => 'content',
-                    ),
-                    'galleryImages' => array(
-                        'type'      => 'xpath',
-                        'pattern'   => '#image-additional-carousel a',
-                        'get'       => 'attribute',
-                        'attribute' => 'href',
-                        'return'    => 'array',
-                    )
-                ),
-                'sources' => array(
-                    array(
-                        'type' => 'sitemap',
-                        'url' => 'https://the-opencart-site/sitemap.xml',
-                    )
-                )
-            )
+        $raw_tasks = apply_filters(
+            'migration_prepare_tasks',
+            $this->get_tasks_from_config()
         );
-        $raw_tasks = apply_filters('migration_prepare_tasks', $raw_tasks);
 
         foreach ($raw_tasks as $index => $raw_task) {
             $raw_task = wp_parse_args($raw_task, array(
@@ -98,6 +94,8 @@ class Tasks
                 'data_rules' => array(),
                 'sources' => array(),
             ));
+
+            $raw_task = apply_filters('migration_setup_task', $raw_task, $raw_tasks, $this);
 
             if (empty($raw_task['id']) || empty($raw_task['format'])) {
                 error_log(sprintf(

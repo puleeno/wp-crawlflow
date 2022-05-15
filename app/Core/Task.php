@@ -12,7 +12,12 @@ class Task
     protected $source_cms = 'general';
 
     protected $args = array();
+
+    /**
+     * @var \App\Core\Source[]
+     */
     protected $sources = array();
+
     protected $data_rules = array();
 
     public function __construct($task_id, $format, $args = array())

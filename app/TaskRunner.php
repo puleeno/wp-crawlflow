@@ -12,6 +12,9 @@ class TaskRunner
 
     protected static $instance;
 
+    /**
+     * @var \App\Core\Task[]
+     */
     protected $tasks = array();
 
     private function __construct()
@@ -45,11 +48,11 @@ class TaskRunner
 
         foreach ($this->tasks as $task) {
             $tooth   = $task->create_tooth();
-            $tooth->setRake($rake);
             if (is_null($tooth)) {
                 continue;
             }
 
+            $tooth->setRake($rake);
             $data_rules = $task->get_data_rules();
 
             foreach ($data_rules as $data_rule) {
@@ -62,11 +65,14 @@ class TaskRunner
             $sources = $task->get_sources();
 
             foreach ($sources as $source) {
-                $feed = $source->create_feed();
+                $feed = $source->create_feed($tooth);
                 if (is_null($feed)) {
                     continue;
                 }
-                $feed->setTooth($tooth);
+
+                if (method_exists($feed, 'setUrl') && $source->getArgs('url')) {
+                    $feed->setUrl($source->getArgs('url'));
+                }
                 $tooth->addFeed($feed);
             }
 
