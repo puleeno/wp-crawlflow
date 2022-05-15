@@ -14,6 +14,11 @@ class GeneralTooth extends CrawlerTooth
 
     public function validateURL($url)
     {
+        $parsedUrl = parse_url($url);
+        if (!isset($parsedUrl['path']) or $parsedUrl['path'] === '/') {
+            return false;
+        }
+
         if (is_callable($this->urlValidator)) {
             return call_user_func($this->urlValidator, $url);
         }
