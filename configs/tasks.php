@@ -5,6 +5,7 @@ return array(
         'format' => 'html',
         'type' => 'url',
         'source_cms' => 'general',
+        'url_validator' => true,
         'data_rules' => array(
             'title' => array(
                 'type'    => 'xpath',

@@ -118,6 +118,9 @@ class Tasks
 
             $task->set_data_rules($raw_task['data_rules']);
             $task->set_sources($raw_task['sources']);
+            if (isset($raw_task['url_validator'])) {
+                $task->get_url_validator($raw_task['url_validator']);
+            }
 
             if ($task->validate()) {
                 array_push($this->tasks, $task);

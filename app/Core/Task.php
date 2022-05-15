@@ -10,6 +10,7 @@ class Task
     protected $format;
     protected $type = 'general';
     protected $source_cms = 'general';
+    protected $url_validator = true;
 
     protected $args = array();
 
@@ -77,6 +78,10 @@ class Task
         }
 
         $clsTooth = $support_tooths[$this->type];
+
+        /**
+         * @var \Ramphor\Rake\Abstracts\Tooth
+         */
         $tooth = new $clsTooth($this->id);
 
         $parseArgsCallback = array($tooth, 'parseArgs');
@@ -90,6 +95,9 @@ class Task
             $tooth->setFormat($format);
         }
         $tooth->registerProcessor($processor);
+        $tooth->setUrlValidator(
+            $this->get_url_validator()
+        );
 
         return $tooth;
     }
@@ -162,5 +170,15 @@ class Task
     public function validate()
     {
         return ! empty($this->sources) && ! empty($this->data_rules);
+    }
+
+    public function set_url_validator($validator_or_value)
+    {
+        $this->url_validator = $validator_or_value;
+    }
+
+    public function get_url_validator()
+    {
+        return $this->url_validator;
     }
 }
