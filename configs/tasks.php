@@ -64,7 +64,20 @@ return array(
                 'get'       => 'attribute',
                 'attribute' => 'href',
                 'return'    => 'array',
-            )
+            ),
+            'slug' => array(
+                'type' => 'guid',
+                'callback' => function($slug) {
+                    $parsedURL = parse_url($slug);
+                    if (!isset($parsedURL['path'])) {
+                        return '';
+                    }
+                    $pathArr = explode('/', $parsedURL['path']);
+                    $lastPath = end($pathArr);
+
+                    return trim($lastPath, '.html');
+                },
+            ),
         ),
         'sources' => array(
             array(

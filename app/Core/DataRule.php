@@ -12,6 +12,7 @@ class DataRule
     protected $pattern;
     protected $group;
     protected $return;
+    protected $callback;
     protected $callbacks;
     protected $attribute;
     protected $get;
