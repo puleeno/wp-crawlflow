@@ -6,6 +6,7 @@ return array(
         'type' => 'url',
         'source_cms' => 'general',
         'url_validator' => true,
+        'url_use_splash' => false,
         'data_rules' => array(
             'title' => array(
                 'type'    => 'xpath',

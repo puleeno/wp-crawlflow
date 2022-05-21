@@ -1,6 +1,7 @@
 <?php
 namespace App;
 
+use App\Core\AddonManager;
 use Ramphor\Rake\Feeds\Sitemap\Sitemap;
 use Ramphor\Rake\Feeds\Sitemap\SitemapIndex;
 use Ramphor\Rake\Feeds\CsvFile;
@@ -13,6 +14,7 @@ use App\Processors\GeneralProcessor;
 use App\Processors\OpencartSourceProcessor;
 use App\Processors\WordPressSourceProcessor;
 use App\Tooths\UrlTooth;
+use Ramphor\Rake\Facades\Logger;
 
 class Migrator
 {
@@ -34,6 +36,8 @@ class Migrator
 
     protected function bootstrap()
     {
+        $addonManager = new AddonManager();
+        $addonManager->loadAddons();
     }
 
     public function init_hooks()

@@ -10,7 +10,8 @@ class Task
     protected $format;
     protected $type = 'general';
     protected $source_cms = 'general';
-    protected $url_validator = true;
+    protected $url_validator  = true;
+    protected $url_use_splash = false;
 
     protected $args = array();
 
@@ -98,6 +99,9 @@ class Task
         $tooth->setUrlValidator(
             $this->get_url_validator()
         );
+        $tooth->setUrlUseLastSplash(
+            $this->url_has_use_splash()
+        );
 
         return $tooth;
     }
@@ -180,5 +184,15 @@ class Task
     public function get_url_validator()
     {
         return $this->url_validator;
+    }
+
+    public function url_use_slash($used = false)
+    {
+        $this->url_use_splash = boolval($used);
+    }
+
+    public function url_has_use_splash()
+    {
+        return $this->url_use_splash;
     }
 }
