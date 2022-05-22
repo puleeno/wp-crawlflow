@@ -5,13 +5,15 @@ use App\Addons\Redirection;
 
 class AddonManager
 {
-    protected function getDefaultAdddons() {
+    protected function getDefaultAdddons()
+    {
         return [
             Redirection::class
         ];
     }
 
-    protected function getAddons() {
+    protected function getAddons()
+    {
         $addons = $this->getDefaultAdddons();
 
         return $addons;
@@ -19,7 +21,7 @@ class AddonManager
 
     public function loadAddons()
     {
-        foreach($this->getAddons() as $addonCls) {
+        foreach ($this->getAddons() as $addonCls) {
             if (!class_exists($addonCls)) {
                 continue;
             }

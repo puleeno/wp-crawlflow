@@ -3,6 +3,7 @@ namespace App\Core;
 
 use Ramphor\Rake\Abstracts\Tooth;
 use App\Migrator;
+use App\Utils\Str;
 
 class Task
 {
@@ -158,7 +159,8 @@ class Task
             return;
         }
         foreach ($rules as $field_name => $rule) {
-            $data_rule = new DataRule($field_name, $rule);
+            $field_name = Str::convertToCamel($field_name);
+            $data_rule  = new DataRule($field_name, $rule);
             if (!$data_rule->validate()) {
                 continue;
             }

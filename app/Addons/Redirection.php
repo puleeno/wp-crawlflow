@@ -5,8 +5,9 @@ use App\Abstracts\Addon;
 
 class Redirection extends Addon
 {
-    protected function getUrlFromResource($resource) {
-        switch($resource->new_type) {
+    protected function getUrlFromResource($resource)
+    {
+        switch ($resource->new_type) {
             case 'attachment':
                 return wp_get_attachment_url($resource->new_guid);
             case 'term':
@@ -16,7 +17,8 @@ class Redirection extends Addon
         }
     }
 
-    protected function redirect($resource, $preempt) {
+    protected function redirect($resource, $preempt)
+    {
         $url = $this->getUrlFromResource($resource);
         if (!$url) {
             return $preempt;
@@ -24,9 +26,10 @@ class Redirection extends Addon
         return wp_safe_redirect($url, 301, 'Rake Migration Tool');
     }
 
-    public function bootstrap() {
+    public function bootstrap()
+    {
 
-        add_filter('pre_handle_404', function($preempt) {
+        add_filter('pre_handle_404', function ($preempt) {
             $requestUrl = rtrim($_SERVER['REQUEST_URI'], '/');
             if (strpos($requestUrl, '%') === false) {
                 $requestUrl = urlencode($requestUrl);

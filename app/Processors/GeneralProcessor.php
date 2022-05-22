@@ -1,11 +1,16 @@
 <?php
 namespace App\Processors;
 
+use WP_Error;
+
+use Ramphor\Rake\Resource;
 use Ramphor\Rake\ProcessResult;
+use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Abstracts\Processor;
 
 use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
+
 
 class GeneralProcessor extends Processor
 {
@@ -19,33 +24,40 @@ class GeneralProcessor extends Processor
      */
     protected $feedItem;
 
-    protected function checkPostType()
+    /**
+     * @var integer|\WP_Error
+     */
+    protected $importedId;
+
+    protected function checkDataType()
     {
-        $postType = null;
-        if (apply_filters('pre_the_migration_plugin_post_type', $postType) !== null) {
-            return $postType;
+        $dataType = null;
+        if (apply_filters('pre_the_migration_plugin_data_type', $dataType) !== null) {
+            return $dataType;
         }
 
-        if ($this->feedItem->title !== '') {
-            return 'post';
+        if ($this->feedItem->title) {
+            $dataType = 'post';
+        } elseif ($this->feedItem->productName) {
+            $dataType = 'product';
+        } elseif ($this->feedItem->productCategoryName) {
+            $dataType = 'product_category';
+        } elseif ($this->feedItem->pageTitle) {
+            $dataType = 'page';
         }
 
-        if ($this->feedItem->productName !== '') {
-            return 'product';
-        }
-
-        if ($this->feedItem->pro) {
-            return apply_filters('the_migration_plugin_check_post_type', $postType, $this->feedItem);
-        }
+        return apply_filters('the_migration_plugin_check_data_type', $dataType, $this->feedItem);
     }
 
     public function execute()
     {
-        if (!($postType = $this->checkPostType()) || !post_type_exists($postType)) {
-            return ProcessResult::createErrorResult("The post type [{$postType}] is invalid");
+        if (!($dataType = $this->checkDataType())) {
+            return ProcessResult::createErrorResult("The post type [{$dataType}] is invalid");
         }
 
-        switch ($postType) {
+        Logger::info("Start importing [{$dataType}]: {$this->feedItem->guid}...");
+
+        switch ($dataType) {
             case 'post':
                 $this->importPost();
                 break;
@@ -55,13 +67,23 @@ class GeneralProcessor extends Processor
             case 'page':
                 $this->importPage();
                 break;
+            case 'product_category':
+                $this->importProductCategory();
+                break;
+            default:
+                $this->importedId = new WP_Error(-1, 'The data type is not imported', $dataType);
+                break;
         }
 
         if (is_wp_error($this->importedId)) {
-            return ProcessResult::createErrorResult($this->importedId->get_error_message(), ProcessResult::ERROR_RESULT_TYPE);
+            Logger::debug($this->importedId->get_error_message());
+            return ProcessResult::createErrorResult(
+                $this->importedId->get_error_message(),
+                ProcessResult::ERROR_RESULT_TYPE
+            );
         }
 
-        if ($postType === 'post') {
+        if ($dataType === 'post') {
             $this->importPostCategories(
                 $this->feedItem->categories,
                 true,
@@ -69,7 +91,7 @@ class GeneralProcessor extends Processor
             );
 
             $this->importPostTags($this->feedItem->tags, $this->importedId);
-        } elseif ($postType === 'product') {
+        } elseif ($dataType === 'product') {
             $this->importProductCategories(
                 empty($this->feedItem->productCategories) ? $this->feedItem->categories : $this->feedItem->productCategories,
                 true,
@@ -80,14 +102,24 @@ class GeneralProcessor extends Processor
                 empty($this->feedItem->productTags) ? $this->feedItem->tags : $this->feedItem->productTags,
                 $this->importedId
             );
+        } elseif ($dataType == 'product_category') {
+            if ($this->feedItem->coverImage) {
+                $coverImageResource = Resource::create($this->feedItem->coverImage, 'cover_image', $this->tooth);
+                $this->tooth->downloadResource($coverImageResource);
+                $coverImageResource->save();
+
+                if ($coverImageResource->imported) {
+                    add_term_meta($this->importedId, 'thumbnail_id', $coverImageResource->newGuid);
+                }
+            }
         }
 
 
-        if ($postType !== 'product') {
+        if ($dataType !== 'product') {
             $this->useFirstImageAsCoverImageWhenNotExists();
         }
 
-        return ProcessResult::createSuccessResult($this->feedItem->guid, $this->importedId, $postType);
+        return ProcessResult::createSuccessResult($this->feedItem->guid, $this->importedId, $dataType);
     }
 
     protected function useFirstImageAsCoverImageWhenNotExists()
