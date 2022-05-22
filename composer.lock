@@ -644,16 +644,16 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/httplug-guzzle6-adapter.git",
-                "reference": "7b160800c2ccab255665ade2493e07a6bf9a91aa"
+                "reference": "1875e9d095d3434942f01f7cdb8f57ca9e712515"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/httplug-guzzle6-adapter/zipball/7b160800c2ccab255665ade2493e07a6bf9a91aa",
-                "reference": "7b160800c2ccab255665ade2493e07a6bf9a91aa",
+                "url": "https://api.github.com/repos/ramphor/httplug-guzzle6-adapter/zipball/1875e9d095d3434942f01f7cdb8f57ca9e712515",
+                "reference": "1875e9d095d3434942f01f7cdb8f57ca9e712515",
                 "shasum": ""
             },
             "require": {
-                "php": "^7.1",
+                "php": ">= 7.1",
                 "php-http/httplug": "^2.0",
                 "psr/http-client": "^1.0",
                 "ramphor/guzzle": "*"
@@ -701,9 +701,9 @@
                 "http"
             ],
             "support": {
-                "source": "https://github.com/ramphor/httplug-guzzle6-adapter/tree/v2.0.2"
+                "source": "https://github.com/ramphor/httplug-guzzle6-adapter/tree/master"
             },
-            "time": "2020-08-06T16:38:31+00:00"
+            "time": "2022-05-22T09:52:48+00:00"
         },
         {
             "name": "ramphor/logger",
@@ -817,17 +817,17 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "c4c36e25cea6c53f62cfc711170415bf7cb59668"
+                "reference": "0d677943a798deda3307f14879121a919cdf76cf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/c4c36e25cea6c53f62cfc711170415bf7cb59668",
-                "reference": "c4c36e25cea6c53f62cfc711170415bf7cb59668",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/0d677943a798deda3307f14879121a919cdf76cf",
+                "reference": "0d677943a798deda3307f14879121a919cdf76cf",
                 "shasum": ""
             },
             "require": {
                 "guzzlehttp/psr7": "^1.6",
-                "php": "^7.1",
+                "php": ">=7.1",
                 "php-http/httplug": "^2.1",
                 "psr/log": "^1.0.1",
                 "ramphor/httplug-guzzle6-adapter": "^2.0.2",
@@ -856,7 +856,7 @@
                 "issues": "https://github.com/ramphor/rake-php/issues",
                 "source": "https://github.com/ramphor/rake-php/tree/master"
             },
-            "time": "2022-05-22T08:37:38+00:00"
+            "time": "2022-05-22T09:53:09+00:00"
         },
         {
             "name": "ramphor/sql",
