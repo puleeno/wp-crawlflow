@@ -104,6 +104,11 @@ class GeneralProcessor extends Processor
         } elseif ($dataType == 'product_category') {
         }
 
+        if (post_type_exists($dataType)) {
+            $this->importSeo();
+        } elseif (taxonomy_exists($dataType)) {
+            $this->importTermSeo();
+        }
 
         if ($dataType !== 'product') {
             $this->useFirstImageAsCoverImageWhenNotExists();
