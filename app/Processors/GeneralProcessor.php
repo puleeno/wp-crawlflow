@@ -11,7 +11,6 @@ use Ramphor\Rake\Abstracts\Processor;
 use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
 
-
 class GeneralProcessor extends Processor
 {
     const NAME = 'general';
@@ -103,15 +102,6 @@ class GeneralProcessor extends Processor
                 $this->importedId
             );
         } elseif ($dataType == 'product_category') {
-            if ($this->feedItem->coverImage) {
-                $coverImageResource = Resource::create($this->feedItem->coverImage, 'cover_image', $this->tooth);
-                $this->tooth->downloadResource($coverImageResource);
-                $coverImageResource->save();
-
-                if ($coverImageResource->imported) {
-                    add_term_meta($this->importedId, 'thumbnail_id', $coverImageResource->newGuid);
-                }
-            }
         }
 
 
