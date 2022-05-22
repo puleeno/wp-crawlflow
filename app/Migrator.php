@@ -54,6 +54,23 @@ class Migrator
         if ($this->is_request('cron')) {
             add_action('init', array($this, 'setup_task_events'));
         }
+
+        add_filter('cron_schedules', array($this, '_cron_schedules'));
+    }
+
+    function _cron_schedules($schedules)
+    {
+        if (!isset($schedules["5mins"])) {
+            $schedules["5mins"] = array(
+                'interval' => 5*60,
+                'display' => __('Once every 5 minutes'));
+        }
+        if (!isset($schedules["30mins"])) {
+            $schedules["30mins"] = array(
+                'interval' => 30*60,
+                'display' => __('Once every 30 minutes'));
+        }
+        return $schedules;
     }
 
     private function is_request($type)

@@ -12,7 +12,7 @@ class Installer
         $initializer->setUpDb();
 
         if (! wp_next_scheduled(TaskRunner::TASK_CRON_NAME)) {
-            wp_schedule_event(time(), 'hourly', TaskRunner::TASK_CRON_NAME);
+            wp_schedule_event(time(), '5mins', TaskRunner::TASK_CRON_NAME);
         }
     }
 
