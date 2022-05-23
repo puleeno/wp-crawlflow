@@ -510,12 +510,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/puleeno/rake-wordpress-adapter.git",
-                "reference": "4486c4afe3a7dafbcc18f9b883817330db344c9f"
+                "reference": "84d11a19e78bf632dc9e92dfb0b85e349d7e3be3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/4486c4afe3a7dafbcc18f9b883817330db344c9f",
-                "reference": "4486c4afe3a7dafbcc18f9b883817330db344c9f",
+                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/84d11a19e78bf632dc9e92dfb0b85e349d7e3be3",
+                "reference": "84d11a19e78bf632dc9e92dfb0b85e349d7e3be3",
                 "shasum": ""
             },
             "require": {
@@ -547,7 +547,7 @@
                 "issues": "https://github.com/puleeno/rake-wordpress-adapter/issues",
                 "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/master"
             },
-            "time": "2022-05-23T05:48:28+00:00"
+            "time": "2022-05-23T13:58:04+00:00"
         },
         {
             "name": "ralouphie/getallheaders",
@@ -817,12 +817,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "71fb5e354ac37b6fec9d0e3fa3ddd5dbf89f08cd"
+                "reference": "9fdc07e63452dc2c2d7d0d6675baa5296887e931"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/71fb5e354ac37b6fec9d0e3fa3ddd5dbf89f08cd",
-                "reference": "71fb5e354ac37b6fec9d0e3fa3ddd5dbf89f08cd",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/9fdc07e63452dc2c2d7d0d6675baa5296887e931",
+                "reference": "9fdc07e63452dc2c2d7d0d6675baa5296887e931",
                 "shasum": ""
             },
             "require": {
@@ -856,7 +856,7 @@
                 "issues": "https://github.com/ramphor/rake-php/issues",
                 "source": "https://github.com/ramphor/rake-php/tree/master"
             },
-            "time": "2022-05-23T05:48:44+00:00"
+            "time": "2022-05-23T13:58:48+00:00"
         },
         {
             "name": "ramphor/sql",
