@@ -510,12 +510,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/puleeno/rake-wordpress-adapter.git",
-                "reference": "a51dd6e4639af6e1d2e403dc0802895da8674f02"
+                "reference": "4486c4afe3a7dafbcc18f9b883817330db344c9f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/a51dd6e4639af6e1d2e403dc0802895da8674f02",
-                "reference": "a51dd6e4639af6e1d2e403dc0802895da8674f02",
+                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/4486c4afe3a7dafbcc18f9b883817330db344c9f",
+                "reference": "4486c4afe3a7dafbcc18f9b883817330db344c9f",
                 "shasum": ""
             },
             "require": {
@@ -547,7 +547,7 @@
                 "issues": "https://github.com/puleeno/rake-wordpress-adapter/issues",
                 "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/master"
             },
-            "time": "2022-05-22T09:08:24+00:00"
+            "time": "2022-05-23T05:48:28+00:00"
         },
         {
             "name": "ralouphie/getallheaders",
@@ -711,12 +711,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/logger.git",
-                "reference": "b8733c5043d4c0bbe925fbf93499483677f62341"
+                "reference": "c1da9757a6589779629b79574ed374186dd5cafc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/logger/zipball/b8733c5043d4c0bbe925fbf93499483677f62341",
-                "reference": "b8733c5043d4c0bbe925fbf93499483677f62341",
+                "url": "https://api.github.com/repos/ramphor/logger/zipball/c1da9757a6589779629b79574ed374186dd5cafc",
+                "reference": "c1da9757a6589779629b79574ed374186dd5cafc",
                 "shasum": ""
             },
             "require": {
@@ -747,7 +747,7 @@
                 "issues": "https://github.com/ramphor/logger/issues",
                 "source": "https://github.com/ramphor/logger/tree/master"
             },
-            "time": "2022-05-22T08:42:09+00:00"
+            "time": "2022-05-22T10:56:22+00:00"
         },
         {
             "name": "ramphor/php-html-parser",
@@ -817,12 +817,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "0d677943a798deda3307f14879121a919cdf76cf"
+                "reference": "71fb5e354ac37b6fec9d0e3fa3ddd5dbf89f08cd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/0d677943a798deda3307f14879121a919cdf76cf",
-                "reference": "0d677943a798deda3307f14879121a919cdf76cf",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/71fb5e354ac37b6fec9d0e3fa3ddd5dbf89f08cd",
+                "reference": "71fb5e354ac37b6fec9d0e3fa3ddd5dbf89f08cd",
                 "shasum": ""
             },
             "require": {
@@ -856,7 +856,7 @@
                 "issues": "https://github.com/ramphor/rake-php/issues",
                 "source": "https://github.com/ramphor/rake-php/tree/master"
             },
-            "time": "2022-05-22T09:53:09+00:00"
+            "time": "2022-05-23T05:48:44+00:00"
         },
         {
             "name": "ramphor/sql",
