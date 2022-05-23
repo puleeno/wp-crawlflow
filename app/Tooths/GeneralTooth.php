@@ -5,6 +5,7 @@ use MailPoetVendor\Doctrine\DBAL\Types\BooleanType;
 use Ramphor\Rake\Abstracts\CrawlerTooth;
 
 use Puleeno\Rake\WordPress\Traits\WordPressTooth;
+use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Facades\Option;
 
 class GeneralTooth extends CrawlerTooth
@@ -20,9 +21,11 @@ class GeneralTooth extends CrawlerTooth
         $notifiedKey = sprintf('tooth_%s_notified', $this->getId());
         $notified    = Option::get($notifiedKey, false);
         if ($notified) {
+            Logger::info('[%s]Load %d resources for downloading', $this->getId(), static::MAXIMUM_RESOURCES_DOWNLOADING);
             return static::MAXIMUM_RESOURCES_DOWNLOADING;
         }
 
+        Logger::info('[%s]Load %d resources for downloading', $this->getId(), $this->limitQueryResource);
         return $this->limitQueryResource;
     }
 
