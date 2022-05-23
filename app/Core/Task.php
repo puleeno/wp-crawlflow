@@ -61,6 +61,9 @@ class Task
         }
     }
 
+    /**
+     * @return \Ramphor\Rake\Constracts\Tooth|\App\Tooths\GeneralTooth
+     */
     public function create_tooth()
     {
         $support_tooths = Migrator::get_support_tooths();

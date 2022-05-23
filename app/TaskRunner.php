@@ -55,6 +55,10 @@ class TaskRunner
             $tooth->setRake($rake);
             $data_rules = $task->get_data_rules();
 
+            if (method_exists($tooth, 'wordpressBootstrap')) {
+                call_user_func([$tooth, 'wordpressBootstrap']);
+            }
+
             foreach ($data_rules as $data_rule) {
                 $tooth->addMappingField(
                     $data_rule->get_field_name(),
