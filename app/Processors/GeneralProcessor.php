@@ -3,7 +3,6 @@ namespace App\Processors;
 
 use WP_Error;
 
-use Ramphor\Rake\Resource;
 use Ramphor\Rake\ProcessResult;
 use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Abstracts\Processor;
