@@ -127,6 +127,11 @@ class Tasks
                 $task->setup_data_type_checker();
             }
 
+            if (isset($raw_task['product_categories_filter'])) {
+                $task->set_product_categories_filter($raw_task['product_categories_filter']);
+                $task->setup_product_categories_filter();
+            }
+
             if ($task->validate()) {
                 array_push($this->tasks, $task);
             } else {

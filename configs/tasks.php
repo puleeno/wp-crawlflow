@@ -86,6 +86,7 @@ return array(
                 'type' => 'sitemap',
                 'url' => 'https://the-opencart-site/sitemap.xml',
             )
-        )
+        ),
+        // 'product_category_filter' => function($categories, $feedItem, $productId){}
     )
 );

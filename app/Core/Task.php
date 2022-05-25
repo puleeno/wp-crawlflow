@@ -14,6 +14,7 @@ class Task
     protected $url_validator  = true;
     protected $url_use_splash = false;
     protected $data_type_checker = null;
+    protected $product_categories_filter = null;
 
     protected $args = array();
 
@@ -211,6 +212,18 @@ class Task
     {
         if (is_callable($this->data_type_checker)) {
             add_filter("pre_the_migration_plugin_{$this->id}_data_type", $this->data_type_checker, 10, 2);
+        }
+    }
+
+    public function set_product_categories_filter($filter)
+    {
+        $this->product_categories_filter = $filter;
+    }
+
+    public function setup_product_categories_filter()
+    {
+        if (is_callable($this->product_categories_filter)) {
+            add_filter("{$this->id}_product_categories", $this->product_categories_filter, 10, 3);
         }
     }
 }
