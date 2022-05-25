@@ -69,7 +69,7 @@ return array(
             ),
             'slug' => array(
                 'type' => 'guid',
-                'callback' => function($slug) {
+                'callback' => function ($slug) {
                     $parsedURL = parse_url($slug);
                     if (!isset($parsedURL['path'])) {
                         return '';
@@ -79,6 +79,14 @@ return array(
 
                     return trim($lastPath, '.html');
                 },
+            ),
+            'published_at' => array(
+                'type'     => 'custom',
+                'default_value'    => 'test',
+                'callback' => function () {
+                    $int= rand(1582216785, time());
+                    return date("Y-m-d H:i:s", $int);
+                }
             ),
         ),
         'sources' => array(
