@@ -7,6 +7,7 @@ return array(
         'source_cms' => 'general',
         'url_validator' => true,
         'url_use_splash' => false,
+        // 'data_type_checker' => function($type, $feedItem){},
         'data_rules' => array(
             'title' => array(
                 'type'    => 'xpath',

@@ -122,6 +122,11 @@ class Tasks
                 $task->get_url_validator($raw_task['url_validator']);
             }
 
+            if (isset($raw_task['data_type_checker'])) {
+                $task->set_data_type_checker($raw_task['data_type_checker']);
+                $task->setup_data_type_checker();
+            }
+
             if ($task->validate()) {
                 array_push($this->tasks, $task);
             } else {

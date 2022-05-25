@@ -13,6 +13,7 @@ class Task
     protected $source_cms = 'general';
     protected $url_validator  = true;
     protected $url_use_splash = false;
+    protected $data_type_checker = null;
 
     protected $args = array();
 
@@ -199,5 +200,17 @@ class Task
     public function url_has_use_splash()
     {
         return $this->url_use_splash;
+    }
+
+    public function set_data_type_checker($callable)
+    {
+        $this->data_type_checker = $callable;
+    }
+
+    public function setup_data_type_checker()
+    {
+        if (is_callable($this->data_type_checker)) {
+            add_filter("pre_the_migration_plugin_{$this->id}_data_type", $this->data_type_checker, 10, 2);
+        }
     }
 }
