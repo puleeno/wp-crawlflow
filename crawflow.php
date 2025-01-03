@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: WP CrawlFlow
+ * Plugin Name: CrawlFlow
  * Plugin URI: https://github.com/puleeno/wp-crawflow/
  * Author: Puleeno Nguyen
  * Author URI: https://puleeno.com
