@@ -5,7 +5,7 @@
  * Author: Puleeno Nguyen
  * Author URI: https://puleeno.com
  * Version: 1.0.0
- * Description: Use Rake migration framework to migrate other website to WordPress
+ * Description: The GUI create a flow for crawler to migrate or crawl data from other sources: web, rss, xml, csv or more
  */
 
 define( 'RAKE_WORDPRESS_MIGRATION_EXAMPLE_PLUGIN_FILE', __FILE__ );

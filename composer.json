@@ -2,7 +2,7 @@
     "name": "puleeno/wp-crawflow",
     "description": "Use Rake migration framework to migrate other website to WordPress",
     "type": "project",
-    "license": "MIT",
+    "license": "GPL-3.0-only",
     "authors": [
         {
             "name": "Puleeno Nguyen",
@@ -11,8 +11,8 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "ramphor/rake": "dev-master",
-        "puleeno/rake-wordpress-adapter": "dev-master"
+        "ramphor/rake": "*",
+        "puleeno/rake-wordpress-adapter": "*"
     },
     "autoload": {
         "psr-4": {

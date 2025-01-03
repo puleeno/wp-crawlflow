@@ -1,0 +1,11 @@
+{
+  "name": "wp-crawflow",
+  "version": "1.0.0",
+  "description": "The GUI create a flow for crawler to migrate or crawl data from other sources: web, rss, xml, csv or more",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Puleeno Nguyen <puleeno@gmail.com>",
+  "license": "GPL-3.0-only"
+}
