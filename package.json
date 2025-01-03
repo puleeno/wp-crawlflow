@@ -1,11 +1,22 @@
 {
-  "name": "wp-crawflow",
+  "name": "my-webpack-project",
   "version": "1.0.0",
-  "description": "The GUI create a flow for crawler to migrate or crawl data from other sources: web, rss, xml, csv or more",
+  "description": "My webpack project",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --mode=production --node-env=production",
+    "build:dev": "webpack --mode=development",
+    "build:prod": "webpack --mode=production --node-env=production",
+    "watch": "webpack --watch",
+    "serve": "webpack serve"
   },
   "author": "Puleeno Nguyen <puleeno@gmail.com>",
-  "license": "GPL-3.0-only"
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "@xyflow/react": "^12.3.6"
+  },
+  "devDependencies": {
+    "@webpack-cli/generators": "^3.0.7"
+  }
 }
