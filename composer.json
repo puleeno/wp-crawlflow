@@ -1,5 +1,5 @@
 {
-    "name": "puleeno/rake-wordpress-migration-example",
+    "name": "puleeno/wp-crawflow",
     "description": "Use Rake migration framework to migrate other website to WordPress",
     "type": "project",
     "license": "MIT",

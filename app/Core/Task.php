@@ -72,7 +72,7 @@ class Task
 
         if (!isset($support_tooths[$this->type])) {
             error_log(sprintf(
-                __('The "%s" tooth is not supported', 'rake-wordpress-migration-example'),
+                __('The "%s" tooth is not supported', 'wp-crawflow'),
                 $this->type
             ));
             return;
@@ -80,7 +80,7 @@ class Task
 
         $processor = $this->create_processor();
         if (!$processor) {
-            error_log(__('Processor is not created to register to tooth', 'rake-wordpress-migration-example'));
+            error_log(__('Processor is not created to register to tooth', 'wp-crawflow'));
             return;
         }
 

@@ -7,8 +7,8 @@ use App\Core\Task;
 
 class TaskRunner
 {
-    const TASK_CRON_NAME = 'rake-wordpress-migration-example';
-    const RAKE_ID        = 'rake-wordpress-migration-example';
+    const TASK_CRON_NAME = 'wp-crawflow';
+    const RAKE_ID        = 'wp-crawflow';
 
     protected static $instance;
 

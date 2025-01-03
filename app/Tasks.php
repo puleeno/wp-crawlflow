@@ -99,7 +99,7 @@ class Tasks
 
             if (empty($raw_task['id']) || empty($raw_task['format'])) {
                 error_log(sprintf(
-                    __('Task #%d is invalid [%s]', 'rake-wordpress-migration-example'),
+                    __('Task #%d is invalid [%s]', 'wp-crawflow'),
                     $index,
                     print_r($raw_tasks[$index], true)
                 ));
@@ -136,7 +136,7 @@ class Tasks
                 array_push($this->tasks, $task);
             } else {
                 error_log(sprintf(
-                    __('Task "%s" is invalid configurations', 'rake-wordpress-migration-example'),
+                    __('Task "%s" is invalid configurations', 'wp-crawflow'),
                     $raw_task['id']
                 ));
             }

@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: The Migration Plugin Name
- * Plugin URI: https://github.com/puleeno/rake-wordpress-migration-example/
+ * Plugin Name: WP CrawlFlow
+ * Plugin URI: https://github.com/puleeno/wp-crawflow/
  * Author: Puleeno Nguyen
  * Author URI: https://puleeno.com
  * Version: 1.0.0
@@ -16,7 +16,7 @@ if (file_exists($composerAutoloader)) {
 }
 
 if (!class_exists(\App\Migrator::class)) {
-    return error_log(__('The migrator is not found', 'rake-wordpress-migration-example'));
+    return error_log(__('The migrator is not found', 'wp-crawflow'));
 }
 
 $GLOBALS['migrator'] = \App\Migrator::get_instance();
