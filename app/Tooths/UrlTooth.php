@@ -1,5 +1,5 @@
 <?php
-namespace App\Tooths;
+namespace CrawlFlow\Tooths;
 
 class UrlTooth extends GeneralTooth
 {

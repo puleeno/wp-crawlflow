@@ -1,7 +1,7 @@
 <?php
-namespace App\Core;
+namespace CrawlFlow\Core;
 
-use App\Addons\Redirection;
+use CrawlFlow\Addons\Redirection;
 
 class AddonManager
 {

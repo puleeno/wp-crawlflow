@@ -15,8 +15,8 @@ if (file_exists($composerAutoloader)) {
     require_once $composerAutoloader;
 }
 
-if (!class_exists(\App\Migrator::class)) {
+if (!class_exists(\CrawlFlow\Migrator::class)) {
     return error_log(__('The migrator is not found', 'wp-crawflow'));
 }
 
-$GLOBALS['migrator'] = \App\Migrator::get_instance();
+$GLOBALS['migrator'] = \CrawlFlow\Migrator::get_instance();

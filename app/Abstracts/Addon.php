@@ -1,7 +1,7 @@
 <?php
-namespace App\Abstracts;
+namespace CrawlFlow\Abstracts;
 
-use App\Interfaces\AddonInterface;
+use CrawlFlow\Interfaces\AddonInterface;
 
 abstract class Addon implements AddonInterface
 {

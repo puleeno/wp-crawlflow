@@ -1,5 +1,5 @@
 <?php
-namespace App\Core;
+namespace CrawlFlow\Core;
 
 use ReflectionObject;
 use ReflectionProperty;

@@ -1,5 +1,5 @@
 <?php
-namespace App;
+namespace CrawlFlow;
 
 use Ramphor\Rake\Initialize;
 use Puleeno\Rake\WordPress\Driver;

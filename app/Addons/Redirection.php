@@ -1,7 +1,7 @@
 <?php
-namespace App\Addons;
+namespace CrawlFlow\Addons;
 
-use App\Abstracts\Addon;
+use CrawlFlow\Abstracts\Addon;
 
 class Redirection extends Addon
 {

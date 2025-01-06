@@ -1,5 +1,5 @@
 <?php
-namespace App\Processors;
+namespace CrawlFlow\Processors;
 
 use WP_Error;
 

@@ -1,7 +1,7 @@
 <?php
-namespace App;
+namespace CrawlFlow;
 
-use App\Core\Task;
+use CrawlFlow\Core\Task;
 
 class Tasks
 {

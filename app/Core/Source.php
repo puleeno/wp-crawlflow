@@ -1,7 +1,7 @@
 <?php
-namespace App\Core;
+namespace CrawlFlow\Core;
 
-use App\Migrator;
+use CrawlFlow\Migrator;
 
 class Source
 {

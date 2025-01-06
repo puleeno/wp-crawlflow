@@ -1,19 +1,19 @@
 <?php
-namespace App;
+namespace CrawlFlow;
 
-use App\Core\AddonManager;
+use CrawlFlow\Core\AddonManager;
 use Ramphor\Rake\Feeds\Sitemap\Sitemap;
 use Ramphor\Rake\Feeds\Sitemap\SitemapIndex;
 use Ramphor\Rake\Feeds\CsvFile;
-use App\Feeds\GeneralFeed;
+use CrawlFlow\Feeds\GeneralFeed;
 
-use App\Tooths\GeneralTooth;
-use App\Tooths\FileTooth;
+use CrawlFlow\Tooths\GeneralTooth;
+use CrawlFlow\Tooths\FileTooth;
 
-use App\Processors\GeneralProcessor;
-use App\Processors\OpencartSourceProcessor;
-use App\Processors\WordPressSourceProcessor;
-use App\Tooths\UrlTooth;
+use CrawlFlow\Processors\GeneralProcessor;
+use CrawlFlow\Processors\OpencartSourceProcessor;
+use CrawlFlow\Processors\WordPressSourceProcessor;
+use CrawlFlow\Tooths\UrlTooth;
 use Ramphor\Rake\Facades\Logger;
 
 class Migrator

@@ -1,5 +1,5 @@
 <?php
-namespace App\Processors;
+namespace CrawlFlow\Processors;
 
 use Puleeno\Rake\WordPress\Content\WordPressProcessor as WordPressSource;
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;

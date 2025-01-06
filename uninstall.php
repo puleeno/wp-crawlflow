@@ -1,7 +1,7 @@
 <?php
 namespace Migrator;
 
-use App\TaskRunner;
+use CrawlFlow\TaskRunner;
 use Ramphor\Rake\Initialize;
 use Puleeno\Rake\WordPress\Driver;
 

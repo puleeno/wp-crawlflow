@@ -1,9 +1,9 @@
 <?php
-namespace App;
+namespace CrawlFlow;
 
 use Ramphor\Rake\Rake;
 use Puleeno\Rake\WordPress\Driver;
-use App\Core\Task;
+use CrawlFlow\Core\Task;
 
 class TaskRunner
 {
@@ -13,7 +13,7 @@ class TaskRunner
     protected static $instance;
 
     /**
-     * @var \App\Core\Task[]
+     * @var \CrawlFlow\Core\Task[]
      */
     protected $tasks = array();
 

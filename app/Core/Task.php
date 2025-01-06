@@ -1,9 +1,9 @@
 <?php
-namespace App\Core;
+namespace CrawlFlow\Core;
 
 use Ramphor\Rake\Abstracts\Tooth;
-use App\Migrator;
-use App\Utils\Str;
+use CrawlFlow\Migrator;
+use CrawlFlow\Utils\Str;
 
 class Task
 {
@@ -19,7 +19,7 @@ class Task
     protected $args = array();
 
     /**
-     * @var \App\Core\Source[]
+     * @var \CrawlFlow\Core\Source[]
      */
     protected $sources = array();
 
@@ -64,7 +64,7 @@ class Task
     }
 
     /**
-     * @return \Ramphor\Rake\Constracts\Tooth|\App\Tooths\GeneralTooth
+     * @return \Ramphor\Rake\Constracts\Tooth|\CrawlFlow\Tooths\GeneralTooth
      */
     public function create_tooth()
     {
