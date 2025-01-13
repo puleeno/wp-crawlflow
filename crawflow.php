@@ -20,3 +20,22 @@ if (!class_exists(\CrawlFlow\Migrator::class)) {
 }
 
 $GLOBALS['migrator'] = \CrawlFlow\Migrator::get_instance();
+
+add_action('admin_menu', function() {
+    add_menu_page(
+        __('CrawlFlow Settings', 'wp-crawflow'),
+        __('CrawlFlow', 'wp-crawflow'),
+        'manage_options',
+        'crawflow-settings',
+        'crawflow_settings_page'
+    );
+});
+
+function crawflow_settings_page() {
+    echo '<div id="crawlflow"></div>';
+}
+
+add_action('admin_enqueue_scripts', function() {
+    wp_enqueue_script('crawflow-react-app', plugin_dir_url(__FILE__) . 'dist/main.js?v=1.0.0.0', array(), '1.0.0', true);
+    wp_enqueue_style('crawflow-react-app', plugin_dir_url(__FILE__) . 'dist/main.css', array(), '1.0.0');
+});
