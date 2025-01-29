@@ -4,6 +4,7 @@ namespace CrawlFlow\Processors;
 use Puleeno\Rake\WordPress\Content\OpencartProcessor as OpencartSource;
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
 use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
+use Ramphor\Rake\ProcessResult;
 
 class OpencartSourceProcessor extends OpencartSource
 {
@@ -12,7 +13,8 @@ class OpencartSourceProcessor extends OpencartSource
     use WooCommerceProcessor;
     use WordPressProcessor;
 
-    public function execute()
+    public function process(): ProcessResult
     {
+        return ProcessResult::createErrorResult('The Opencart source processor is not implemented');
     }
 }

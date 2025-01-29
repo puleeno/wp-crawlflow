@@ -4,6 +4,8 @@ namespace CrawlFlow;
 use Ramphor\Rake\Rake;
 use Puleeno\Rake\WordPress\Driver;
 use CrawlFlow\Core\Task;
+use Ramphor\Logger\Logger;
+use Ramphor\Rake\App;
 
 class TaskRunner
 {
@@ -45,6 +47,9 @@ class TaskRunner
         }
 
         $rake = new Rake(static::RAKE_ID, new Driver());
+        App::instance()->bind('logger', function () use ($rake) {
+            return Logger::instance();
+        });
 
         foreach ($this->tasks as $task) {
             $tooth   = $task->create_tooth();

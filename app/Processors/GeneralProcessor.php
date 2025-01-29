@@ -51,7 +51,7 @@ class GeneralProcessor extends Processor
         return apply_filters('the_migration_plugin_check_data_type', $dataType, $this->feedItem);
     }
 
-    public function execute()
+    public function process(): ProcessResult
     {
         if (!($dataType = $this->checkDataType())) {
             return ProcessResult::createErrorResult("The post type [{$dataType}] is invalid");

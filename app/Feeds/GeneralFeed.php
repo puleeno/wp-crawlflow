@@ -12,7 +12,7 @@ class GeneralFeed extends Feed
         return self::NAME;
     }
 
-    public function execute()
+    public function fetch()
     {
     }
 

@@ -15,6 +15,9 @@ use CrawlFlow\Processors\OpencartSourceProcessor;
 use CrawlFlow\Processors\WordPressSourceProcessor;
 use CrawlFlow\Tooths\UrlTooth;
 use Ramphor\Rake\Facades\Logger;
+use Ramphor\Rake\Feeds\CsvFileFeed;
+use Ramphor\Rake\Feeds\Sitemap\SitemapFeed;
+use Ramphor\Rake\Feeds\Sitemap\SitemapIndexFeed;
 
 class Migrator
 {
@@ -50,6 +53,7 @@ class Migrator
             RAKE_WORDPRESS_MIGRATION_EXAMPLE_PLUGIN_FILE,
             array(Installer::class, 'deactive')
         );
+
 
         if ($this->is_request('cron')) {
             add_action('init', array($this, 'setup_task_events'));
@@ -89,13 +93,14 @@ class Migrator
 
     protected function is_debug()
     {
-        return defined('PLUGIN_MIGRATION_DEBUG') && boolval(PLUGIN_MIGRATION_DEBUG);
+        return defined('PLUGIN_MIGRATION_DEBUG') && boolval(constant('PLUGIN_MIGRATION_DEBUG'));
     }
 
     public function setup_task_events()
     {
         $tasks           = new Tasks();
         $available_tasks = $tasks->get_available_tasks();
+
 
         if (count($available_tasks) > 0 || $this->is_debug()) {
             $runner = TaskRunner::get_instance();
@@ -118,10 +123,10 @@ class Migrator
     public static function get_support_feeds()
     {
         $default_feeds = array(
-            GeneralFeed::NAME  => GeneralFeed::class,
-            Sitemap::NAME      => Sitemap::class,
-            SitemapIndex::NAME => SitemapIndex::class,
-            CsvFile::FEED_NAME => CsvFile::class,
+            GeneralFeed::NAME      => GeneralFeed::class,
+            SitemapFeed::NAME      => SitemapFeed::class,
+            SitemapIndexFeed::NAME => SitemapIndexFeed::class,
+            CsvFileFeed::FEED_NAME => CsvFileFeed::class,
         );
 
         return apply_filters(
