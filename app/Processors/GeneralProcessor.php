@@ -29,7 +29,7 @@ class GeneralProcessor extends Processor
 
     protected function checkDataType()
     {
-        $dataType = null;
+        $dataType = $this->feedItem->getMeta('dataType');
         if (apply_filters_ref_array(
             "pre_the_migration_plugin_{$this->tooth->getId()}_data_type",
             [$dataType, &$this->feedItem]
