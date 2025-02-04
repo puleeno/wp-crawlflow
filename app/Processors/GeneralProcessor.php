@@ -76,7 +76,7 @@ class GeneralProcessor extends Processor
                 $this->importProduct($this->feedItem->getMeta('productContent'));
                 break;
             case 'page':
-                $this->importPage($this->feedItem->getMeta('pageContent'));
+                $this->importPage($this->feedItem->pageTitle, $this->feedItem->pageContent);
                 break;
             case 'product_category':
                 $this->importProductCategory();
