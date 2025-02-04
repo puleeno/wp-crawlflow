@@ -1,12 +1,11 @@
 <?php
+
 namespace CrawlFlow\Processors;
 
 use WP_Error;
-
 use Ramphor\Rake\ProcessResult;
 use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Abstracts\Processor;
-
 use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
 
@@ -30,10 +29,11 @@ class GeneralProcessor extends Processor
     protected function checkDataType()
     {
         $dataType = $this->feedItem->getMeta('dataType');
-        if (apply_filters_ref_array(
-            "pre_the_migration_plugin_{$this->tooth->getId()}_data_type",
-            [$dataType, &$this->feedItem]
-        ) !== null
+        if (
+            apply_filters_ref_array(
+                "pre_the_migration_plugin_{$this->tooth->getId()}_data_type",
+                [$dataType, &$this->feedItem]
+            ) !== null
         ) {
             return $dataType;
         }
@@ -61,19 +61,34 @@ class GeneralProcessor extends Processor
 
         switch ($dataType) {
             case 'post':
-                $this->importPost();
+                $this->importPost($this->feedItem->getMeta('postContent'));
+                break;
+            case 'category':
+                $this->importPostCategory(
+                    $this->feedItem->getMeta('productCategoryName'),
+                    $this->feedItem->getMeta('productCategoryContent'),
+                    $this->feedItem->getMeta('productCategorySlug'),
+                    $this->feedItem->getMeta('productCategoryShortDescription'),
+                    $this->feedItem->getMeta('taxonomy', 'category')
+                );
                 break;
             case 'product':
-                $this->importProduct();
+                $this->importProduct($this->feedItem->getMeta('productContent'));
                 break;
             case 'page':
-                $this->importPage();
+                $this->importPage($this->feedItem->getMeta('pageContent'));
                 break;
             case 'product_category':
                 $this->importProductCategory();
                 break;
             default:
-                $this->importedId = new WP_Error(-1, 'The data type is not imported', $dataType);
+                do_action(
+                    'crawlflow_process_' . $dataType . '_item',
+                    $this->feedItem,
+                    $dataType,
+                    $this->tooth,
+                    $this
+                );
                 break;
         }
 
@@ -116,6 +131,14 @@ class GeneralProcessor extends Processor
         if ($dataType !== 'product') {
             $this->useFirstImageAsCoverImageWhenNotExists();
         }
+
+        $extraActionHook = 'crawlflow_after_import_' . $dataType;
+        do_action(
+            $extraActionHook,
+            $this->importedId,
+            $this->feedItem,
+            $this
+        );
 
         return ProcessResult::createSuccessResult($this->feedItem->guid, $this->importedId, $dataType);
     }
