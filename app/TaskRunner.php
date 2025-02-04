@@ -1,4 +1,5 @@
 <?php
+
 namespace CrawlFlow;
 
 use Ramphor\Rake\Rake;

@@ -1,8 +1,8 @@
 <?php
+
 namespace CrawlFlow\Tooths;
 
 use Ramphor\Rake\Abstracts\CrawlerTooth;
-
 use Puleeno\Rake\WordPress\Traits\WordPressTooth;
 use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Facades\Option;

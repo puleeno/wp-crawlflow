@@ -1,8 +1,8 @@
 <?php
+
 namespace CrawlFlow\Tooths;
 
 use Ramphor\Rake\Abstracts\Tooth;
-
 use Puleeno\Rake\WordPress\Traits\WordPressTooth;
 
 class FileTooth extends Tooth

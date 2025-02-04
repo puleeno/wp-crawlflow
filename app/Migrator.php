@@ -1,4 +1,5 @@
 <?php
+
 namespace CrawlFlow;
 
 use CrawlFlow\Core\AddonManager;
@@ -6,10 +7,8 @@ use Ramphor\Rake\Feeds\Sitemap\Sitemap;
 use Ramphor\Rake\Feeds\Sitemap\SitemapIndex;
 use Ramphor\Rake\Feeds\CsvFile;
 use CrawlFlow\Feeds\GeneralFeed;
-
 use CrawlFlow\Tooths\GeneralTooth;
 use CrawlFlow\Tooths\FileTooth;
-
 use CrawlFlow\Processors\GeneralProcessor;
 use CrawlFlow\Processors\OpencartSourceProcessor;
 use CrawlFlow\Processors\WordPressSourceProcessor;
@@ -66,12 +65,12 @@ class Migrator
     {
         if (!isset($schedules["5mins"])) {
             $schedules["5mins"] = array(
-                'interval' => 5*60,
+                'interval' => 5 * 60,
                 'display' => __('Once every 5 minutes'));
         }
         if (!isset($schedules["30mins"])) {
             $schedules["30mins"] = array(
-                'interval' => 30*60,
+                'interval' => 30 * 60,
                 'display' => __('Once every 30 minutes'));
         }
         return $schedules;

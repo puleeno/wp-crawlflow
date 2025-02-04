@@ -1,4 +1,5 @@
 <?php
+
 namespace CrawlFlow\Feeds;
 
 use Ramphor\Rake\Abstracts\Feed;

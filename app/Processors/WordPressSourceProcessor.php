@@ -1,4 +1,5 @@
 <?php
+
 namespace CrawlFlow\Processors;
 
 use Puleeno\Rake\WordPress\Content\WordPressProcessor as WordPressSource;

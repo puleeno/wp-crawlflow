@@ -1,4 +1,5 @@
 <?php
+
 namespace CrawlFlow\Addons;
 
 use CrawlFlow\Abstracts\Addon;

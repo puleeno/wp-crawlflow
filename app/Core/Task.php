@@ -1,4 +1,5 @@
 <?php
+
 namespace CrawlFlow\Core;
 
 use Ramphor\Rake\Abstracts\Tooth;
