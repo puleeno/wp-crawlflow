@@ -65,7 +65,7 @@ class GeneralProcessor extends Processor
                 break;
             case 'category':
                 $this->importPostCategory(
-                    $this->feedItem->getMeta('productCategoryName'),
+                    $this->feedItem->getMeta('postCategoryName'),
                     $this->feedItem->getMeta('productCategoryContent'),
                     $this->feedItem->getMeta('productCategorySlug'),
                     $this->feedItem->getMeta('productCategoryShortDescription'),
@@ -122,15 +122,17 @@ class GeneralProcessor extends Processor
         } elseif ($dataType == 'product_category') {
         }
 
-        if (post_type_exists($dataType)) {
-            $this->importSeo();
-        } elseif (taxonomy_exists($dataType)) {
-            $this->importTermSeo();
-        }
-
         if ($dataType !== 'product') {
             $this->useFirstImageAsCoverImageWhenNotExists();
         }
+
+        do_action(
+            'crawlflow_after_imported',
+            $this->importedId,
+            $this->feedItem,
+            $dataType,
+            $this
+        );
 
         $extraActionHook = 'crawlflow_after_import_' . $dataType;
         do_action(

@@ -2,6 +2,7 @@
 
 namespace CrawlFlow\Core;
 
+use CrawlFlow\Addons\ImportSeoData;
 use CrawlFlow\Addons\Redirection;
 
 class AddonManager
@@ -9,7 +10,8 @@ class AddonManager
     protected function getDefaultAdddons()
     {
         return [
-            Redirection::class
+            Redirection::class,
+            ImportSeoData::class,
         ];
     }
 

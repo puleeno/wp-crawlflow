@@ -108,13 +108,15 @@ class Migrator
             add_action(TaskRunner::TASK_CRON_NAME, array($runner, 'run'));
 
             if ($this->is_debug()) {
-                $timestamp = wp_next_scheduled(TaskRunner::TASK_CRON_NAME);
-                wp_unschedule_event(
-                    $timestamp,
-                    TaskRunner::TASK_CRON_NAME
-                );
+                add_action('init', function () {
+                    $timestamp = wp_next_scheduled(TaskRunner::TASK_CRON_NAME);
+                    wp_unschedule_event(
+                        $timestamp,
+                        TaskRunner::TASK_CRON_NAME
+                    );
 
-                do_action(TaskRunner::TASK_CRON_NAME);
+                    do_action(TaskRunner::TASK_CRON_NAME);
+                }, 99999);
             }
         }
     }
