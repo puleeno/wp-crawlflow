@@ -18,5 +18,10 @@
         "psr-4": {
             "CrawlFlow\\": "app/"
         }
+    },
+    "config": {
+        "allow-plugins": {
+            "alleyinteractive/composer-wordpress-autoloader": true
+        }
     }
 }
