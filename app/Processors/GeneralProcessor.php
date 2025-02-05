@@ -8,6 +8,7 @@ use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Abstracts\Processor;
 use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
+use Alley\WP\Block_Converter\Block_Converter;
 
 class GeneralProcessor extends Processor
 {
@@ -15,6 +16,27 @@ class GeneralProcessor extends Processor
 
     use WooCommerceProcessor;
     use WordPressProcessor;
+
+    /**
+     * Cleanup the HTML before import to your system
+     *
+     * @todo Convert styles to strong and em tags.
+     * @todo Remove all attribute of the tags
+     *
+     * @param string $content The post content
+     * @return string The output HTML after cleanup
+     */
+    public function cleanupContentBeforeImport($content)
+    {
+        if (!$this->cleanContentAttributes) {
+            return $content;
+        }
+
+        $converter = new Block_Converter((string) $content);
+
+        // Return Gutenberg block string
+        return $converter->convert();
+    }
 
     /**
      * @var \Ramphor\Rake\DataSource\FeedItem
