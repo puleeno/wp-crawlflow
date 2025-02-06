@@ -14,6 +14,8 @@ class GeneralProcessor extends Processor
 {
     const NAME = 'general';
 
+    protected $wordPressType = null;
+
     use WooCommerceProcessor;
     use WordPressProcessor;
 
@@ -84,6 +86,7 @@ class GeneralProcessor extends Processor
         switch ($dataType) {
             case 'post':
                 $this->importPost($this->feedItem->getMeta('postContent'));
+                $this->wordPressType = 'post';
                 break;
             case 'category':
                 $this->importPostCategory(
@@ -93,23 +96,30 @@ class GeneralProcessor extends Processor
                     $this->feedItem->getMeta('productCategoryShortDescription'),
                     $this->feedItem->getMeta('taxonomy', 'category')
                 );
+                $this->wordPressType = 'taxonomy';
                 break;
             case 'product':
                 $this->importProduct($this->feedItem->getMeta('productContent'));
+                $this->wordPressType = 'post';
                 break;
             case 'page':
                 $this->importPage($this->feedItem->pageTitle, $this->feedItem->pageContent);
+                $this->wordPressType = 'post';
                 break;
             case 'product_category':
                 $this->importProductCategory();
+                $this->wordPressType = 'taxnomy';
                 break;
             default:
-                do_action(
+                do_action_ref_array(
                     'crawlflow_process_' . $dataType . '_item',
-                    $this->feedItem,
-                    $dataType,
-                    $this->tooth,
-                    $this
+                    [
+                        &$this->feedItem,
+                        &$this->wordPressType,
+                        &$dataType,
+                        &$this->tooth,
+                        &$this
+                    ]
                 );
                 break;
         }
@@ -174,5 +184,10 @@ class GeneralProcessor extends Processor
     protected function useFirstImageAsCoverImageWhenNotExists()
     {
         // Logger::debug( 'Set first image as feature image' );
+    }
+
+    public function getWordPressDataType()
+    {
+        return $this->wordPressType;
     }
 }
