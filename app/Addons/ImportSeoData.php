@@ -4,7 +4,6 @@ namespace CrawlFlow\Addons;
 
 use CrawlFlow\Abstracts\Addon;
 use CrawlFlow\Processors\GeneralProcessor;
-use Ramphor\Rake\Abstracts\Processor;
 use Ramphor\Rake\DataSource\FeedItem;
 
 class ImportSeoData extends Addon
