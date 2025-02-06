@@ -137,6 +137,10 @@ class GeneralProcessor extends Processor
                 $this->importedId
             );
 
+            if (!empty($this->feedItem->getMeta('sku'))) {
+                $this->importProductSku($this->feedItem->getMeta('sku'), $this->importedId);
+            }
+
             $this->importProductTags(
                 empty($this->feedItem->productTags) ? $this->feedItem->tags : $this->feedItem->productTags,
                 $this->importedId
