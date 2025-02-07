@@ -65,7 +65,7 @@ class Task
     }
 
     /**
-     * @return \Ramphor\Rake\Constracts\Tooth|\CrawlFlow\Tooths\GeneralTooth
+     * @return \Ramphor\Rake\Constracts\Tooth|\CrawlFlow\Tooths\CrawlFlowTooth
      */
     public function create_tooth()
     {

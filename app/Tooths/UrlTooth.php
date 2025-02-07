@@ -2,7 +2,7 @@
 
 namespace CrawlFlow\Tooths;
 
-class UrlTooth extends GeneralTooth
+class UrlTooth extends CrawlFlowTooth
 {
     const NAME = 'url';
 }

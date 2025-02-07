@@ -7,9 +7,9 @@ use Ramphor\Rake\Feeds\Sitemap\Sitemap;
 use Ramphor\Rake\Feeds\Sitemap\SitemapIndex;
 use Ramphor\Rake\Feeds\CsvFile;
 use CrawlFlow\Feeds\GeneralFeed;
-use CrawlFlow\Tooths\GeneralTooth;
+use CrawlFlow\Tooths\CrawlFlowTooth;
 use CrawlFlow\Tooths\FileTooth;
-use CrawlFlow\Processors\GeneralProcessor;
+use CrawlFlow\Processors\CrawlFlowProcessor;
 use CrawlFlow\Processors\OpencartSourceProcessor;
 use CrawlFlow\Processors\WordPressSourceProcessor;
 use CrawlFlow\Tooths\UrlTooth;
@@ -139,7 +139,7 @@ class Migrator
     public static function get_support_tooths()
     {
         $default_tooths = array(
-            GeneralTooth::NAME => GeneralTooth::class,
+            CrawlFlowTooth::NAME => CrawlFlowTooth::class,
             FileTooth::NAME    => FileTooth::class,
             UrlTooth::NAME     => UrlTooth::class,
         );
@@ -153,7 +153,7 @@ class Migrator
     public static function get_support_processors()
     {
         $default_processors = array(
-            GeneralProcessor::NAME         => GeneralProcessor::class,
+            CrawlFlowProcessor::NAME         => CrawlFlowProcessor::class,
             OpencartSourceProcessor::NAME  => OpencartSourceProcessor::class,
             WordPressSourceProcessor::NAME => WordPressSourceProcessor::class,
         );

@@ -10,7 +10,7 @@ use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
 use Alley\WP\Block_Converter\Block_Converter;
 
-class GeneralProcessor extends Processor
+class CrawlFlowProcessor extends Processor
 {
     const NAME = 'general';
 

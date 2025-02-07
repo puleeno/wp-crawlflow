@@ -7,7 +7,7 @@ use Puleeno\Rake\WordPress\Traits\WordPressTooth;
 use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Facades\Option;
 
-class GeneralTooth extends CrawlerTooth
+class CrawlFlowTooth extends CrawlerTooth
 {
     const NAME = 'general';
 

@@ -3,7 +3,7 @@
 namespace CrawlFlow\Addons;
 
 use CrawlFlow\Abstracts\Addon;
-use CrawlFlow\Processors\GeneralProcessor;
+use CrawlFlow\Processors\CrawlFlowProcessor;
 use Ramphor\Rake\DataSource\FeedItem;
 
 class ImportSeoData extends Addon
@@ -17,7 +17,7 @@ class ImportSeoData extends Addon
         add_action('crawlflow_after_imported', [$this, 'importSeoData'], 10, 4);
     }
 
-    public function importSeoData($wordPressId, FeedItem $feedItem, $crawlData, GeneralProcessor $processor)
+    public function importSeoData($wordPressId, FeedItem $feedItem, $crawlData, CrawlFlowProcessor $processor)
     {
         // Doesn't know WordPress data type to import SEO data
         if (empty($processor->getWordPressDataType())) {
