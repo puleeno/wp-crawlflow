@@ -116,9 +116,9 @@ class CrawlFlowProcessor extends Processor
                     [
                         &$this->feedItem,
                         &$this->wordPressType,
-                        &$dataType,
+                        &$this,
                         &$this->tooth,
-                        &$this
+                        &$dataType
                     ]
                 );
                 break;
@@ -184,6 +184,10 @@ class CrawlFlowProcessor extends Processor
     protected function useFirstImageAsCoverImageWhenNotExists()
     {
         // Logger::debug( 'Set first image as feature image' );
+    }
+
+    public function setWordPressDataType($dataType) {
+        $this->wordPressType = $dataType;
     }
 
     public function getWordPressDataType()
