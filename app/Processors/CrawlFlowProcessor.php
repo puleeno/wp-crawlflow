@@ -8,7 +8,6 @@ use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Abstracts\Processor;
 use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
-use Alley\WP\Block_Converter\Block_Converter;
 
 class CrawlFlowProcessor extends Processor
 {
@@ -34,10 +33,7 @@ class CrawlFlowProcessor extends Processor
             return $content;
         }
 
-        $converter = new Block_Converter((string) $content);
-
-        // Return Gutenberg block string
-        return $converter->convert();
+        return (string) $content;
     }
 
     /**
