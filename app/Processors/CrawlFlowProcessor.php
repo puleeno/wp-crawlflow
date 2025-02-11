@@ -51,7 +51,7 @@ class CrawlFlowProcessor extends Processor
         $dataType = $this->feedItem->getMeta('dataType');
         if (
             apply_filters_ref_array(
-                "pre_the_migration_plugin_{$this->tooth->getId()}_data_type",
+                "crawlflow/{$this->tooth->getId()}/data/type/pre",
                 [$dataType, &$this->feedItem]
             ) !== null
         ) {
@@ -68,7 +68,7 @@ class CrawlFlowProcessor extends Processor
             $dataType = 'page';
         }
 
-        return apply_filters('the_migration_plugin_check_data_type', $dataType, $this->feedItem);
+        return apply_filters('crawlflow/data/type', $dataType, $this->feedItem);
     }
 
     public function process(): ProcessResult
