@@ -11,7 +11,7 @@ class CrawlFlowTooth extends CrawlerTooth
 {
     const NAME = 'general';
 
-    const MAXIMUM_RESOURCES_DOWNLOADING = 200;
+    const MAXIMUM_RESOURCES_DOWNLOADING = 20;
 
     use WordPressTooth;
 
