@@ -90,6 +90,10 @@ class TaskRunner
         }
 
         // Execute all tooths
-        $rake->execute();
+        $rake->gather();
+
+        if (constant('CRAWLFLOW_PERFORMANCE_MODE') === true && function_exists('xdebug_stop_trace')) {
+            call_user_func('xdebug_stop_trace', sprintf('%s/xdebug-trace-%s.xt', WP_CONTENT_DIR, date('Y-m-d-H-i-s')));
+        }
     }
 }
