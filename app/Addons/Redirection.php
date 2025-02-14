@@ -49,7 +49,7 @@ class Redirection extends Addon
 
             global $wpdb;
 
-            $sql  = "SELECT * FROM {$wpdb->prefix}rake_resources WHERE guid LIKE '%";
+            $sql  = "SELECT `new_guid`, `new_type`  FROM {$wpdb->prefix}rake_resources WHERE guid LIKE '%";
             $sql .= $wpdb->use_mysqli
                 ? mysqli_real_escape_string($wpdb->dbh, $requestUrl)
                 : mysql_real_escape_string($requestUrl, $wpdb->dbh);
