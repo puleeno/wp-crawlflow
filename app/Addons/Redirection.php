@@ -8,7 +8,8 @@ class Redirection extends Addon
 {
     protected function getUrlFromResource($resource)
     {
-        switch ($resource->new_type) {
+        $dataType = crawlflow_get_wordpress_builtin_data_type($resource->new_type);
+        switch ($dataType) {
             case 'attachment':
                 return wp_get_attachment_url($resource->new_guid);
             case 'term':
@@ -16,6 +17,8 @@ class Redirection extends Addon
             case 'post':
                 return get_the_permalink($resource->new_guid);
         }
+
+        return apply_filters('crawlflow/redirection/url', null, $resource, $dataType);
     }
 
     protected function redirect($resource, $preempt)
@@ -47,12 +50,16 @@ class Redirection extends Addon
                 '&'
             ), $requestUrl);
 
+            if (empty($requestUrl)) {
+                return $preempt;
+            }
+
             global $wpdb;
 
             $sql  = "SELECT `new_guid`, `new_type`  FROM {$wpdb->prefix}rake_resources WHERE guid LIKE '%";
             $sql .= $wpdb->use_mysqli
                 ? mysqli_real_escape_string($wpdb->dbh, $requestUrl)
-                : mysql_real_escape_string($requestUrl, $wpdb->dbh);
+                : call_user_func('mysql_real_escape_string', $requestUrl, $wpdb->dbh);
 
             $sql .= "' AND imported=1 AND (new_guid IS NOT NULL OR new_guid > 0)";
 
@@ -61,7 +68,6 @@ class Redirection extends Addon
             if (empty($resource)) {
                 return $preempt;
             }
-
             return $this->redirect($resource, $preempt);
         }, 5, 1);
     }
