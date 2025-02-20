@@ -19,7 +19,7 @@ if (!class_exists(\CrawlFlow\Migrator::class)) {
     return error_log(__('The migrator is not found', 'wp-crawflow'));
 }
 
-if (constant('CRAWLFLOW_PERFORMANCE_MODE') === true && function_exists('xdebug_start_trace')) {
+if (defined('CRAWLFLOW_PERFORMANCE_MODE') && constant('CRAWLFLOW_PERFORMANCE_MODE') === true && function_exists('xdebug_start_trace')) {
     call_user_func('xdebug_start_trace', sprintf('%s/xdebug-trace-%s', WP_CONTENT_DIR, date('Y-m-d-H-i-s')));
 }
 
