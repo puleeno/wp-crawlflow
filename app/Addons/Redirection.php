@@ -27,7 +27,16 @@ class Redirection extends Addon
         if (!$url) {
             return $preempt;
         }
-        return wp_safe_redirect($url, 301, 'Rake Migration Tool');
+        if (!isset($_SERVER['HTTP_HOST'])) {
+            return $preempt;
+        }
+
+        $originUrl = sprintf('%s%s', $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']);
+        if (strpos($url, $originUrl) === false) {
+            return wp_safe_redirect($url, 301, 'WP CrawlFlow');
+        }
+
+        return $preempt;
     }
 
     public function bootstrap()
