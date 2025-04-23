@@ -42,15 +42,10 @@ class Redirection extends Addon
 
         $originUrl = sprintf('%s%s', $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']);
         if (strpos($url, $originUrl) === false) {
-            if (apply_filters('crawlflow/redirect/enabled', true)) {
-                return wp_safe_redirect($url, 301, 'WP CrawlFlow');
-            }
-
-            // Use hook to still load crawled object with canion URL is WordPress format
-            add_filter('parse_query', function (&$wp_query) use ($resource, $url, $originUrl) {
-                return $wp_query;
-            }, 99);
+            return wp_safe_redirect($url, 301, 'WP CrawlFlow');
         }
+
+
 
         return $preempt;
     }
@@ -58,44 +53,11 @@ class Redirection extends Addon
     public function bootstrap()
     {
         add_filter('crawlflow/taxonomy/named', [$this, 'filterWooCommerceTypes']);
-
-        add_filter('pre_handle_404', function ($preempt) {
-            $requestUrl = rtrim($_SERVER['REQUEST_URI'], '/');
-            if (strpos($requestUrl, '%') === false) {
-                $requestUrl = urlencode($requestUrl);
-            }
-            $requestUrl = str_replace(array(
-                '%2F',
-                '%3F',
-                '%3D',
-                '%26'
-            ), array(
-                '/',
-                '?',
-                '=',
-                '&'
-            ), $requestUrl);
-
-            if (empty($requestUrl)) {
-                return $preempt;
-            }
-
-            global $wpdb;
-
-            $keyword = $wpdb->use_mysqli
-                ? mysqli_real_escape_string($wpdb->dbh, $requestUrl)
-                : call_user_func('mysql_real_escape_string', $requestUrl, $wpdb->dbh);
-
-
-            $sql  = "SELECT `new_guid`, `new_type`  FROM {$wpdb->prefix}rake_resources WHERE (guid LIKE '%" . $keyword . "' OR guid LIKE '%" . $keyword . "/') AND imported=1 AND (new_guid IS NOT NULL OR new_guid > 0)";
-
-            $resource = $wpdb->get_row($sql);
-
-            if (empty($resource)) {
-                return $preempt;
-            }
-            return $this->redirect($resource, $preempt);
-        }, 5, 1);
+        if (apply_filters('crawlflow/redirect/enabled', true)) {
+            add_filter('pre_handle_404', [$this, 'redirectHandle'], 5, 1);
+        } else {
+            add_action('parse_request', [$this, 'customQueryHandle']);
+        }
     }
 
     public function filterWooCommerceTypes($type)
@@ -105,5 +67,106 @@ class Redirection extends Addon
                 return 'product_cat';
         }
         return $type;
+    }
+
+    protected function getResourceFromRequest()
+    {
+        $requestUrl = rtrim($_SERVER['REQUEST_URI'], '/');
+        if (strpos($requestUrl, '%') === false) {
+            $requestUrl = urlencode($requestUrl);
+        }
+        $requestUrl = str_replace(array(
+            '%2F',
+            '%3F',
+            '%3D',
+            '%26'
+        ), array(
+            '/',
+            '?',
+            '=',
+            '&'
+        ), $requestUrl);
+
+        $filteredPagedParams = apply_filters(
+            'crawlflow/request/url',
+            $requestUrl
+        );
+
+        if (empty($filteredPagedParams)) {
+            return null;
+        }
+
+        global $wpdb;
+
+        $keyword = $wpdb->use_mysqli
+            ? mysqli_real_escape_string($wpdb->dbh, $filteredPagedParams)
+            : call_user_func('mysql_real_escape_string', $filteredPagedParams, $wpdb->dbh);
+
+
+        $sql = "SELECT `new_guid`, `new_type`  FROM {$wpdb->prefix}rake_resources WHERE (guid LIKE '%" . $keyword . "' OR guid LIKE '%" . $keyword . "/') AND imported=1 AND (new_guid IS NOT NULL OR new_guid > 0)";
+
+        $resource = $wpdb->get_row($sql);
+
+        return $resource;
+    }
+
+
+    public function customQueryHandle(\WP &$wp)
+    {
+        $resource = $this->getResourceFromRequest();
+        if ($resource) {
+            $url = $this->getUrlFromResource($resource);
+
+
+            // Delete slug for page
+            unset($wp->query_vars['page']);
+            unset($wp->query_vars['name']);
+            unset($wp->query_vars['attachment']);
+
+            //             'request' => 'product-category/cay-gia',
+            //    'matched_rule' => 'product-category/(.+?)/?$',
+            //    'matched_query' => 'product_cat=cay-gia',
+
+            $parsed_url = explode('/', rtrim($url, '/'));
+
+            $path = end($parsed_url);
+
+            $query_name = crawlflow_get_wordpress_taxonomy_name($resource->new_type);
+
+            $wp->set_query_var($query_name, $path);
+
+            // paged
+            $paged = $this->extractPageNumberFromRequest($_SERVER['REQUEST_URI']);
+
+            // Set paged parameter to query to get posts
+            add_filter('pre_get_posts', function ($wp_query) use ($paged) {
+                $wp_query->set('paged', $paged);
+            });
+
+            // Avoid redirect to pagination link format
+            add_filter('redirect_canonical', function ($redirect_url, $request_url) {
+                return $request_url;
+            }, 20, 2);
+        }
+    }
+
+    protected function extractPageNumberFromRequest($requestUri)
+    {
+        $pagedSeparater = apply_filters('crawlflow/request/params/paged', 'page=');
+        $separatedUrl = explode($pagedSeparater, $requestUri);
+        if (isset($separatedUrl[1]) && preg_match('/\d{1,}/', $separatedUrl[1], $matches)) {
+            return intval($matches[0]);
+        }
+        return null;
+    }
+
+    public function redirectHandle($preempt)
+    {
+        $resource = $this->getResourceFromRequest();
+
+        if (empty($resource)) {
+            return $preempt;
+        }
+        return $this->redirect($resource, $preempt);
     }
 }

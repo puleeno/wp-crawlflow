@@ -182,7 +182,8 @@ class CrawlFlowProcessor extends Processor
         // Logger::debug( 'Set first image as feature image' );
     }
 
-    public function setWordPressDataType($dataType) {
+    public function setWordPressDataType($dataType)
+    {
         $this->wordPressType = $dataType;
     }
 
