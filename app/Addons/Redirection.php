@@ -117,20 +117,13 @@ class Redirection extends Addon
         if ($resource) {
             $url = $this->getUrlFromResource($resource);
 
-
             // Delete slug for page
             unset($wp->query_vars['page']);
             unset($wp->query_vars['name']);
             unset($wp->query_vars['attachment']);
 
-            //             'request' => 'product-category/cay-gia',
-            //    'matched_rule' => 'product-category/(.+?)/?$',
-            //    'matched_query' => 'product_cat=cay-gia',
-
             $parsed_url = explode('/', rtrim($url, '/'));
-
             $path = end($parsed_url);
-
             $query_name = crawlflow_get_wordpress_taxonomy_name($resource->new_type);
 
             $wp->set_query_var($query_name, $path);
@@ -147,6 +140,17 @@ class Redirection extends Addon
             add_filter('redirect_canonical', function ($redirect_url, $request_url) {
                 return $request_url;
             }, 20, 2);
+
+            add_filter('paginate_links', function ($link) use ($url) {
+                $separatedLink = explode('/page/', $link);
+                $index = isset($separatedLink[1]) ? preg_replace('/[^\d]/', '', $separatedLink[1]) : 1;
+
+                $link = sprintf('%s/page/%d', rtrim($url, '/'), $index);
+
+                return apply_filters('crawlflow/custom_query/paginate/link', $link, $url);
+            }, 10, 2);
+
+            do_action('crawlflow/custom_query/handle', $url, $resource, $paged, $wp);
         }
     }
 
