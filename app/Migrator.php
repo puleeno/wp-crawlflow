@@ -92,7 +92,7 @@ class Migrator
 
     protected function is_debug()
     {
-        return defined('PLUGIN_MIGRATION_DEBUG') && boolval(constant('PLUGIN_MIGRATION_DEBUG'));
+        return defined('CRAWLFLOW_DEBUG') && boolval(constant('CRAWLFLOW_DEBUG'));
     }
 
     public function setup_task_events()
