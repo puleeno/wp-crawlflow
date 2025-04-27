@@ -92,7 +92,7 @@ class TaskRunner
         // Execute all tooths
         $rake->gather();
 
-        if (constant('CRAWLFLOW_PERFORMANCE_MODE') === true && function_exists('xdebug_stop_trace')) {
+        if (defined('CRAWLFLOW_PERFORMANCE_MODE') && constant('CRAWLFLOW_PERFORMANCE_MODE') === true && function_exists('xdebug_stop_trace')) {
             call_user_func('xdebug_stop_trace', sprintf('%s/xdebug-trace-%s.xt', WP_CONTENT_DIR, date('Y-m-d-H-i-s')));
         }
     }
