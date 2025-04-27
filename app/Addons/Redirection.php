@@ -117,10 +117,9 @@ class Redirection extends Addon
         if ($resource) {
             $url = $this->getUrlFromResource($resource);
             $originUrl = sprintf('%s%s', $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']);
-            if (strpos($url, $originUrl) !== false) {
+            if (empty($url) || strpos($url, $originUrl) !== false) {
                 return $wp;
             }
-
 
             // Delete slug for page
             unset($wp->query_vars['page']);
