@@ -13,9 +13,19 @@ class CrawlFlowTooth extends CrawlerTooth
 
     protected $limitQueryUrls = 20;
 
+    protected $isCrawlUrlInContent = false;
+
     const MAXIMUM_RESOURCES_DOWNLOADING = 50;
 
     use WordPressTooth;
+
+
+    public function isCrawlUrlInContent() {
+        return apply_filters(
+            'crawlflow/crawl/url_in_html',
+            $this->isCrawlUrlInContent
+        );
+    }
 
     public function limitQueryResource()
     {
