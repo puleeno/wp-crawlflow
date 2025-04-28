@@ -104,7 +104,7 @@ class CrawlFlowProcessor extends Processor
                 break;
             case 'product_category':
                 $this->importProductCategory();
-                $this->wordPressType = 'taxnomy';
+                $this->wordPressType = 'taxonomy';
                 break;
             default:
                 do_action_ref_array(
@@ -157,6 +157,7 @@ class CrawlFlowProcessor extends Processor
         if ($dataType !== 'product') {
             $this->useFirstImageAsCoverImageWhenNotExists();
         }
+
 
         do_action(
             'crawlflow_after_imported',
