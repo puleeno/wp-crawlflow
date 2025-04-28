@@ -6,6 +6,7 @@ use Ramphor\Rake\Abstracts\CrawlerTooth;
 use Puleeno\Rake\WordPress\Traits\WordPressTooth;
 use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Facades\Option;
+use Ramphor\Rake\Resource;
 
 class CrawlFlowTooth extends CrawlerTooth
 {
@@ -60,5 +61,13 @@ class CrawlFlowTooth extends CrawlerTooth
             default:
                 return true;
         }
+    }
+
+    public function downloadResource(Resource &$resource): Resource {
+        $resource = parent::downloadResource($resource);
+
+        do_action('crawlflow/resource/downloaded', $resource);
+
+        return $resource;
     }
 }
