@@ -16,7 +16,7 @@ class Redirection extends Addon
     }
     protected function getUrlFromResource($resource)
     {
-        $dataType = crawlflow_get_wordpress_builtin_data_type($resource->new_type);
+        $dataType = rake_wp_get_builtin_data_type($resource->new_type);
         switch ($dataType) {
             case 'attachment':
                 return wp_get_attachment_url($resource->new_guid);
@@ -128,7 +128,7 @@ class Redirection extends Addon
 
             $parsed_url = explode('/', rtrim($url, '/'));
             $path = end($parsed_url);
-            $query_name = crawlflow_get_wordpress_taxonomy_name($resource->new_type);
+            $query_name = rake_wp_get_wordpress_taxonomy_name($resource->new_type);
 
             $wp->set_query_var($query_name, $path);
 
