@@ -2,10 +2,10 @@
 
 namespace CrawlFlow;
 
+use Ramphor\Logger\Logger;
 use Ramphor\Rake\Rake;
 use Puleeno\Rake\WordPress\Driver;
 use CrawlFlow\Core\Task;
-use Ramphor\Logger\Logger;
 use Ramphor\Rake\App;
 
 class TaskRunner
@@ -51,6 +51,7 @@ class TaskRunner
         App::instance()->bind('logger', function () use ($rake) {
             return Logger::instance();
         });
+        Logger::instance()->info('CrawlFlow batch is starting...');
 
         foreach ($this->tasks as $task) {
             $tooth   = $task->create_tooth();
@@ -95,5 +96,7 @@ class TaskRunner
         if (defined('CRAWLFLOW_PERFORMANCE_MODE') && constant('CRAWLFLOW_PERFORMANCE_MODE') === true && function_exists('xdebug_stop_trace')) {
             call_user_func('xdebug_stop_trace', sprintf('%s/xdebug-trace-%s.xt', WP_CONTENT_DIR, date('Y-m-d-H-i-s')));
         }
+
+        Logger::instance()->info('CrawlFlow batch is end');
     }
 }
