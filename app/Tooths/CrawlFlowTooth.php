@@ -20,7 +20,8 @@ class CrawlFlowTooth extends CrawlerTooth
     use WordPressTooth;
 
 
-    public function isCrawlUrlInContent() {
+    public function isCrawlUrlInContent()
+    {
         return apply_filters(
             'crawlflow/crawl/url_in_html',
             $this->isCrawlUrlInContent
@@ -32,16 +33,17 @@ class CrawlFlowTooth extends CrawlerTooth
         $notifiedKey = sprintf('tooth_%s_notified', $this->getId());
         $notified    = Option::get($notifiedKey, false);
         if ($notified) {
-            Logger::debug(sprintf('[%s]Load %d resources for downloading', $this->getId(), static::MAXIMUM_RESOURCES_DOWNLOADING));
+            Logger::info(sprintf('[%s]Load %d resources for downloading', $this->getId(), static::MAXIMUM_RESOURCES_DOWNLOADING));
             return static::MAXIMUM_RESOURCES_DOWNLOADING;
         }
 
-        Logger::debug(sprintf('[%s]Load %d resources for downloading', $this->getId(), $this->limitQueryResource));
+        Logger::info(sprintf('[%s]Load %d resources for downloading', $this->getId(), $this->limitQueryResource));
         return $this->limitQueryResource;
     }
 
 
-    public function downloadResource(Resource &$resource): Resource {
+    public function downloadResource(Resource &$resource): Resource
+    {
         $resource = parent::downloadResource($resource);
         do_action('crawlflow/resource/downloaded', $resource);
         return $resource;

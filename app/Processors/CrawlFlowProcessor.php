@@ -117,7 +117,7 @@ class CrawlFlowProcessor extends Processor
         }
 
         if (is_wp_error($this->importedId)) {
-            Logger::debug($this->importedId->get_error_message());
+            Logger::info($this->importedId->get_error_message());
             return ProcessResult::createErrorResult(
                 $this->importedId->get_error_message(),
                 ProcessResult::ERROR_RESULT_TYPE
@@ -170,12 +170,11 @@ class CrawlFlowProcessor extends Processor
             $this->feedItem,
             $this
         );
-
         return ProcessResult::createSuccessResult($this->feedItem->guid, $this->importedId, $dataType);
     }
 
     protected function useFirstImageAsCoverImageWhenNotExists()
     {
-        // Logger::debug( 'Set first image as feature image' );
+        // Logger::info( 'Set first image as feature image' );
     }
 }
