@@ -151,8 +151,8 @@ class CrawlFlowProcessor extends Processor
                 empty($this->feedItem->productTags) ? $this->feedItem->tags : $this->feedItem->productTags,
                 $this->importedId
             );
-        } elseif ($dataType == 'product_category') {
         }
+
 
         if ($dataType !== 'product') {
             $this->useFirstImageAsCoverImageWhenNotExists();
