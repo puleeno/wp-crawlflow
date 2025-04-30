@@ -17,14 +17,15 @@ class ImportSeoData extends Addon
         add_action('crawlflow_after_imported', [$this, 'importSeoData'], 10, 4);
     }
 
-    public function importSeoData($wordPressId, FeedItem $feedItem, $crawlData, CrawlFlowProcessor $processor)
+    public function importSeoData($wordPressId, FeedItem $feedItem, $dataType, CrawlFlowProcessor $processor)
     {
+        $builtInType = rake_wp_get_builtin_data_type($dataType);
         // Doesn't know WordPress data type to import SEO data
-        if (empty($processor->getWordPressDataType())) {
+        if (empty($builtInType)) {
             return;
         }
 
-        switch ($processor->getWordPressDataType()) {
+        switch ($builtInType) {
             case 'post':
                 $processor->importSeo($wordPressId);
                 break;

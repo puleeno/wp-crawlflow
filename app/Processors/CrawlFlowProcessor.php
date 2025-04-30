@@ -13,7 +13,6 @@ class CrawlFlowProcessor extends Processor
 {
     const NAME = 'general';
 
-    protected $wordPressType = null;
 
     use WooCommerceProcessor;
     use WordPressProcessor;
@@ -77,12 +76,13 @@ class CrawlFlowProcessor extends Processor
             return ProcessResult::createErrorResult("The post type [{$dataType}] is invalid");
         }
 
+
+
         Logger::info("Start importing [{$dataType}]: {$this->feedItem->guid}...");
 
         switch ($dataType) {
             case 'post':
                 $this->importPost($this->feedItem->getMeta('postContent'));
-                $this->wordPressType = 'post';
                 break;
             case 'category':
                 $this->importPostCategory(
@@ -92,26 +92,22 @@ class CrawlFlowProcessor extends Processor
                     $this->feedItem->getMeta('productCategoryShortDescription'),
                     $this->feedItem->getMeta('taxonomy', 'category')
                 );
-                $this->wordPressType = 'taxonomy';
                 break;
             case 'product':
                 $this->importProduct($this->feedItem->getMeta('productContent'));
-                $this->wordPressType = 'post';
                 break;
             case 'page':
                 $this->importPage($this->feedItem->pageTitle, $this->feedItem->pageContent);
-                $this->wordPressType = 'post';
                 break;
             case 'product_category':
                 $this->importProductCategory();
-                $this->wordPressType = 'taxonomy';
                 break;
             default:
                 do_action_ref_array(
                     'crawlflow_process_' . $dataType . '_item',
                     [
                         &$this->feedItem,
-                        &$this->wordPressType,
+                        rake_wp_get_builtin_data_type($dataType, null),
                         &$this,
                         &$this->tooth,
                         &$dataType
@@ -181,15 +177,5 @@ class CrawlFlowProcessor extends Processor
     protected function useFirstImageAsCoverImageWhenNotExists()
     {
         // Logger::debug( 'Set first image as feature image' );
-    }
-
-    public function setWordPressDataType($dataType)
-    {
-        $this->wordPressType = $dataType;
-    }
-
-    public function getWordPressDataType()
-    {
-        return $this->wordPressType;
     }
 }
