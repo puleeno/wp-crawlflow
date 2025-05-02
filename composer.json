@@ -11,8 +11,9 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "ramphor/rake": "^1.2",
-        "puleeno/rake-wordpress-adapter": "^1.0"
+        "ramphor/rake": "dev-master",
+        "puleeno/rake-wordpress-adapter": "dev-master",
+        "jbroadway/urlify": "^1.2"
     },
     "autoload": {
         "psr-4": {
