@@ -86,10 +86,10 @@ class CrawlFlowProcessor extends Processor
                 break;
             case 'category':
                 $this->importPostCategory(
-                    $this->feedItem->getMeta('postCategoryName'),
-                    $this->feedItem->getMeta('productCategoryContent'),
-                    $this->feedItem->getMeta('productCategorySlug'),
-                    $this->feedItem->getMeta('productCategoryShortDescription'),
+                    $this->feedItem->getMeta('postCategoryName', $this->feedItem->title),
+                    $this->feedItem->getMeta('postCategoryContent', $this->feedItem->content),
+                    $this->feedItem->getMeta('postCategorySlug', $this->feedItem->slug),
+                    $this->feedItem->getMeta('postCategoryShortDescription'),
                     $this->feedItem->getMeta('taxonomy', 'category')
                 );
                 break;

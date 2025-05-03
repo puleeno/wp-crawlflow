@@ -30,7 +30,7 @@ class ImportSeoData extends Addon
                 $processor->importSeo($wordPressId);
                 break;
             case 'taxonomy':
-                $processor->importTermSeo($wordPressId);
+                $processor->importTermSeo($wordPressId, rake_wp_get_wordpress_taxonomy_name($dataType));
                 break;
         }
     }
