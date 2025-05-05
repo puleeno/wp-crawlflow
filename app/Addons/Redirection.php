@@ -96,12 +96,12 @@ class Redirection extends Addon
             return null;
         }
 
+
         global $wpdb;
 
         $keyword = $wpdb->use_mysqli
             ? mysqli_real_escape_string($wpdb->dbh, $filteredPagedParams)
             : call_user_func('mysql_real_escape_string', $filteredPagedParams, $wpdb->dbh);
-
 
         $sql = "SELECT `new_guid`, `new_type`  FROM {$wpdb->prefix}rake_resources WHERE (guid LIKE '%" . $keyword . "' OR guid LIKE '%" . $keyword . "/') AND imported=1 AND (new_guid IS NOT NULL OR new_guid > 0)";
 
@@ -125,12 +125,15 @@ class Redirection extends Addon
             unset($wp->query_vars['page']);
             unset($wp->query_vars['name']);
             unset($wp->query_vars['attachment']);
+            unset($wp->query_vars['category_name']);
+
 
             $parsed_url = explode('/', rtrim($url, '/'));
             $path = end($parsed_url);
             $query_name = rake_wp_get_wordpress_taxonomy_name($resource->new_type);
 
             $wp->set_query_var($query_name, $path);
+            $wp->matched_query = sprintf('%s=%s', $query_name, $path);
 
             // paged
             $paged = $this->extractPageNumberFromRequest($_SERVER['REQUEST_URI']);
