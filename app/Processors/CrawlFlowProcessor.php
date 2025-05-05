@@ -117,7 +117,7 @@ class CrawlFlowProcessor extends Processor
         }
 
         if (is_wp_error($this->importedId)) {
-            Logger::info($this->importedId->get_error_message());
+            Logger::error(sprintf('Import data failed with message: %s', $this->importedId->get_error_message()), [$this->importedId]);
             return ProcessResult::createErrorResult(
                 $this->importedId->get_error_message(),
                 ProcessResult::ERROR_RESULT_TYPE
