@@ -244,12 +244,19 @@ class Redirection extends Addon
         }
         $requestParts = explode('/', $wp->request);
         $postFormatParts = explode('/', ltrim($this->permalinkFormat, '/'));
+        $supportTags = apply_filters('crawlflow/custom_query/tags', ['category', 'postname']);
 
         foreach ($postFormatParts as $index => $postFormatPart) {
             if (!preg_match_all('/%([^%]{1,})%/', $postFormatPart, $matches)) {
                 continue;
             }
+
             foreach ($matches[1] as $tag) {
+                // Skip unsupport tags
+                if (!in_array($tag, $supportTags)) {
+                    continue;
+                }
+
                 $param = $this->convertTagToParam($tag);
                 if (is_null($param) || empty($requestParts[$index])) {
                     continue;
