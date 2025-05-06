@@ -3,9 +3,25 @@
 namespace CrawlFlow\Addons;
 
 use CrawlFlow\Abstracts\Addon;
+use Sfneal\Helpers\Strings\StringHelpers;
 
 class Redirection extends Addon
 {
+    protected $permalinkFormat;
+
+    protected $tagParams = [
+        'category' => 'category_name',
+        'post_id' => 'p',
+        'year' => 'year',
+        'monthnum' => 'monthnum',
+        'day' => 'day',
+        'hour' => 'hour',
+        'minute' => 'minute',
+        'second' => 'second',
+        'author' => 'author_name',
+        'postname' => 'name'
+    ];
+
     protected function getRealTaxonomy($resource)
     {
         return apply_filters(
@@ -52,11 +68,15 @@ class Redirection extends Addon
 
     public function bootstrap()
     {
+        add_action('parse_request', function ($wp) {
+           // dd($wp);
+        });
         add_filter('crawlflow/taxonomy/named', [$this, 'filterWooCommerceTypes']);
         if (apply_filters('crawlflow/redirect/enabled', true)) {
             add_filter('pre_handle_404', [$this, 'redirectHandle'], 5, 1);
         } else {
             add_action('parse_request', [$this, 'customQueryHandle']);
+            add_action('crawlflow/custom_query/post', [$this, 'customPostQuery'], 10, 3);
         }
     }
 
@@ -106,23 +126,34 @@ class Redirection extends Addon
 
         $sql = "SELECT `new_guid`, `new_type`  FROM {$wpdb->prefix}rake_resources WHERE (guid LIKE '%" . $keyword . "' OR guid LIKE '%" . $keyword . "/') AND imported=1 AND (new_guid IS NOT NULL OR new_guid > 0)";
 
-
         $resource = $wpdb->get_row($sql);
 
         return $resource;
+    }
+
+    protected function trimUrlIncludeExtension($url)
+    {
+        $parsedUrl = parse_url($url);
+        if (strpos($parsedUrl['path'], '.') === false) {
+            return $url;
+        }
+        $paths = explode('.', $parsedUrl['path']);
+        unset($paths[count($paths) - 1]);
+
+        return sprintf('%s://%s/%s%s', $parsedUrl['scheme'], $parsedUrl['host'], implode('', $paths), empty($parsedUrl['query']) ? '' : '?' . $parsedUrl['query']);
     }
 
 
     public function customQueryHandle(\WP &$wp)
     {
         $resource = $this->getResourceFromRequest();
+
         if ($resource) {
             $url = $this->getUrlFromResource($resource);
             $originUrl = sprintf('%s%s', $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']);
-            if (empty($url) || strpos($url, $originUrl) !== false) {
+            if (empty($url) || str_ends_with($url, $originUrl)) {
                 return $wp;
             }
-
             // Delete slug for page
             unset($wp->query_vars['page']);
             unset($wp->query_vars['attachment']);
@@ -144,6 +175,13 @@ class Redirection extends Addon
                 $wp->set_query_var('post_type', $query_name);
             }
             $wp->matched_query = sprintf('%s=%s', $query_name, $path);
+
+            do_action_ref_array("crawlflow/custom_query/{$resource->new_type}", [
+                &$wp,
+                $url,
+                $originUrl,
+                $builtInType
+            ]);
 
             // paged
             $paged = $this->extractPageNumberFromRequest($_SERVER['REQUEST_URI']);
@@ -189,5 +227,40 @@ class Redirection extends Addon
             return $preempt;
         }
         return $this->redirect($resource, $preempt);
+    }
+
+    protected function convertTagToParam($tag)
+    {
+        if (isset($this->tagParams[$tag])) {
+            return $this->tagParams[$tag];
+        }
+        return null;
+    }
+
+    public function customPostQuery(\WP &$wp, $url, $originUrl)
+    {
+        if (is_null($this->permalinkFormat)) {
+            $this->permalinkFormat = get_option('permalink_structure');
+        }
+        $requestParts = explode('/', $wp->request);
+        $postFormatParts = explode('/', ltrim($this->permalinkFormat, '/'));
+
+        foreach ($postFormatParts as $index => $postFormatPart) {
+            if (!preg_match_all('/%([^%]{1,})%/', $postFormatPart, $matches)) {
+                continue;
+            }
+            foreach ($matches[1] as $tag) {
+                $param = $this->convertTagToParam($tag);
+                if (is_null($param) || empty($requestParts[$index])) {
+                    continue;
+                }
+                $wp->set_query_var($param, $requestParts[$index]);
+            }
+        }
+
+        // unset query var post
+        if (isset($wp->query_vars['post'])) {
+            unset($wp->query_vars['post']);
+        }
     }
 }

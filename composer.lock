@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "70b2a657f76bcc5027e39cf39f792357",
+    "content-hash": "90cf3126bbdad2760b2409081dee9a1f",
     "packages": [
         {
             "name": "guzzlehttp/psr7",
@@ -1096,6 +1096,139 @@
             "time": "2023-04-24T13:51:20+00:00"
         },
         {
+            "name": "sfneal/string-helpers",
+            "version": "0.1.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/sfneal/string-helpers.git",
+                "reference": "86ceb8a4a49dfb6be54462e111fe191c8e39fb57"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/sfneal/string-helpers/zipball/86ceb8a4a49dfb6be54462e111fe191c8e39fb57",
+                "reference": "86ceb8a4a49dfb6be54462e111fe191c8e39fb57",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^7.0"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/strings.php"
+                ],
+                "psr-4": {
+                    "Sfneal\\Helpers\\Strings\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Stephen Neal",
+                    "email": "stephen.neal14@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "PHP string helper functions that add familiar functionality from other languages (like string contains, splitting, truncating, etc...)",
+            "homepage": "https://github.com/sfneal/string-helpers",
+            "keywords": [
+                "sfneal",
+                "string-helpers"
+            ],
+            "support": {
+                "issues": "https://github.com/sfneal/string-helpers/issues",
+                "source": "https://github.com/sfneal/string-helpers/tree/master"
+            },
+            "time": "2020-08-28T15:52:48+00:00"
+        },
+        {
+            "name": "symfony/polyfill-php80",
+            "version": "1.x-dev",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/polyfill-php80.git",
+                "reference": "0cc9dd0f17f61d8131e7df6b84bd344899fe2608"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/polyfill-php80/zipball/0cc9dd0f17f61d8131e7df6b84bd344899fe2608",
+                "reference": "0cc9dd0f17f61d8131e7df6b84bd344899fe2608",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2"
+            },
+            "default-branch": true,
+            "type": "library",
+            "extra": {
+                "thanks": {
+                    "url": "https://github.com/symfony/polyfill",
+                    "name": "symfony/polyfill"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "bootstrap.php"
+                ],
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php80\\": ""
+                },
+                "classmap": [
+                    "Resources/stubs"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ion Bazan",
+                    "email": "ion.bazan@gmail.com"
+                },
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Symfony polyfill backporting some PHP 8.0+ features to lower PHP versions",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "compatibility",
+                "polyfill",
+                "portable",
+                "shim"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/polyfill-php80/tree/v1.32.0"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2025-01-02T08:10:11+00:00"
+        },
+        {
             "name": "voku/portable-ascii",
             "version": "2.0.3",
             "source": {
@@ -1222,7 +1355,8 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "puleeno/rake-wordpress-adapter": 20,
-        "ramphor/rake": 20
+        "ramphor/rake": 20,
+        "symfony/polyfill-php80": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,

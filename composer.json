@@ -13,7 +13,9 @@
     "require": {
         "ramphor/rake": "dev-master",
         "puleeno/rake-wordpress-adapter": "dev-master",
-        "jbroadway/urlify": "^1.2"
+        "jbroadway/urlify": "^1.2",
+        "symfony/polyfill-php80": "1.x-dev",
+        "sfneal/string-helpers": "^0.1.4"
     },
     "autoload": {
         "psr-4": {
