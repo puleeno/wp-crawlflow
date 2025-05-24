@@ -85,6 +85,7 @@ class CrawlFlowProcessor extends Processor
                 $this->importPost($this->feedItem->getMeta('postContent'));
                 break;
             case 'category':
+            case 'post_category':
                 $this->importPostCategory(
                     $this->feedItem->getMeta('postCategoryName', $this->feedItem->title),
                     $this->feedItem->getMeta('postCategoryContent', $this->feedItem->content),
@@ -100,7 +101,7 @@ class CrawlFlowProcessor extends Processor
                 $this->importPage($this->feedItem->pageTitle, $this->feedItem->pageContent);
                 break;
             case 'product_category':
-                $this->importProductCategory();
+                $this->importProductCategory($this->feedItem->productCategoryName);
                 break;
             default:
                 do_action_ref_array(

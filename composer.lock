@@ -308,6 +308,686 @@
             "time": "2018-12-21T02:25:09+00:00"
         },
         {
+            "name": "php-extended/php-charset-interface",
+            "version": "6.0.9",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-charset-interface.git",
+                "reference": "7e4e7fe1b304c0ef775612f57c4555f56b61c4a3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-charset-interface/repository/archive.zip?sha=7e4e7fe1b304c0ef775612f57c4555f56b61c4a3",
+                "reference": "7e4e7fe1b304c0ef775612f57c4555f56b61c4a3",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">= 7.4",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Charset\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A library to list all the available charsets used over the internet",
+            "homepage": "https://gitlab.com/php-extended/php-charset-interface",
+            "keywords": [
+                "character set",
+                "charset",
+                "iana",
+                "list",
+                "php"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-charset-interface/issues",
+                "source": "https://gitlab.com/php-extended/php-charset-interface"
+            },
+            "time": "2024-03-31T13:42:05+00:00"
+        },
+        {
+            "name": "php-extended/php-charset-object",
+            "version": "6.0.9",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-charset-object.git",
+                "reference": "f9acc7f4b42eabea4d8aae4717af0c93067901c9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-charset-object/repository/archive.zip?sha=f9acc7f4b42eabea4d8aae4717af0c93067901c9",
+                "reference": "f9acc7f4b42eabea4d8aae4717af0c93067901c9",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-charset-interface": "^6",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "require-dev": {
+                "php-extended/placeholder-phpunit": "^9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Charset\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A library that implements the php-charset-interface package",
+            "homepage": "https://gitlab.com/php-extended/php-charset-object",
+            "keywords": [
+                "character set",
+                "charset",
+                "enumerable",
+                "iana",
+                "list",
+                "object",
+                "php"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-charset-object/issues",
+                "source": "https://gitlab.com/php-extended/php-charset-object"
+            },
+            "time": "2024-03-31T20:52:15+00:00"
+        },
+        {
+            "name": "php-extended/php-css-selector-interface",
+            "version": "6.0.11",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-css-selector-interface.git",
+                "reference": "49b59421583f1886929dc18ecb30665db58900a8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-css-selector-interface/repository/archive.zip?sha=49b59421583f1886929dc18ecb30665db58900a8",
+                "reference": "49b59421583f1886929dc18ecb30665db58900a8",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-html-interface": "^6",
+                "php-extended/php-parser-interface": "^6",
+                "php-extended/polyfill-php80-stringable": "^1.2",
+                "psr/http-message": "^1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Css\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A library to represent css selectors for decision making trees in html documents",
+            "homepage": "https://gitlab.com/php-extended/php-css-selector-interface",
+            "keywords": [
+                "css",
+                "interface",
+                "php",
+                "selector",
+                "tree"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-css-selector-interface/issues",
+                "source": "https://gitlab.com/php-extended/php-css-selector-interface"
+            },
+            "time": "2024-03-31T13:41:38+00:00"
+        },
+        {
+            "name": "php-extended/php-css-selector-object",
+            "version": "6.0.8",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-css-selector-object.git",
+                "reference": "1934d3f8075b331043f150bfd0348f69f53e2ead"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-css-selector-object/repository/archive.zip?sha=1934d3f8075b331043f150bfd0348f69f53e2ead",
+                "reference": "1934d3f8075b331043f150bfd0348f69f53e2ead",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-css-selector-interface": "^6",
+                "php-extended/php-html-interface": "^6",
+                "php-extended/php-parser-lexer": "^6",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "require-dev": {
+                "php-extended/placeholder-phpunit": "^9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Css\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A library that implements the php-extended/php-css-selector-interface interface library.",
+            "homepage": "https://gitlab.com/php-extended/php-css-selector-object",
+            "keywords": [
+                "css",
+                "implementation",
+                "php",
+                "selector"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-css-selector-object/issues",
+                "source": "https://gitlab.com/php-extended/php-css-selector-object"
+            },
+            "time": "2024-03-31T20:51:15+00:00"
+        },
+        {
+            "name": "php-extended/php-html-interface",
+            "version": "6.1.6",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-html-interface.git",
+                "reference": "46b6ed033b3f380e8a22c9d9436424142324c14f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-html-interface/repository/archive.zip?sha=46b6ed033b3f380e8a22c9d9436424142324c14f",
+                "reference": "46b6ed033b3f380e8a22c9d9436424142324c14f",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-parser-interface": "^6",
+                "php-extended/polyfill-php80-stringable": "^1.2",
+                "psr/http-message": "^1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Html\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A tree for managing data that can be interpreted as html",
+            "homepage": "https://gitlab.com/php-extended/php-html-interface",
+            "keywords": [
+                "html",
+                "interface",
+                "php",
+                "structure",
+                "tree"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-html-interface/issues",
+                "source": "https://gitlab.com/php-extended/php-html-interface"
+            },
+            "time": "2024-03-31T13:37:50+00:00"
+        },
+        {
+            "name": "php-extended/php-html-object",
+            "version": "6.1.7",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-html-object.git",
+                "reference": "371ceb32f618c596cb837eb158fb934c301a73ed"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-html-object/repository/archive.zip?sha=371ceb32f618c596cb837eb158fb934c301a73ed",
+                "reference": "371ceb32f618c596cb837eb158fb934c301a73ed",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-css-selector-object": "^6",
+                "php-extended/php-html-interface": "^6.1",
+                "php-extended/php-parser-lexer": "^6",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "require-dev": {
+                "php-extended/placeholder-phpunit": "^9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Html\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A library that implements the php-extended/php-html-interface interface library",
+            "homepage": "https://gitlab.com/php-extended/php-html-object",
+            "keywords": [
+                "html",
+                "implementation",
+                "object",
+                "php",
+                "tree"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-html-object/issues",
+                "source": "https://gitlab.com/php-extended/php-html-object"
+            },
+            "time": "2024-03-31T20:43:47+00:00"
+        },
+        {
+            "name": "php-extended/php-io-interface",
+            "version": "6.0.9",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-io-interface.git",
+                "reference": "49b7aab6788706b72a11c5605b6a8b444b0bb208"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-io-interface/repository/archive.zip?sha=49b7aab6788706b72a11c5605b6a8b444b0bb208",
+                "reference": "49b7aab6788706b72a11c5605b6a8b444b0bb208",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Io\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "Interfaces to implement generic input and output operations",
+            "homepage": "https://gitlab.com/php-extended/php-io-interface",
+            "keywords": [
+                "input",
+                "interface",
+                "io",
+                "output",
+                "php"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-io-interface/issues",
+                "source": "https://gitlab.com/php-extended/php-io-interface"
+            },
+            "time": "2024-03-31T13:36:26+00:00"
+        },
+        {
+            "name": "php-extended/php-lexer-interface",
+            "version": "6.0.9",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-lexer-interface.git",
+                "reference": "6157a96cb201ed2573ddfefb1f0e27f11331b583"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-lexer-interface/repository/archive.zip?sha=6157a96cb201ed2573ddfefb1f0e27f11331b583",
+                "reference": "6157a96cb201ed2573ddfefb1f0e27f11331b583",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-charset-interface": "^6",
+                "php-extended/php-io-interface": "^6",
+                "php-extended/polyfill-php80-stringable": "^1.2",
+                "psr/http-message": "^1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Lexer\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A lexer to prepare the work for any parser of data",
+            "homepage": "https://gitlab.com/php-extended/php-lexer-interface",
+            "keywords": [
+                "interface",
+                "lexer",
+                "php"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-lexer-interface/issues",
+                "source": "https://gitlab.com/php-extended/php-lexer-interface"
+            },
+            "time": "2024-03-31T13:31:43+00:00"
+        },
+        {
+            "name": "php-extended/php-lexer-object",
+            "version": "6.0.8",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-lexer-object.git",
+                "reference": "a2cf9ef8e0552aa4d33885c4747747c7dcf2a8f0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-lexer-object/repository/archive.zip?sha=a2cf9ef8e0552aa4d33885c4747747c7dcf2a8f0",
+                "reference": "a2cf9ef8e0552aa4d33885c4747747c7dcf2a8f0",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-charset-object": "^6",
+                "php-extended/php-lexer-interface": "^6",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "require-dev": {
+                "php-extended/placeholder-phpunit": "^9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Lexer\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A library that implements the php-extended/php-lexer-interface interface library.",
+            "homepage": "https://gitlab.com/php-extended/php-lexer-object",
+            "keywords": [
+                "implementation",
+                "lexer",
+                "php"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-lexer-object/issues",
+                "source": "https://gitlab.com/php-extended/php-lexer-object"
+            },
+            "time": "2024-03-31T20:28:49+00:00"
+        },
+        {
+            "name": "php-extended/php-parser-interface",
+            "version": "6.1.7",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-parser-interface.git",
+                "reference": "4d4641ed2d299e4998ee0b01548b2805718f7cad"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-parser-interface/repository/archive.zip?sha=4d4641ed2d299e4998ee0b01548b2805718f7cad",
+                "reference": "4d4641ed2d299e4998ee0b01548b2805718f7cad",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Parser\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "An abstract interface implementation for parsers",
+            "homepage": "https://gitlab.com/php-extended/php-parser-interface",
+            "keywords": [
+                "interface",
+                "parser",
+                "php"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-parser-interface/issues",
+                "source": "https://gitlab.com/php-extended/php-parser-interface"
+            },
+            "time": "2024-03-31T13:27:48+00:00"
+        },
+        {
+            "name": "php-extended/php-parser-lexer",
+            "version": "6.0.8",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-parser-lexer.git",
+                "reference": "aa654fa8c0aef724710d115769fb4acffc53abff"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-parser-lexer/repository/archive.zip?sha=aa654fa8c0aef724710d115769fb4acffc53abff",
+                "reference": "aa654fa8c0aef724710d115769fb4acffc53abff",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-lexer-object": "^6",
+                "php-extended/php-parser-object": "^6",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "require-dev": {
+                "php-extended/placeholder-phpunit": "^9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Parser\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "This library is an implementation of the php-extended/php-parser-interface based on a lexer for handling its data",
+            "homepage": "https://gitlab.com/php-extended/php-parser-lexer",
+            "keywords": [
+                "implementation",
+                "lexer",
+                "parser",
+                "php"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-parser-lexer/issues",
+                "source": "https://gitlab.com/php-extended/php-parser-lexer"
+            },
+            "time": "2024-03-31T13:38:19+00:00"
+        },
+        {
+            "name": "php-extended/php-parser-object",
+            "version": "6.1.9",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/php-parser-object.git",
+                "reference": "5fc8fa7ec8e53e9779a223076a48c01e338557b3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fphp-parser-object/repository/archive.zip?sha=5fc8fa7ec8e53e9779a223076a48c01e338557b3",
+                "reference": "5fc8fa7ec8e53e9779a223076a48c01e338557b3",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "php-extended/php-parser-interface": "^6.1",
+                "php-extended/polyfill-php80-stringable": "^1.2"
+            },
+            "require-dev": {
+                "php-extended/placeholder-phpunit": "^9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpExtended\\Parser\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "An implementation of the php-extended/php-parser-interface library",
+            "homepage": "https://gitlab.com/php-extended/php-parser-interface",
+            "keywords": [
+                "implementation",
+                "object",
+                "parser",
+                "php"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/php-parser-interface/issues",
+                "source": "https://gitlab.com/php-extended/php-parser-interface"
+            },
+            "time": "2024-03-31T13:38:03+00:00"
+        },
+        {
+            "name": "php-extended/polyfill-php80-stringable",
+            "version": "1.2.12",
+            "source": {
+                "type": "git",
+                "url": "https://gitlab.com/php-extended/polyfill-php80-stringable.git",
+                "reference": "ea728554a1d83c75ebb7eec69689fdb6c067b5e4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://gitlab.com/api/v4/projects/php-extended%2Fpolyfill-php80-stringable/repository/archive.zip?sha=ea728554a1d83c75ebb7eec69689fdb6c067b5e4",
+                "reference": "ea728554a1d83c75ebb7eec69689fdb6c067b5e4",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.0"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "src/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anastaszor",
+                    "homepage": "https://gitlab.com/Anastaszor",
+                    "role": "developer"
+                }
+            ],
+            "description": "A polyfill that adds the stringable interface added in php8.0 to previous versions of php",
+            "homepage": "https://gitlab.com/php-extended/polyfill-php80-stringable",
+            "keywords": [
+                "php",
+                "php8",
+                "polyfill",
+                "stringable"
+            ],
+            "support": {
+                "issues": "https://gitlab.com/php-extended/polyfill-php80-stringable/issues",
+                "source": "https://gitlab.com/php-extended/polyfill-php80-stringable"
+            },
+            "abandoned": "php >= 8.0",
+            "time": "2024-03-31T13:21:37+00:00"
+        },
+        {
             "name": "php-http/httplug",
             "version": "2.x-dev",
             "source": {
@@ -528,26 +1208,25 @@
         },
         {
             "name": "psr/http-message",
-            "version": "dev-master",
+            "version": "1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-fig/http-message.git",
-                "reference": "402d35bcb92c70c026d1a6a9883f06b2ead23d71"
+                "reference": "cb6ce4845ce34a8ad9e68117c10ee90a29919eba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-fig/http-message/zipball/402d35bcb92c70c026d1a6a9883f06b2ead23d71",
-                "reference": "402d35bcb92c70c026d1a6a9883f06b2ead23d71",
+                "url": "https://api.github.com/repos/php-fig/http-message/zipball/cb6ce4845ce34a8ad9e68117c10ee90a29919eba",
+                "reference": "cb6ce4845ce34a8ad9e68117c10ee90a29919eba",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.2 || ^8.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "2.0.x-dev"
+                    "dev-master": "1.1.x-dev"
                 }
             },
             "autoload": {
@@ -562,7 +1241,7 @@
             "authors": [
                 {
                     "name": "PHP-FIG",
-                    "homepage": "https://www.php-fig.org/"
+                    "homepage": "http://www.php-fig.org/"
                 }
             ],
             "description": "Common interface for HTTP messages",
@@ -576,9 +1255,9 @@
                 "response"
             ],
             "support": {
-                "source": "https://github.com/php-fig/http-message/tree/2.0"
+                "source": "https://github.com/php-fig/http-message/tree/1.1"
             },
-            "time": "2023-04-04T09:54:51+00:00"
+            "time": "2023-04-04T09:50:52+00:00"
         },
         {
             "name": "psr/log",
@@ -636,12 +1315,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/puleeno/rake-wordpress-adapter.git",
-                "reference": "84eb3fede916fe6a15a6dc215a169f8f0fcc97a2"
+                "reference": "de3b36c5da718d5d3b6b382308220c5722a9deaa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/84eb3fede916fe6a15a6dc215a169f8f0fcc97a2",
-                "reference": "84eb3fede916fe6a15a6dc215a169f8f0fcc97a2",
+                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/de3b36c5da718d5d3b6b382308220c5722a9deaa",
+                "reference": "de3b36c5da718d5d3b6b382308220c5722a9deaa",
                 "shasum": ""
             },
             "require": {
@@ -674,7 +1353,7 @@
                 "issues": "https://github.com/puleeno/rake-wordpress-adapter/issues",
                 "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/master"
             },
-            "time": "2025-05-06T08:37:06+00:00"
+            "time": "2025-05-21T08:36:46+00:00"
         },
         {
             "name": "ralouphie/getallheaders",
@@ -944,17 +1623,18 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "4a72cb7d5948bfc7d2a748262bf254b94895a521"
+                "reference": "d8fcb25405a0bafa80ec444ecb20e3e414956c93"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/4a72cb7d5948bfc7d2a748262bf254b94895a521",
-                "reference": "4a72cb7d5948bfc7d2a748262bf254b94895a521",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/d8fcb25405a0bafa80ec444ecb20e3e414956c93",
+                "reference": "d8fcb25405a0bafa80ec444ecb20e3e414956c93",
                 "shasum": ""
             },
             "require": {
                 "guzzlehttp/psr7": "^2.7.0",
                 "php": ">=7.4",
+                "php-extended/php-html-object": "^6.1|^8.0",
                 "php-http/httplug": "^2.1",
                 "psr/log": "^1.0.1",
                 "ramphor/httplug-guzzle6-adapter": "^2.0.2",
@@ -983,7 +1663,7 @@
                 "issues": "https://github.com/ramphor/rake-php/issues",
                 "source": "https://github.com/ramphor/rake-php/tree/master"
             },
-            "time": "2025-05-02T18:43:33+00:00"
+            "time": "2025-05-24T04:31:54+00:00"
         },
         {
             "name": "ramphor/sql",
