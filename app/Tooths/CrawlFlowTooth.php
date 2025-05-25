@@ -11,7 +11,7 @@ class CrawlFlowTooth extends CrawlerTooth
 {
     const NAME = 'general';
 
-    protected $limitQueryUrls = 20;
+    protected $limitQueryUrls = 10;
 
     protected $isCrawlUrlInContent = false;
 
