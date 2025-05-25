@@ -15,7 +15,7 @@ class CrawlFlowTooth extends CrawlerTooth
 
     protected $isCrawlUrlInContent = false;
 
-    const MAXIMUM_RESOURCES_DOWNLOADING = 50;
+    const MAXIMUM_RESOURCES_DOWNLOADING = 100;
 
     use WordPressTooth;
 
