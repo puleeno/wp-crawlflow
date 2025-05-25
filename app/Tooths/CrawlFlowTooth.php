@@ -12,10 +12,9 @@ class CrawlFlowTooth extends CrawlerTooth
     const NAME = 'general';
 
     protected $limitQueryUrls = 10;
+    protected $limitQueryResources = 10;
 
     protected $isCrawlUrlInContent = false;
-
-    const MAXIMUM_RESOURCES_DOWNLOADING = 100;
 
     use WordPressTooth;
 
@@ -38,17 +37,18 @@ class CrawlFlowTooth extends CrawlerTooth
         );
     }
 
-    public function limitQueryResource()
+    public function getLimitQueryResources()
     {
         $notifiedKey = sprintf('tooth_%s_notified', $this->getId());
         $notified    = Option::get($notifiedKey, false);
+        $limitResources = $this->getLimitQueryResources();
         if ($notified) {
-            Logger::info(sprintf('[%s]Load %d resources for downloading', $this->getId(), static::MAXIMUM_RESOURCES_DOWNLOADING));
-            return static::MAXIMUM_RESOURCES_DOWNLOADING;
+            Logger::info(sprintf('[%s]Load %d resources for downloading', $this->getId(), $limitResources));
+            return $limitResources;
         }
 
-        Logger::info(sprintf('[%s]Load %d resources for downloading', $this->getId(), $this->limitQueryResource));
-        return $this->limitQueryResource;
+        Logger::info(sprintf('[%s]Load %d resources for downloading', $this->getId(), $limitResources));
+        return $limitResources;
     }
 
 
