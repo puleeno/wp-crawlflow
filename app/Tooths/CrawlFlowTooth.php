@@ -31,7 +31,7 @@ class CrawlFlowTooth extends CrawlerTooth
     public function getLimitQueryUrls()
     {
         return apply_filters(
-            'crawlflow/urls/query/limit',
+            'crawflow/query/limit/urls',
             $this->limitQueryUrls,
             $this
         );
@@ -41,7 +41,7 @@ class CrawlFlowTooth extends CrawlerTooth
     {
         $notifiedKey = sprintf('tooth_%s_notified', $this->getId());
         $notified    = Option::get($notifiedKey, false);
-        $limitResources = $this->getLimitQueryResources();
+        $limitResources = apply_filters('crawflow/query/limit/resources', $this->limitQueryResources);
         if ($notified) {
             Logger::info(sprintf('[%s]Load %d resources for downloading', $this->getId(), $limitResources));
             return $limitResources;
