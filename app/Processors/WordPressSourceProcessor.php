@@ -4,7 +4,6 @@ namespace CrawlFlow\Processors;
 
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
 use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
-
 use Puleeno\Rake\WordPress\Traits\Content\WordPressDataSource;
 
 class WordPressSourceProcessor extends CrawlFlowProcessor

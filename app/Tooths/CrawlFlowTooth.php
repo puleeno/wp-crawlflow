@@ -28,6 +28,16 @@ class CrawlFlowTooth extends CrawlerTooth
         );
     }
 
+
+    public function getLimitQueryUrls()
+    {
+        return apply_filters(
+            'crawlflow/urls/query/limit',
+            $this->limitQueryUrls,
+            $this
+        );
+    }
+
     public function limitQueryResource()
     {
         $notifiedKey = sprintf('tooth_%s_notified', $this->getId());
