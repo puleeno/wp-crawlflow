@@ -135,7 +135,7 @@ class CrawlFlowProcessor extends Processor
             $this->importPostTags($this->feedItem->tags, $this->importedId);
         } elseif ($dataType === 'product') {
             $this->importProductCategories(
-                empty($this->feedItem->productCategories) ? $this->feedItem->categories : $this->feedItem->productCategories,
+                !is_array($this->feedItem->productCategories) ? $this->feedItem->categories : $this->feedItem->productCategories,
                 true,
                 $this->importedId
             );
