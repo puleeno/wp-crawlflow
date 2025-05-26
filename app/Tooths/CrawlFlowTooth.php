@@ -55,7 +55,9 @@ class CrawlFlowTooth extends CrawlerTooth
     public function downloadResource(Resource &$resource): Resource
     {
         $resource = parent::downloadResource($resource);
-        do_action('crawlflow/resource/downloaded', $resource);
+        do_action_ref_array('crawlflow/resource/downloaded', [
+            &$resource
+        ]);
         return $resource;
     }
 }
