@@ -15,6 +15,7 @@ class CrawlFlowTooth extends CrawlerTooth
     protected $limitQueryResources = 100;
 
     protected $isCrawlUrlInContent = false;
+    protected $isCrawlUrlInHtml = false;
 
     use WordPressTooth;
 
@@ -22,8 +23,16 @@ class CrawlFlowTooth extends CrawlerTooth
     public function isCrawlUrlInContent()
     {
         return apply_filters(
-            'crawlflow/crawl/url_in_html',
+            'crawlflow/crawl/url_in_content',
             $this->isCrawlUrlInContent
+        );
+    }
+
+    public function isCrawlUrlInHtml()
+    {
+        return apply_filters(
+            'crawlflow/crawl/url_in_html',
+            $this->isCrawlUrlInHtml
         );
     }
 
