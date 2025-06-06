@@ -2,11 +2,13 @@
 
 namespace CrawlFlow;
 
-use Ramphor\Logger\Logger;
+use Monolog\Handler\StreamHandler;
+use Psr\Log\LoggerInterface;
 use Ramphor\Rake\Rake;
 use Puleeno\Rake\WordPress\Driver;
 use CrawlFlow\Core\Task;
 use Ramphor\Rake\App;
+use Monolog\Logger as Monolog;
 
 class TaskRunner
 {
@@ -19,6 +21,8 @@ class TaskRunner
      * @var \CrawlFlow\Core\Task[]
      */
     protected $tasks = array();
+
+    protected $logger = null;
 
     private function __construct()
     {
@@ -41,17 +45,39 @@ class TaskRunner
         }
     }
 
+    protected function registerCrawlFlowLogger(): LoggerInterface
+    {
+        if (is_null($this->logger)) {
+            $syslog  = sprintf('%s/crawlflow-%s.log', WP_CONTENT_DIR, getmypid());
+            $handler = new StreamHandler(
+                apply_filters('crawlflow/logger', $syslog),
+                Monolog::DEBUG
+            );
+            $stdOutHandler = new StreamHandler('php://stdout', Monolog::INFO);
+
+        // Setup Monolog as default logger
+            $log = new Monolog('CRAWLFLOW');
+            $log->pushHandler($handler);
+            $log->pushHandler($stdOutHandler);
+
+            $this->logger = $log;
+        }
+
+        return $this->logger;
+    }
+
     public function run()
     {
         if (empty($this->tasks)) {
             return;
         }
 
-        $rake = new Rake(static::RAKE_ID, new Driver());
-        App::instance()->bind('logger', function () use ($rake) {
-            return Logger::instance();
+        $rake = new Rake(static::RAKE_ID, new Driver(), $this->registerCrawlFlowLogger());
+        $logger = $this->registerCrawlFlowLogger();
+        App::instance()->bind('logger', function () use ($logger) {
+            return $logger;
         });
-        Logger::instance()->info('CrawlFlow batch is starting...');
+        $logger->info('CrawlFlow batch is starting...');
 
         foreach ($this->tasks as $task) {
             $tooth   = $task->create_tooth();
@@ -97,6 +123,6 @@ class TaskRunner
             call_user_func('xdebug_stop_trace', sprintf('%s/xdebug-trace-%s.xt', WP_CONTENT_DIR, date('Y-m-d-H-i-s')));
         }
 
-        Logger::instance()->info('CrawlFlow batch is end');
+        $logger->info('CrawlFlow batch is end');
     }
 }
