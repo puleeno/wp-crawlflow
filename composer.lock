@@ -1847,12 +1847,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "46fdcf7dcf17bdbd626bbe16036dc6b5bae7e898"
+                "reference": "11f6d836708c8c24898bc7cc906493fcf54cbd25"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/46fdcf7dcf17bdbd626bbe16036dc6b5bae7e898",
-                "reference": "46fdcf7dcf17bdbd626bbe16036dc6b5bae7e898",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/11f6d836708c8c24898bc7cc906493fcf54cbd25",
+                "reference": "11f6d836708c8c24898bc7cc906493fcf54cbd25",
                 "shasum": ""
             },
             "require": {
@@ -1888,7 +1888,7 @@
                 "issues": "https://github.com/ramphor/rake-php/issues",
                 "source": "https://github.com/ramphor/rake-php/tree/master"
             },
-            "time": "2025-06-05T17:27:04+00:00"
+            "time": "2025-06-06T12:18:36+00:00"
         },
         {
             "name": "ramphor/sql",
