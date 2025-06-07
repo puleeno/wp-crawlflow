@@ -48,7 +48,7 @@ class TaskRunner
     protected function registerCrawlFlowLogger(): LoggerInterface
     {
         if (is_null($this->logger)) {
-            $syslog  = sprintf('%s/crawlflow/crawlflow-%s.log', WP_CONTENT_DIR, getmypid());
+            $syslog  = sprintf('%s/crawlflow/crawlflow-%s-%s.log', WP_CONTENT_DIR, time(), getmypid());
             $handler = new StreamHandler(
                 apply_filters('crawlflow/logger', $syslog),
                 Monolog::DEBUG
