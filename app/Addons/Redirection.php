@@ -35,7 +35,7 @@ class Redirection extends Addon
         $dataType = rake_wp_get_builtin_data_type($resource->new_type);
         switch ($dataType) {
             case 'attachment':
-                return wp_get_attachment_url($resource->new_guid);
+                return wp_get_attachment_image_url($resource->new_guid, 'full');
             case 'term':
             case 'taxonomy':
                 return get_term_link(intval($resource->new_guid), $this->getRealTaxonomy($resource));
@@ -58,21 +58,19 @@ class Redirection extends Addon
 
         $originUrl = sprintf('%s%s', $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']);
         if (strpos($url, $originUrl) === false) {
-            return wp_safe_redirect($url, 301, 'WP CrawlFlow');
+            wp_safe_redirect($url, 301, 'WP CrawlFlow');
+            exit();
         }
-
-
 
         return $preempt;
     }
 
     public function bootstrap()
     {
-        add_action('parse_request', function ($wp) {
-           // dd($wp);
-        });
         add_filter('crawlflow/taxonomy/named', [$this, 'filterWooCommerceTypes']);
-        if (apply_filters('crawlflow/redirect/enabled', true)) {
+        $excludeExtensions = apply_filters('crawlflow/redirect/excludes', ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp']);
+        $ext = isset($_SERVER['SCRIPT_URI']) ? pathinfo($_SERVER['SCRIPT_URI'], PATHINFO_EXTENSION) : '';
+        if (apply_filters('crawlflow/redirect/enabled', false) || in_array(strtolower($ext), $excludeExtensions)) {
             add_filter('pre_handle_404', [$this, 'redirectHandle'], 5, 1);
         } else {
             add_action('parse_request', [$this, 'customQueryHandle']);
@@ -222,7 +220,6 @@ class Redirection extends Addon
     public function redirectHandle($preempt)
     {
         $resource = $this->getResourceFromRequest();
-
         if (empty($resource)) {
             return $preempt;
         }
