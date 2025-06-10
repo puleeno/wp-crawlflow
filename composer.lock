@@ -1539,12 +1539,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/puleeno/rake-wordpress-adapter.git",
-                "reference": "7acc5679b2269dd2a72e364b0ea93c991d77337e"
+                "reference": "4b7a48a6c83a5d35d58e96f8f76231a537ff35d0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/7acc5679b2269dd2a72e364b0ea93c991d77337e",
-                "reference": "7acc5679b2269dd2a72e364b0ea93c991d77337e",
+                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/4b7a48a6c83a5d35d58e96f8f76231a537ff35d0",
+                "reference": "4b7a48a6c83a5d35d58e96f8f76231a537ff35d0",
                 "shasum": ""
             },
             "require": {
@@ -1577,7 +1577,7 @@
                 "issues": "https://github.com/puleeno/rake-wordpress-adapter/issues",
                 "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/master"
             },
-            "time": "2025-06-10T01:14:16+00:00"
+            "time": "2025-06-10T09:04:08+00:00"
         },
         {
             "name": "ralouphie/getallheaders",
