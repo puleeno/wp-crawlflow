@@ -49,7 +49,7 @@ class CrawlFlowTooth extends CrawlerTooth
     public function getLimitQueryResources()
     {
         $notifiedKey = sprintf('tooth_%s_notified', $this->getId());
-        $notified    = Option::get($notifiedKey, false);
+        $notified = Option::get($notifiedKey, false);
         $limitResources = apply_filters('crawflow/query/limit/resources', $this->limitQueryResources);
         if ($notified) {
             Logger::info(sprintf('[%s]Load %d resources for downloading', $this->getId(), $limitResources));
@@ -61,12 +61,17 @@ class CrawlFlowTooth extends CrawlerTooth
     }
 
 
-    public function downloadResource(Resource &$resource): Resource
+    public function downloadResource(Resource &$resource): ? Resource
     {
-        $resource = parent::downloadResource($resource);
-        do_action_ref_array('crawlflow/resource/downloaded', [
-            &$resource
-        ]);
-        return $resource;
+        $resource = apply_filters('crawlflow/resource/download', $resource);
+        if ($resource instanceof Resource) {
+            // support hook to download on backup site
+            $resource = parent::downloadResource($resource);
+            do_action_ref_array('crawlflow/resource/downloaded', [
+                &$resource
+            ]);
+            return $resource;
+        }
+        return null;
     }
 }

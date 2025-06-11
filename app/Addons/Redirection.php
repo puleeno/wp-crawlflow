@@ -146,12 +146,14 @@ class Redirection extends Addon
     {
         $resource = $this->getResourceFromRequest();
 
+
         if ($resource) {
             $url = $this->getUrlFromResource($resource);
             $originUrl = sprintf('%s%s', $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']);
             if (empty($url) || str_ends_with($url, $originUrl)) {
                 return $wp;
             }
+
             // Delete slug for page
             unset($wp->query_vars['page']);
             unset($wp->query_vars['attachment']);
@@ -168,11 +170,16 @@ class Redirection extends Addon
                 ? rake_wp_get_wordpress_post_type($resource->new_type)
                 : rake_wp_get_wordpress_taxonomy_name($resource->new_type);
 
-            $wp->set_query_var($query_name, $path);
-            if ($builtInType === 'post') {
+            if ($builtInType === 'post' && !in_array($resource->new_type, ['page'])) {
                 $wp->set_query_var('post_type', $query_name);
             }
-            $wp->matched_query = sprintf('%s=%s', $query_name, $path);
+
+            if ($resource->new_type === 'page') {
+                $wp->set_query_var('pagename', $path);
+            } else {
+                $wp->set_query_var($query_name, $path);
+                $wp->matched_query = sprintf('%s=%s', $query_name, $path);
+            }
 
             do_action_ref_array("crawlflow/custom_query/{$resource->new_type}", [
                 &$wp,
