@@ -61,17 +61,13 @@ class CrawlFlowTooth extends CrawlerTooth
     }
 
 
-    public function downloadResource(Resource &$resource): ? Resource
+    public function downloadResource(Resource &$resource): Resource
     {
-        $resource = apply_filters('crawlflow/resource/download', $resource);
-        if ($resource instanceof Resource) {
-            // support hook to download on backup site
-            $resource = parent::downloadResource($resource);
-            do_action_ref_array('crawlflow/resource/downloaded', [
-                &$resource
-            ]);
-            return $resource;
-        }
-        return null;
+        // support hook to download on backup site
+        $resource = parent::downloadResource($resource);
+        do_action_ref_array('crawlflow/resource/downloaded', [
+            &$resource
+        ]);
+        return $resource;
     }
 }
