@@ -69,7 +69,8 @@ class Redirection extends Addon
     {
         add_filter('crawlflow/taxonomy/named', [$this, 'filterWooCommerceTypes']);
         $excludeExtensions = apply_filters('crawlflow/redirect/excludes', ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp']);
-        $ext = isset($_SERVER['SCRIPT_URI']) ? pathinfo($_SERVER['SCRIPT_URI'], PATHINFO_EXTENSION) : '';
+        $ext = isset($_SERVER['REQUEST_URI']) ? pathinfo($_SERVER['REQUEST_URI'], PATHINFO_EXTENSION) : '';
+
         if (apply_filters('crawlflow/redirect/enabled', false) || in_array(strtolower($ext), $excludeExtensions)) {
             add_filter('pre_handle_404', [$this, 'redirectHandle'], 5, 1);
         } else {
@@ -90,9 +91,11 @@ class Redirection extends Addon
     protected function getResourceFromRequest()
     {
         $requestUrl = rtrim($_SERVER['REQUEST_URI'], '/');
-        if (strpos($requestUrl, '%') === false) {
-            $requestUrl = urlencode($requestUrl);
+        if (strpos($requestUrl, '%') !== false) {
+            $requestUrl = urldecode($requestUrl);
         }
+        $requestUrl = rawurlencode($requestUrl);
+
         $requestUrl = str_replace(array(
             '%2F',
             '%3F',
@@ -110,11 +113,9 @@ class Redirection extends Addon
             $requestUrl
         );
 
-
         if (empty($filteredPagedParams)) {
             return null;
         }
-
 
         global $wpdb;
 
