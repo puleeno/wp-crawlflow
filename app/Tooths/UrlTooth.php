@@ -3,7 +3,7 @@
 namespace CrawlFlow\Tooths;
 
 if (!defined('ABSPATH')) {
-    exit('Cheatin huh?');
+    exit('Cheating huh?');
 }
 
 class UrlTooth extends CrawlFlowTooth

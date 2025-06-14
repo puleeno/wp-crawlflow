@@ -2,7 +2,7 @@
 namespace Migrator;
 
 if (!defined('ABSPATH')) {
-    exit('Cheatin huh?');
+    exit('Cheating huh?');
 }
 
 use CrawlFlow\TaskRunner;

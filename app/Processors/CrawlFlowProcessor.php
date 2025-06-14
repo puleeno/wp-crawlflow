@@ -3,7 +3,7 @@
 namespace CrawlFlow\Processors;
 
 if (!defined('ABSPATH')) {
-    exit('Cheatin huh?');
+    exit('Cheating huh?');
 }
 
 use WP_Error;

@@ -3,7 +3,7 @@
 namespace CrawlFlow\Tooths;
 
 if (!defined('ABSPATH')) {
-    exit('Cheatin huh?');
+    exit('Cheating huh?');
 }
 
 use Ramphor\Rake\Abstracts\CrawlerTooth as FrameworkCrawlerTooth;

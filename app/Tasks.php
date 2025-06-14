@@ -3,7 +3,7 @@
 namespace CrawlFlow;
 
 if (!defined('ABSPATH')) {
-    exit('Cheatin huh?');
+    exit('Cheating huh?');
 }
 
 use CrawlFlow\Core\Task;

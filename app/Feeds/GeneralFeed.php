@@ -3,7 +3,7 @@
 namespace CrawlFlow\Feeds;
 
 if (!defined('ABSPATH')) {
-    exit('Cheatin huh?');
+    exit('Cheating huh?');
 }
 
 use Ramphor\Rake\Abstracts\Feed;

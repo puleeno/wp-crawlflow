@@ -3,7 +3,7 @@
 namespace CrawlFlow\Processors;
 
 if (!defined('ABSPATH')) {
-    exit('Cheatin huh?');
+    exit('Cheating huh?');
 }
 
 use Puleeno\Rake\WordPress\Traits\Content\OpencartDataSource;

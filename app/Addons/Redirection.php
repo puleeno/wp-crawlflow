@@ -3,7 +3,7 @@
 namespace CrawlFlow\Addons;
 
 if (!defined('ABSPATH')) {
-    exit('Cheatin huh?');
+    exit('Cheating huh?');
 }
 
 use CrawlFlow\Abstracts\Addon;
