@@ -2,6 +2,10 @@
 
 namespace CrawlFlow;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use CrawlFlow\Core\Task;
 
 class Tasks

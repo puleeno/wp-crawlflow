@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Utils;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 class Str
 {
     public static function convertToCamel($str)

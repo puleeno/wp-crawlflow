@@ -1,4 +1,7 @@
 <?php
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
 /**
  * Plugin Name: CrawlFlow
  * Plugin URI: https://github.com/puleeno/wp-crawflow/

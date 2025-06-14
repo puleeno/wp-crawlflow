@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Core;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use Ramphor\Rake\Abstracts\Tooth;
 use CrawlFlow\Migrator;
 use CrawlFlow\Utils\Str;

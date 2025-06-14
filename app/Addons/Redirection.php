@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Addons;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use CrawlFlow\Abstracts\Addon;
 use Sfneal\Helpers\Strings\StringHelpers;
 

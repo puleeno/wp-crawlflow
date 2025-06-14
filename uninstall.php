@@ -1,6 +1,10 @@
 <?php
 namespace Migrator;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use CrawlFlow\TaskRunner;
 use Ramphor\Rake\Initialize;
 use Puleeno\Rake\WordPress\Driver;

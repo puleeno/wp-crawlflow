@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Tooths;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use Puleeno\Rake\WordPress\Traits\WordPressTooth;
 use Ramphor\Rake\Facades\Logger;
 use Ramphor\Rake\Facades\Option;

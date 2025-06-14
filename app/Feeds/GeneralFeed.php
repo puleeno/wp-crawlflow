@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Feeds;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use Ramphor\Rake\Abstracts\Feed;
 
 class GeneralFeed extends Feed

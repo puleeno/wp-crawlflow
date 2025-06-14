@@ -2,6 +2,10 @@
 
 namespace CrawlFlow;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use Monolog\Handler\StreamHandler;
 use Psr\Log\LoggerInterface;
 use Ramphor\Rake\Rake;

@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Tooths;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use Ramphor\Rake\Abstracts\Tooth;
 use Puleeno\Rake\WordPress\Traits\WordPressTooth;
 

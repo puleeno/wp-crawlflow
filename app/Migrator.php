@@ -2,6 +2,10 @@
 
 namespace CrawlFlow;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use CrawlFlow\Core\AddonManager;
 use Ramphor\Rake\Feeds\Sitemap\Sitemap;
 use Ramphor\Rake\Feeds\Sitemap\SitemapIndex;

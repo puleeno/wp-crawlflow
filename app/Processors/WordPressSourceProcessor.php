@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Processors;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use Puleeno\Rake\WordPress\Traits\WooCommerceProcessor;
 use Puleeno\Rake\WordPress\Traits\WordPressProcessor;
 use Puleeno\Rake\WordPress\Traits\Content\WordPressDataSource;

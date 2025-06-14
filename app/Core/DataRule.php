@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Core;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use ReflectionObject;
 use ReflectionProperty;
 

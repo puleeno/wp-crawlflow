@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Addons;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use CrawlFlow\Abstracts\Addon;
 use CrawlFlow\Processors\CrawlFlowProcessor;
 use Ramphor\Rake\DataSource\FeedItem;

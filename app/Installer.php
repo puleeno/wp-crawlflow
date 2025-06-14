@@ -2,6 +2,10 @@
 
 namespace CrawlFlow;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use Ramphor\Rake\Initialize;
 use Puleeno\Rake\WordPress\Driver;
 

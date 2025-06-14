@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Processors;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use WP_Error;
 use Ramphor\Rake\ProcessResult;
 use Ramphor\Rake\Facades\Logger;

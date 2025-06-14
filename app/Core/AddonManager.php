@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Core;
 
+if (!defined('ABSPATH')) {
+    exit('Cheatin huh?');
+}
+
 use CrawlFlow\Addons\ImportSeoData;
 use CrawlFlow\Addons\Redirection;
 
