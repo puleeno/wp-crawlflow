@@ -40,6 +40,13 @@ class Task
         }
     }
 
+
+    public function __get($name) {
+        if (property_exists($this, $name)) {
+            return $this->$name;
+        }
+    }
+
     public function set_type($type)
     {
         $this->type = $type;
@@ -74,8 +81,9 @@ class Task
     public function create_tooth()
     {
         $support_tooths = Migrator::get_support_tooths();
+        $toothByDataSourceType = apply_filters("crawlflow/task/{$this->type}/tooth", $this->type, $this);
 
-        if (!isset($support_tooths[$this->type])) {
+        if (!isset($support_tooths[$toothByDataSourceType])) {
             error_log(sprintf(
                 __('The "%s" tooth is not supported', 'wp-crawflow'),
                 $this->type
@@ -89,7 +97,8 @@ class Task
             return;
         }
 
-        $clsTooth = $support_tooths[$this->type];
+
+        $clsTooth = $support_tooths[$toothByDataSourceType];
 
         /**
          * @var \Ramphor\Rake\Abstracts\Tooth

@@ -63,6 +63,10 @@ class Migrator
         }
 
         add_filter('cron_schedules', array($this, '_cron_schedules'));
+
+        add_filter('crawlflow/task/url/tooth', function(){
+            return CrawlFlowTooth::NAME;
+        }, 10);
     }
 
     function _cron_schedules($schedules)
