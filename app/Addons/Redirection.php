@@ -7,7 +7,6 @@ if (!defined('ABSPATH')) {
 }
 
 use CrawlFlow\Abstracts\Addon;
-use Sfneal\Helpers\Strings\StringHelpers;
 
 class Redirection extends Addon
 {
