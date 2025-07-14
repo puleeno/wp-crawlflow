@@ -29,6 +29,10 @@ class ImportSeoData extends Addon
             return;
         }
 
+        if(is_string($wordPressId) && is_numeric($wordPressId)) {
+            $wordPressId = intval($wordPressId);
+        }
+
         switch ($builtInType) {
             case 'post':
                 $processor->importSeo($wordPressId);
