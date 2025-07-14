@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5713d39cb53f52071b884c42e92f5f2e",
+    "content-hash": "5f83982fdce0901501d4acfe63c911df",
     "packages": [
         {
             "name": "carbonphp/carbon-doctrine-types",
@@ -1474,21 +1474,21 @@
         },
         {
             "name": "puleeno/rake-wordpress-adapter",
-            "version": "dev-master",
+            "version": "v2.x-dev",
             "source": {
                 "type": "git",
                 "url": "https://github.com/puleeno/rake-wordpress-adapter.git",
-                "reference": "bea2974349840b18eec7eb2be0862a35317bb270"
+                "reference": "e4bdb672dc4273cfdd37389b18dd77f3bdd5346b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/bea2974349840b18eec7eb2be0862a35317bb270",
-                "reference": "bea2974349840b18eec7eb2be0862a35317bb270",
+                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/e4bdb672dc4273cfdd37389b18dd77f3bdd5346b",
+                "reference": "e4bdb672dc4273cfdd37389b18dd77f3bdd5346b",
                 "shasum": ""
             },
             "require": {
                 "ramphor/logger": "*",
-                "ramphor/rake": "*",
+                "ramphor/rake": "^2",
                 "rappasoft/laravel-helpers": "^2.1"
             },
             "default-branch": true,
@@ -1514,9 +1514,9 @@
             "description": "The WordPress adapter for Rake crawler/spider framework",
             "support": {
                 "issues": "https://github.com/puleeno/rake-wordpress-adapter/issues",
-                "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/master"
+                "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/v2"
             },
-            "time": "2025-07-14T01:40:55+00:00"
+            "time": "2025-07-14T15:27:43+00:00"
         },
         {
             "name": "ralouphie/getallheaders",
@@ -1782,16 +1782,16 @@
         },
         {
             "name": "ramphor/rake",
-            "version": "dev-master",
+            "version": "v2.x-dev",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "687ac546d19b6756cbe8f2751cce279e8042a42e"
+                "reference": "c849e4566f089d2b6fc9c1ea80db43131c3e634e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/687ac546d19b6756cbe8f2751cce279e8042a42e",
-                "reference": "687ac546d19b6756cbe8f2751cce279e8042a42e",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/c849e4566f089d2b6fc9c1ea80db43131c3e634e",
+                "reference": "c849e4566f089d2b6fc9c1ea80db43131c3e634e",
                 "shasum": ""
             },
             "require": {
@@ -1825,9 +1825,9 @@
             "description": "The spider/crawler framework written in PHP",
             "support": {
                 "issues": "https://github.com/ramphor/rake-php/issues",
-                "source": "https://github.com/ramphor/rake-php/tree/master"
+                "source": "https://github.com/ramphor/rake-php/tree/v2.x"
             },
-            "time": "2025-07-14T01:40:11+00:00"
+            "time": "2025-07-14T15:21:27+00:00"
         },
         {
             "name": "ramphor/sql",
@@ -2620,10 +2620,7 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "puleeno/rake-wordpress-adapter": 20,
-        "ramphor/rake": 20
-    },
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},
