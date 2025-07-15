@@ -29,7 +29,7 @@ class ImportSeoData extends Addon
             return;
         }
 
-        if(is_string($wordPressId) && is_numeric($wordPressId)) {
+        if (is_string($wordPressId) && is_numeric($wordPressId)) {
             $wordPressId = intval($wordPressId);
         }
 

@@ -64,7 +64,7 @@ class Migrator
 
         add_filter('cron_schedules', array($this, '_cron_schedules'));
 
-        add_filter('crawlflow/task/url/tooth', function(){
+        add_filter('crawlflow/task/url/tooth', function () {
             return CrawlFlowTooth::NAME;
         }, 10);
     }
@@ -133,6 +133,7 @@ class Migrator
     {
         $default_feeds = array(
             GeneralFeed::NAME      => GeneralFeed::class,
+            'url'                  => GeneralFeed::class,
             SitemapFeed::NAME      => SitemapFeed::class,
             SitemapIndexFeed::NAME => SitemapIndexFeed::class,
             CsvFileFeed::FEED_NAME => CsvFileFeed::class,
