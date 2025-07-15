@@ -20,6 +20,11 @@ class GeneralFeed extends Feed implements GeneralFeedInterface
 
     protected $url;
 
+    protected $paginateParams = [
+        'tag' => '{%page%}',
+        'name' => 'paged'
+    ];
+
     public function get_name()
     {
         return self::NAME;
@@ -47,6 +52,13 @@ class GeneralFeed extends Feed implements GeneralFeedInterface
 
     public function next()
     {
+    }
+
+    public function getPageParams() {
+        return apply_filters(
+            'crawlflow/paginate/params',
+            $this->paginateParams
+        );
     }
 
     public function setUrl($url)
