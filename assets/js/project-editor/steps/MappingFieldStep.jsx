@@ -1,6 +1,27 @@
 import React, { useRef, useState } from 'react';
 import finder from '@medv/finder';
 
+// Giả sử presetManager là mảng các preset mapping
+const presetManager = [
+  {
+    name: "Blog Post",
+    mapping: {
+      title: ".post-title",
+      content: ".post-content",
+      image: ".post-image img"
+    }
+  },
+  {
+    name: "Product",
+    mapping: {
+      title: ".product-title",
+      content: ".product-description",
+      image: ".product-image img"
+    }
+  }
+  // ... thêm preset khác
+];
+
 export default function MappingFieldStep({ data, setData, nextStep, prevStep }) {
   const [sampleUrl, setSampleUrl] = useState('');
   const [html, setHtml] = useState('');
@@ -9,6 +30,17 @@ export default function MappingFieldStep({ data, setData, nextStep, prevStep }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const iframeRef = useRef();
+
+  const [selectedPreset, setSelectedPreset] = useState('');
+
+  const applyPreset = (presetName) => {
+    const preset = presetManager.find(p => p.name === presetName);
+    if (preset) {
+      setMapping(preset.mapping);
+      setData(d => ({ ...d, mapping: preset.mapping }));
+      setSelectedPreset(presetName);
+    }
+  };
 
   // Fetch HTML từ backend REST API
   const fetchHtml = async () => {
@@ -51,6 +83,17 @@ export default function MappingFieldStep({ data, setData, nextStep, prevStep }) 
     <div>
       <h2>Mapping Field</h2>
       <div style={{ marginBottom: 12 }}>
+        <label>Chọn preset mapping: </label>
+        <select
+          value={selectedPreset}
+          onChange={e => applyPreset(e.target.value)}
+          style={{ marginRight: 12 }}
+        >
+          <option value="">-- Không chọn --</option>
+          {presetManager.map(preset => (
+            <option key={preset.name} value={preset.name}>{preset.name}</option>
+          ))}
+        </select>
         <input
           type="text"
           placeholder="Nhập URL mẫu"
