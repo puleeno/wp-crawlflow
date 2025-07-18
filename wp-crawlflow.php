@@ -119,8 +119,12 @@ class WP_CrawlFlow {
      */
     private function initAdmin() {
         // Admin specific initialization
-        if (class_exists('CrawlFlow\\Admin\\AdminController')) {
+        if (class_exists('CrawlFlow\Admin\AdminController')) {
             new \CrawlFlow\Admin\AdminController();
+        }
+        // Khởi tạo AjaxController để đăng ký REST API
+        if (class_exists('CrawlFlow\Admin\AjaxController')) {
+            new \CrawlFlow\Admin\AjaxController();
         }
     }
 
