@@ -1,0 +1,23 @@
+{
+    "name": "puleeno/wp-crawlflow",
+    "description": "Main orchestrator for Rake 2.0",
+    "type": "project",
+    "license": "GPL-3.0-only",
+    "autoload": {
+        "psr-4": {
+            "WPCrawlflow\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Puleeno Nguyen",
+            "email": "puleeno@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=8.1",
+        "ramphor/rake": "^2.0",
+        "puleeno/rake-wordpress-adapter": "^2.0"
+    }
+}

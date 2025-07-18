@@ -1,0 +1,272 @@
+/* CrawlFlow Admin Styles */
+
+.crawlflow-dashboard {
+    margin-top: 20px;
+}
+
+.crawlflow-status-overview {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.status-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.status-card {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    text-align: center;
+}
+
+.status-card h3 {
+    margin: 0 0 10px 0;
+    color: #23282d;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.status-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.status-indicator {
+    font-size: 16px;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.status-indicator.running {
+    background: #46b450;
+    color: white;
+}
+
+.status-indicator.stopped {
+    background: #dc3232;
+    color: white;
+}
+
+.status-indicator.paused {
+    background: #ffb900;
+    color: white;
+}
+
+.crawlflow-control-panel {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.control-buttons {
+    margin-top: 15px;
+}
+
+.control-buttons .button {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.crawlflow-configuration {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.config-form {
+    margin-top: 15px;
+}
+
+.crawlflow-recent-activity {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.activity-log {
+    max-height: 300px;
+    overflow-y: auto;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.activity-log p {
+    margin: 5px 0;
+}
+
+.activity-log .success {
+    color: #46b450;
+}
+
+.activity-log .error {
+    color: #dc3232;
+}
+
+.activity-log .warning {
+    color: #ffb900;
+}
+
+.activity-log .info {
+    color: #0073aa;
+}
+
+/* Progress Bar */
+.crawlflow-progress {
+    background: #f1f1f1;
+    border-radius: 3px;
+    height: 20px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.crawlflow-progress-bar {
+    background: #0073aa;
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Loading Spinner */
+.crawlflow-loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: crawlflow-spin 1s linear infinite;
+    margin-right: 5px;
+}
+
+@keyframes crawlflow-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Status Indicators */
+.crawlflow-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.crawlflow-status.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.crawlflow-status.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.crawlflow-status.warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.crawlflow-status.info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .status-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .control-buttons .button {
+        display: block;
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+}
+
+/* Form Styles */
+.crawlflow-form-group {
+    margin-bottom: 15px;
+}
+
+.crawlflow-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.crawlflow-form-group input[type="text"],
+.crawlflow-form-group input[type="number"],
+.crawlflow-form-group select,
+.crawlflow-form-group textarea {
+    width: 100%;
+    max-width: 400px;
+}
+
+.crawlflow-form-group .description {
+    margin-top: 5px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Notification Styles */
+.crawlflow-notification {
+    padding: 10px 15px;
+    margin: 10px 0;
+    border-radius: 3px;
+    border-left: 4px solid;
+}
+
+.crawlflow-notification.success {
+    background: #d4edda;
+    border-color: #46b450;
+    color: #155724;
+}
+
+.crawlflow-notification.error {
+    background: #f8d7da;
+    border-color: #dc3232;
+    color: #721c24;
+}
+
+.crawlflow-notification.warning {
+    background: #fff3cd;
+    border-color: #ffb900;
+    color: #856404;
+}
+
+.crawlflow-notification.info {
+    background: #d1ecf1;
+    border-color: #0073aa;
+    color: #0c5460;
+}

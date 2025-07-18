@@ -1,0 +1,100 @@
+flowchart TD
+    %% Package: puleeno/wp-crawlflow (Orchestrator)
+    subgraph "puleeno/wp-crawlflow"
+        Bootstrap[Bootstrap【Boot】]
+        ConfigLoader[ConfigLoader【Config】]
+        ToothFactory[ToothFactory【Tooth】]
+        Tooth[Tooth【Crawl/Migrate Unit】]
+        ResourceWorker[ResourceWorker【Download Worker】]
+        ConsoleKernel[ConsoleKernel【CLI Entrypoint】]
+    end
+
+    %% Package: ramphor/rake (Core)
+    subgraph "ramphor/rake"
+        RakeCore[Rake【Entrypoint】]
+        ReceptionManager[ReceptionManager]
+        ParserManager[ParserManager]
+        PresetManager[PresetManager]
+        FeedItemBuilderManager[FeedItemBuilderManager]
+        FeedItemManager[FeedItemManager]
+        ProcessorManager[ProcessorManager]
+        HttpClientManager[HttpClientManager]
+        DatabaseDriverManager[DatabaseDriverManager]
+        EventBus[EventBus]
+        Resource[Resource]
+    end
+
+    %% Package: puleeno/rake-wordpress-adapter (Adapter)
+    subgraph "puleeno/rake-wordpress-adapter"
+        WordPressAdapter[WordPressAdapter]
+        WordPressDriver[WordPressDriver]
+        WordPressProcessor[WordPressProcessor]
+    end
+
+    %% Flow: Orchestrator boot
+    Bootstrap --> ConfigLoader
+    ConfigLoader --> ToothFactory
+    ToothFactory --> Tooth
+    ConsoleKernel --> Bootstrap
+
+    %% Flow: Tooth sử dụng core Rake
+    Tooth -->|register| ReceptionManager
+    Tooth -->|register| ParserManager
+    Tooth -->|register| FeedItemBuilderManager
+    Tooth -->|register| ProcessorManager
+    Tooth -->|register| HttpClientManager
+    Tooth -->|register| DatabaseDriverManager
+    Tooth -->|register| EventBus
+
+    %% Flow: Tooth tạo resource, worker xử lý resource
+    Tooth --> Resource
+    ResourceWorker --> Resource
+
+    %% Flow: Core gọi adapter khi cần xử lý WordPress
+    ProcessorManager -->|use| WordPressProcessor
+    DatabaseDriverManager -->|use| WordPressDriver
+    HttpClientManager -->|use| WordPressAdapter
+
+    %% Flow: Adapter đăng ký vào core
+    WordPressAdapter --register--> HttpClientManager
+    WordPressDriver --register--> DatabaseDriverManager
+    WordPressProcessor --register--> ProcessorManager
+
+    %% Event bus
+    ResourceWorker -.-> EventBus
+    ProcessorManager -.-> EventBus
+    WordPressProcessor -.-> EventBus
+
+    %% Giao tiếp giữa các manager core
+    ReceptionManager --> ParserManager
+    ParserManager --> FeedItemBuilderManager
+    FeedItemBuilderManager --> FeedItemManager
+    FeedItemManager --> ProcessorManager
+    ProcessorManager --> Resource
+
+    %% Giao tiếp resource
+    Resource --> ResourceWorker
+
+    %% Màu sắc
+    style Bootstrap fill:#e3f6fc,stroke:#333,stroke-width:2px
+    style ConfigLoader fill:#e3f6fc,stroke:#333,stroke-width:2px
+    style ToothFactory fill:#e3f6fc,stroke:#333,stroke-width:2px
+    style Tooth fill:#e3f6fc,stroke:#333,stroke-width:2px
+    style ResourceWorker fill:#e3f6fc,stroke:#333,stroke-width:2px
+    style ConsoleKernel fill:#e3f6fc,stroke:#333,stroke-width:2px
+
+    style RakeCore fill:#fffbe3,stroke:#333,stroke-width:2px
+    style ReceptionManager fill:#fffbe3,stroke:#333,stroke-width:2px
+    style ParserManager fill:#fffbe3,stroke:#333,stroke-width:2px
+    style PresetManager fill:#fffbe3,stroke:#333,stroke-width:2px
+    style FeedItemBuilderManager fill:#fffbe3,stroke:#333,stroke-width:2px
+    style FeedItemManager fill:#fffbe3,stroke:#333,stroke-width:2px
+    style ProcessorManager fill:#fffbe3,stroke:#333,stroke-width:2px
+    style HttpClientManager fill:#fffbe3,stroke:#333,stroke-width:2px
+    style DatabaseDriverManager fill:#fffbe3,stroke:#333,stroke-width:2px
+    style EventBus fill:#fffbe3,stroke:#333,stroke-width:2px
+    style Resource fill:#fffbe3,stroke:#333,stroke-width:2px
+
+    style WordPressAdapter fill:#ffe3f6,stroke:#333,stroke-width:2px
+    style WordPressDriver fill:#ffe3f6,stroke:#333,stroke-width:2px
+    style WordPressProcessor fill:#ffe3f6,stroke:#333,stroke-width:2px

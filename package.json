@@ -1,0 +1,12 @@
+{
+  "name": "wp-crawlflow",
+  "version": "2.0.0",
+  "description": "Rake 2.0 – Modular, Extensible, Event-driven Crawling & Data Migration Framework for PHP",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
