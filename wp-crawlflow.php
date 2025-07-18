@@ -102,9 +102,6 @@ class WP_CrawlFlow {
         // Init hook
         add_action('init', [$this, 'initCrawlFlow']);
 
-        // Admin menu
-        add_action('admin_menu', [$this, 'addAdminMenu']);
-
         // Admin scripts and styles
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
 
@@ -253,53 +250,6 @@ class WP_CrawlFlow {
                 add_option($key, $value);
             }
         }
-    }
-
-    /**
-     * Add admin menu
-     */
-    public function addAdminMenu() {
-        add_menu_page(
-            __('CrawlFlow', 'crawlflow'),
-            __('CrawlFlow', 'crawlflow'),
-            'manage_options',
-            'crawlflow',
-            [$this, 'adminPage'],
-            'dashicons-download',
-            30
-        );
-
-        add_submenu_page(
-            'crawlflow',
-            __('Dashboard', 'crawlflow'),
-            __('Dashboard', 'crawlflow'),
-            'manage_options',
-            'crawlflow',
-            [$this, 'adminPage']
-        );
-
-        add_submenu_page(
-            'crawlflow',
-            __('Settings', 'crawlflow'),
-            __('Settings', 'crawlflow'),
-            'manage_options',
-            'crawlflow-settings',
-            [$this, 'settingsPage']
-        );
-    }
-
-    /**
-     * Main admin page
-     */
-    public function adminPage() {
-        include CRAWLFLOW_PLUGIN_DIR . 'templates/admin/dashboard.php';
-    }
-
-    /**
-     * Settings page
-     */
-    public function settingsPage() {
-        include CRAWLFLOW_PLUGIN_DIR . 'templates/admin/settings.php';
     }
 
     /**

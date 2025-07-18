@@ -1,0 +1,47 @@
+flowchart TD
+    A[Chọn dự án] --> B[Thêm Feed]
+    B --> C[Chọn Parser]
+    C --> D[Dynamic Reception【Compose Logic】]
+    D --> E1[Category Feed Item]
+    D --> E2[Post Feed Item]
+    D --> E3[Product Feed Item]
+
+    E1 --> F1[Mapping Field【DOM Inspect】]
+    E2 --> F2[Mapping Field【DOM Inspect】]
+    E3 --> F3[Mapping Field【DOM Inspect】]
+
+    F1 --> O1[Output Feed Item]
+    F2 --> O2[Output Feed Item]
+    F3 --> O3[Output Feed Item]
+
+    %% Category Feed Item Processor Chain
+    subgraph CAT_CHAIN["Category Processor Chain【Chain of Responsibility】"]
+        P1a[Assign Processor 1]
+        P1b[Assign Processor 2]
+        P1c[Assign Processor N]
+        P1a --> P1b --> P1c
+    end
+    O1 --> P1a
+    P1c --> G[Lưu cấu hình]
+
+    %% Post Feed Item Processor Chain
+    subgraph POST_CHAIN["Post Processor Chain【Chain of Responsibility】"]
+        P2a[Assign Processor 1]
+        P2b[Assign Processor 2]
+        P2c[Assign Processor N]
+        P2a --> P2b --> P2c
+    end
+    O2 --> P2a
+    P2c --> G
+
+    %% Product Feed Item Processor Chain
+    subgraph PROD_CHAIN["Product Processor Chain【Chain of Responsibility】"]
+        P3a[Assign Processor 1]
+        P3b[Assign Processor 2]
+        P3c[Assign Processor N]
+        P3a --> P3b --> P3c
+    end
+    O3 --> P3a
+    P3c --> G
+
+    G --> H[Chạy Crawl]

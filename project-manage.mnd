@@ -1,0 +1,12 @@
+flowchart TD
+    A[Dashboard【Quản lý dự án】] --> B[Tạo/Sửa dự án【Project Editor】]
+    B --> C1[Step 1: Thông tin dự án]
+    B --> C2[Step 2: Feed & Parser]
+    B --> C3[Step 3: Dynamic Reception【Compose Logic】]
+    B --> C4[Step 4: Mapping Field【DOM Inspect】]
+    B --> C5[Step 5: Processor Chain【Chain of Responsibility】]
+    B --> C6[Step 6: Tổng quan & Lưu]
+    C4 --> D[Mapping Field GUI【@medv/finder】]
+    C6 --> E[Flow Editor【@xyzflow/react】]
+    B --> F[Lưu cấu hình【AJAX】]
+    A --> G[Chạy Crawl【AJAX】]
