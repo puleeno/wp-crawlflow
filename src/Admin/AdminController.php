@@ -6,6 +6,11 @@ class AdminController
     public function __construct()
     {
         add_action('admin_menu', [$this, 'registerMenu']);
+
+        // Initialize MigrationController
+        if (class_exists('CrawlFlow\Admin\MigrationController')) {
+            new \CrawlFlow\Admin\MigrationController();
+        }
     }
 
     public function registerMenu()

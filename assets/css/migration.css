@@ -1,0 +1,77 @@
+/* Database Info Styles */
+.crawlflow-database-info {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f0f6fc;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+}
+
+.crawlflow-database-info h2 {
+    margin-top: 0;
+    color: #1d2327;
+}
+
+.crawlflow-database-info code {
+    background: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+}
+
+/* Migration Status Styles */
+.crawlflow-migration-status {
+    margin: 20px 0;
+}
+
+.crawlflow-status-needs-migration {
+    color: #d63638;
+    font-weight: bold;
+}
+
+.crawlflow-status-up-to-date {
+    color: #00a32a;
+    font-weight: bold;
+}
+
+.crawlflow-migration-actions {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+}
+
+.crawlflow-migration-history {
+    margin: 20px 0;
+}
+
+#migration-result {
+    margin-top: 10px;
+}
+
+#migration-result .notice {
+    margin: 0;
+}
+
+/* Table Styles */
+.crawlflow-migration-status table,
+.crawlflow-migration-history table {
+    margin-top: 10px;
+}
+
+.crawlflow-migration-status th,
+.crawlflow-migration-history th {
+    font-weight: 600;
+}
+
+/* Button Styles */
+.crawlflow-migration-actions .button {
+    margin-right: 10px;
+}
+
+.crawlflow-migration-actions .button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

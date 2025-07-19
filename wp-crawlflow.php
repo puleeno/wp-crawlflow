@@ -38,15 +38,7 @@ class WP_CrawlFlow {
      */
     private static $instance = null;
 
-    /**
-     * Rake App instance
-     */
-    private $rakeApp;
 
-    /**
-     * WordPress Adapter instance
-     */
-    private $wordpressAdapter;
 
     /**
      * Get plugin instance (Singleton)
@@ -99,16 +91,12 @@ class WP_CrawlFlow {
         register_activation_hook(CRAWLFLOW_PLUGIN_FILE, [$this, 'activate']);
         register_deactivation_hook(CRAWLFLOW_PLUGIN_FILE, [$this, 'deactivate']);
 
-        // Init hook
-        add_action('init', [$this, 'initCrawlFlow']);
+
 
         // Admin scripts and styles
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
 
-        // AJAX handlers
-        add_action('wp_ajax_crawlflow_start_crawl', [$this, 'ajaxStartCrawl']);
-        add_action('wp_ajax_crawlflow_stop_crawl', [$this, 'ajaxStopCrawl']);
-        add_action('wp_ajax_crawlflow_get_status', [$this, 'ajaxGetStatus']);
+
 
         // Load text domain
         add_action('plugins_loaded', [$this, 'loadTextDomain']);
@@ -128,52 +116,17 @@ class WP_CrawlFlow {
         }
     }
 
-    /**
-     * Initialize CrawlFlow framework
-     */
-    public function initCrawlFlow() {
-        try {
-            // Initialize Rake App
-            if (class_exists('Rake\\App')) {
-                $this->rakeApp = new \Rake\App();
 
-                // Initialize WordPress Adapter
-                if (class_exists('Puleeno\\Rake\\Adapter\\WordPress\\WordPressAdapter')) {
-                    $this->wordpressAdapter = new \Puleeno\Rake\Adapter\WordPress\WordPressAdapter();
-                    $this->rakeApp->setAdapter($this->wordpressAdapter);
-                }
-
-                // Load configuration
-                $this->loadConfiguration();
-
-            }
-        } catch (Exception $e) {
-            error_log('CrawlFlow initialization error: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Load configuration
-     */
-    private function loadConfiguration() {
-        $configFile = WP_CONTENT_DIR . '/crawlflow.config.php';
-        if (file_exists($configFile)) {
-            $config = include $configFile;
-            if ($this->rakeApp) {
-                $this->rakeApp->setConfig($config);
-            }
-        }
-    }
 
     /**
      * Plugin activation
      */
     public function activate() {
-        // Create necessary database tables
-        $this->createTables();
-
         // Set default options
         $this->setDefaultOptions();
+
+        // Run Rake migrations
+        $this->runRakeMigrations();
 
         // Flush rewrite rules
         flush_rewrite_rules();
@@ -187,54 +140,7 @@ class WP_CrawlFlow {
         flush_rewrite_rules();
     }
 
-    /**
-     * Create database tables
-     */
-    private function createTables() {
-        global $wpdb;
 
-        $charset_collate = $wpdb->get_charset_collate();
-
-        // Origin data table
-        $table_origin_data = $wpdb->prefix . 'crawlflow_origin_data';
-        $sql_origin_data = "CREATE TABLE $table_origin_data (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            url varchar(2048) NOT NULL,
-            content longtext,
-            type varchar(50) DEFAULT 'html',
-            status varchar(20) DEFAULT 'pending',
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY url (url(255)),
-            KEY status (status),
-            KEY type (type)
-        ) $charset_collate;";
-
-        // Feed items table
-        $table_feed_items = $wpdb->prefix . 'crawlflow_feed_items';
-        $sql_feed_items = "CREATE TABLE $table_feed_items (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            origin_id bigint(20) NOT NULL,
-            title varchar(500),
-            content longtext,
-            excerpt text,
-            meta_data longtext,
-            post_type varchar(50) DEFAULT 'post',
-            status varchar(20) DEFAULT 'draft',
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY origin_id (origin_id),
-            KEY post_type (post_type),
-            KEY status (status),
-            FOREIGN KEY (origin_id) REFERENCES $table_origin_data(id) ON DELETE CASCADE
-        ) $charset_collate;";
-
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql_origin_data);
-        dbDelta($sql_feed_items);
-    }
 
     /**
      * Set default options
@@ -281,85 +187,31 @@ class WP_CrawlFlow {
         );
     }
 
+
+
     /**
-     * AJAX: Start crawl
+     * Run Rake migrations
      */
-    public function ajaxStartCrawl() {
-        check_ajax_referer('crawlflow_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'crawlflow'));
-        }
-
+    private function runRakeMigrations() {
         try {
-            if ($this->rakeApp) {
-                $result = $this->rakeApp->start();
-                wp_send_json_success($result);
+            if (class_exists('CrawlFlow\Admin\MigrationService')) {
+                $migrationService = new \CrawlFlow\Admin\MigrationService();
+                $result = $migrationService->runMigrations();
+
+                if ($result) {
+                    error_log('CrawlFlow: Rake migrations completed successfully');
             } else {
-                wp_send_json_error(__('Rake App not initialized', 'crawlflow'));
-            }
-        } catch (Exception $e) {
-            wp_send_json_error($e->getMessage());
+                    error_log('CrawlFlow: Rake migrations failed');
         }
-    }
-
-    /**
-     * AJAX: Stop crawl
-     */
-    public function ajaxStopCrawl() {
-        check_ajax_referer('crawlflow_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'crawlflow'));
-        }
-
-        try {
-            if ($this->rakeApp) {
-                $result = $this->rakeApp->stop();
-                wp_send_json_success($result);
             } else {
-                wp_send_json_error(__('Rake App not initialized', 'crawlflow'));
+                error_log('CrawlFlow: MigrationService class not found');
             }
-        } catch (Exception $e) {
-            wp_send_json_error($e->getMessage());
-        }
+        } catch (\Exception $e) {
+            error_log('CrawlFlow: Error running Rake migrations - ' . $e->getMessage());
+    }
     }
 
-    /**
-     * AJAX: Get status
-     */
-    public function ajaxGetStatus() {
-        check_ajax_referer('crawlflow_nonce', 'nonce');
 
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'crawlflow'));
-        }
-
-        try {
-            if ($this->rakeApp) {
-                $status = $this->rakeApp->getStatus();
-                wp_send_json_success($status);
-            } else {
-                wp_send_json_error(__('Rake App not initialized', 'crawlflow'));
-            }
-        } catch (Exception $e) {
-            wp_send_json_error($e->getMessage());
-        }
-    }
-
-    /**
-     * Get Rake App instance
-     */
-    public function getRakeApp() {
-        return $this->rakeApp;
-    }
-
-    /**
-     * Get WordPress Adapter instance
-     */
-    public function getWordPressAdapter() {
-        return $this->wordpressAdapter;
-    }
 }
 
 // Initialize plugin
