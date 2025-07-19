@@ -50,7 +50,7 @@ class MigrationService
         global $wpdb;
 
         if (!class_exists('Rake\Config\DatabaseConfig')) {
-            error_log('CrawlFlow: DatabaseConfig class not found');
+            // TODO: use Logger error_log('CrawlFlow: DatabaseConfig class not found');
             return null;
         }
 
@@ -71,7 +71,7 @@ class MigrationService
             return new \Rake\Config\DatabaseConfig($dbConfig);
 
         } catch (\Exception $e) {
-            error_log('CrawlFlow: Failed to create database config: ' . $e->getMessage());
+            // TODO: use Logger error_log('CrawlFlow: Failed to create database config: ' . $e->getMessage());
             return null;
         }
     }
@@ -86,7 +86,7 @@ class MigrationService
             $schemaDefinitions = $this->getSchemaDefinitions();
 
             if (empty($schemaDefinitions)) {
-                error_log('CrawlFlow: No schema definitions found');
+                // TODO: use Logger error_log('CrawlFlow: No schema definitions found');
                 return false;
             }
 
@@ -94,15 +94,15 @@ class MigrationService
             $result = $this->migrationManager->runMigration($this->schemaGenerator);
 
             if ($result) {
-                error_log('CrawlFlow: Database migration completed successfully');
+                // TODO: use Logger error_log('CrawlFlow: Database migration completed successfully');
                 return true;
             } else {
-                error_log('CrawlFlow: Database migration failed');
+                // TODO: use Logger error_log('CrawlFlow: Database migration failed');
                 return false;
             }
 
         } catch (\Exception $e) {
-            error_log('CrawlFlow: Migration error - ' . $e->getMessage());
+            // TODO: use Logger error_log('CrawlFlow: Migration error - ' . $e->getMessage());
             return false;
         }
     }
@@ -115,7 +115,7 @@ class MigrationService
         $schemaPath = CRAWLFLOW_PLUGIN_DIR . 'vendor/ramphor/rake/schema_definitions/';
 
         if (!is_dir($schemaPath)) {
-            error_log('CrawlFlow: Schema definitions directory not found: ' . $schemaPath);
+            // TODO: use Logger error_log('CrawlFlow: Schema definitions directory not found: ' . $schemaPath);
             return [];
         }
 
@@ -168,7 +168,7 @@ class MigrationService
 
             return $status;
         } catch (\Exception $e) {
-            error_log('CrawlFlow: Migration status check error - ' . $e->getMessage());
+            // TODO: use Logger error_log('CrawlFlow: Migration status check error - ' . $e->getMessage());
             return [];
         }
     }
@@ -214,7 +214,7 @@ class MigrationService
         try {
             return $this->migrationManager->getAllMigrationHistory();
         } catch (\Exception $e) {
-            error_log('CrawlFlow: Migration history error - ' . $e->getMessage());
+            // TODO: use Logger error_log('CrawlFlow: Migration history error - ' . $e->getMessage());
             return [];
         }
     }
