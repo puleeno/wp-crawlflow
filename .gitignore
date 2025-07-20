@@ -1,2 +1,45 @@
-vendor
-node_modules
+# Composer
+/vendor/
+composer.lock
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/crawlflow/
+
+# WordPress
+wp-config.php
+wp-content/uploads/
+
+# Testing
+/tests/coverage/
+.phpunit.result.cache
+
+# Build
+/build/
+/dist/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Cache
+*.cache
