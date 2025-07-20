@@ -38,8 +38,6 @@ class WP_CrawlFlow {
      */
     private static $instance = null;
 
-
-
     /**
      * Get plugin instance (Singleton)
      */
@@ -91,12 +89,8 @@ class WP_CrawlFlow {
         register_activation_hook(CRAWLFLOW_PLUGIN_FILE, [$this, 'activate']);
         register_deactivation_hook(CRAWLFLOW_PLUGIN_FILE, [$this, 'deactivate']);
 
-
-
         // Admin scripts and styles
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
-
-
 
         // Load text domain
         add_action('plugins_loaded', [$this, 'loadTextDomain']);
@@ -115,8 +109,6 @@ class WP_CrawlFlow {
             new \CrawlFlow\Admin\AjaxController();
         }
     }
-
-
 
     /**
      * Plugin activation
@@ -139,8 +131,6 @@ class WP_CrawlFlow {
         // Clean up if needed
         flush_rewrite_rules();
     }
-
-
 
     /**
      * Set default options
@@ -187,31 +177,32 @@ class WP_CrawlFlow {
         );
     }
 
-
-
     /**
      * Run Rake migrations
      */
     private function runRakeMigrations() {
         try {
+            // Initialize logger only when needed
+            if (class_exists('CrawlFlow\LoggerService')) {
+                \CrawlFlow\LoggerService::init();
+            }
+
             if (class_exists('CrawlFlow\Admin\MigrationService')) {
                 $migrationService = new \CrawlFlow\Admin\MigrationService();
                 $result = $migrationService->runMigrations();
 
                 if ($result) {
-                    error_log('CrawlFlow: Rake migrations completed successfully');
+                    \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
+                } else {
+                    \Rake\Facade\Logger::error('CrawlFlow: Rake migrations failed');
+                }
             } else {
-                    error_log('CrawlFlow: Rake migrations failed');
-        }
-            } else {
-                error_log('CrawlFlow: MigrationService class not found');
+                \Rake\Facade\Logger::error('CrawlFlow: MigrationService class not found');
             }
         } catch (\Exception $e) {
-            error_log('CrawlFlow: Error running Rake migrations - ' . $e->getMessage());
+            \Rake\Facade\Logger::error('CrawlFlow: Error running Rake migrations - ' . $e->getMessage());
+        }
     }
-    }
-
-
 }
 
 // Initialize plugin

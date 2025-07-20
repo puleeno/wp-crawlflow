@@ -5,6 +5,7 @@ namespace CrawlFlow\Admin;
 use Rake\Manager\Database\MigrationManager;
 use Rake\Database\SchemaGenerator;
 use Puleeno\Rake\WordPress\Adapter\WordPressDatabaseAdapter;
+use Rake\Facade\Logger;
 
 /**
  * Migration Service for CrawlFlow Plugin
@@ -26,10 +27,10 @@ class MigrationService
      */
     private $wordpressAdapter;
 
-        /**
+    /**
      * Constructor
      */
-        public function __construct()
+    public function __construct()
     {
         $this->wordpressAdapter = new WordPressDatabaseAdapter();
         $this->schemaGenerator = new SchemaGenerator($this->wordpressAdapter);
@@ -50,7 +51,7 @@ class MigrationService
         global $wpdb;
 
         if (!class_exists('Rake\Config\DatabaseConfig')) {
-            // TODO: use Logger error_log('CrawlFlow: DatabaseConfig class not found');
+            Logger::error('DatabaseConfig class not found');
             return null;
         }
 
@@ -71,7 +72,7 @@ class MigrationService
             return new \Rake\Config\DatabaseConfig($dbConfig);
 
         } catch (\Exception $e) {
-            // TODO: use Logger error_log('CrawlFlow: Failed to create database config: ' . $e->getMessage());
+            Logger::error('Failed to create database config: ' . $e->getMessage());
             return null;
         }
     }
@@ -82,11 +83,18 @@ class MigrationService
     public function runMigrations()
     {
         try {
+            // Initialize logger only when needed
+            if (class_exists('CrawlFlow\LoggerService')) {
+                \CrawlFlow\LoggerService::init();
+            }
+
+            Logger::info('Starting CrawlFlow migrations');
+
             // Get schema definitions from Rake
             $schemaDefinitions = $this->getSchemaDefinitions();
 
             if (empty($schemaDefinitions)) {
-                // TODO: use Logger error_log('CrawlFlow: No schema definitions found');
+                Logger::warning('No schema definitions found');
                 return false;
             }
 
@@ -94,15 +102,15 @@ class MigrationService
             $result = $this->migrationManager->runMigration($this->schemaGenerator);
 
             if ($result) {
-                // TODO: use Logger error_log('CrawlFlow: Database migration completed successfully');
+                Logger::info('Database migration completed successfully');
                 return true;
             } else {
-                // TODO: use Logger error_log('CrawlFlow: Database migration failed');
+                Logger::error('Database migration failed');
                 return false;
             }
 
         } catch (\Exception $e) {
-            // TODO: use Logger error_log('CrawlFlow: Migration error - ' . $e->getMessage());
+            Logger::error('Migration error - ' . $e->getMessage());
             return false;
         }
     }
@@ -115,7 +123,7 @@ class MigrationService
         $schemaPath = CRAWLFLOW_PLUGIN_DIR . 'vendor/ramphor/rake/schema_definitions/';
 
         if (!is_dir($schemaPath)) {
-            // TODO: use Logger error_log('CrawlFlow: Schema definitions directory not found: ' . $schemaPath);
+            Logger::error('Schema definitions directory not found: ' . $schemaPath);
             return [];
         }
 
@@ -151,10 +159,10 @@ class MigrationService
                 // Get prefixed table name
                 $configTable = $this->getPrefixedTableName('rake_configs');
 
-                // Try to get version from rake_configs table
-                $result = $driver->query("SELECT value FROM $configTable WHERE `key` = 'table_version_$table' LIMIT 1");
+                // Try to get version from rake_configs table using db_version column
+                $result = $driver->query("SELECT db_version FROM $configTable WHERE `key` = 'table_version_$table' LIMIT 1");
                 if ($result && count($result) > 0) {
-                    $currentVersion = $result[0]['value'] ?? '0.0.0';
+                    $currentVersion = $result[0]['db_version'] ?? '0.0.0';
                 }
 
                 $requiredVersion = $definition['version'] ?? '1.0.0';
@@ -168,7 +176,7 @@ class MigrationService
 
             return $status;
         } catch (\Exception $e) {
-            // TODO: use Logger error_log('CrawlFlow: Migration status check error - ' . $e->getMessage());
+            Logger::error('Migration status check error - ' . $e->getMessage());
             return [];
         }
     }
@@ -182,7 +190,7 @@ class MigrationService
     private function getPrefixedTableName(string $tableName): string
     {
         global $wpdb;
-        return $wpdb->prefix . 'rake_' . $tableName;
+        return $wpdb->prefix . $tableName;
     }
 
     /**
@@ -214,7 +222,7 @@ class MigrationService
         try {
             return $this->migrationManager->getAllMigrationHistory();
         } catch (\Exception $e) {
-            // TODO: use Logger error_log('CrawlFlow: Migration history error - ' . $e->getMessage());
+            Logger::error('Migration history error - ' . $e->getMessage());
             return [];
         }
     }
