@@ -2,6 +2,7 @@
 
 namespace CrawlFlow\Bootstrapper;
 
+use CrawlFlow\Admin\MigrationService;
 use Rake\Rake;
 use Rake\Bootstrapper\BootstrapperInterface;
 
@@ -33,8 +34,8 @@ class CrawlFlowMigrationBootstrapper implements BootstrapperInterface
     protected function registerMigrationServices(Rake $app): void
     {
         // Register MigrationService
-        $app->singleton('CrawlFlow\Admin\MigrationService', function () use ($app) {
-            return new \CrawlFlow\Admin\MigrationService();
+        $app->singleton(MigrationService::class, function () use ($app) {
+            return new MigrationService();
         });
     }
 }
