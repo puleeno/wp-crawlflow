@@ -19,6 +19,7 @@ class CrawlFlowConsoleKernel extends BaseConsoleKernel
     protected function registerBootstrappers(): void
     {
         parent::registerBootstrappers();
+
         $this->addCustomBootstrapper(\CrawlFlow\Bootstrapper\CrawlFlowConsoleBootstrapper::class);
     }
 

@@ -129,7 +129,6 @@ class LoggerService
                 'sapi' => php_sapi_name(),
                 'memory_usage' => memory_get_usage(true)
             ]);
-
         } catch (\Exception $e) {
             // Fallback to error_log if Rake container is not available
             error_log('CrawlFlow Logger Service initialization failed: ' . $e->getMessage());

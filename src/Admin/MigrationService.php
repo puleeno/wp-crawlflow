@@ -70,7 +70,6 @@ class MigrationService
             ];
 
             return new \Rake\Config\DatabaseConfig($dbConfig);
-
         } catch (\Exception $e) {
             Logger::error('Failed to create database config: ' . $e->getMessage());
             return null;
@@ -108,7 +107,6 @@ class MigrationService
                 Logger::error('Database migration failed');
                 return false;
             }
-
         } catch (\Exception $e) {
             Logger::error('Migration error - ' . $e->getMessage());
             return false;
@@ -207,8 +205,12 @@ class MigrationService
             $v1 = $v1Parts[$i] ?? 0;
             $v2 = $v2Parts[$i] ?? 0;
 
-            if ($v1 > $v2) return 1;
-            if ($v1 < $v2) return -1;
+            if ($v1 > $v2) {
+                return 1;
+            }
+            if ($v1 < $v2) {
+                return -1;
+            }
         }
 
         return 0;

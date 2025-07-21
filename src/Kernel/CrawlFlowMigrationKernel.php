@@ -2,14 +2,15 @@
 
 namespace CrawlFlow\Kernel;
 
-use Rake\Kernel\MigrationKernel as BaseMigrationKernel;
+use Rake\Kernel\MigrationKernel;
+use CrawlFlow\Bootstrapper\CrawlFlowMigrationBootstrapper;
 
 /**
  * CrawlFlow Migration Kernel
  *
  * Handles database migration tasks for CrawlFlow plugin in WordPress
  */
-class CrawlFlowMigrationKernel extends BaseMigrationKernel
+class CrawlFlowMigrationKernel extends MigrationKernel
 {
     /**
      * Register custom bootstrappers for CrawlFlow migration kernel
@@ -19,7 +20,8 @@ class CrawlFlowMigrationKernel extends BaseMigrationKernel
     protected function registerBootstrappers(): void
     {
         parent::registerBootstrappers();
-        $this->addCustomBootstrapper(\CrawlFlow\Bootstrapper\CrawlFlowMigrationBootstrapper::class);
+
+        $this->addCustomBootstrapper(CrawlFlowMigrationBootstrapper::class);
     }
 
     /**
@@ -40,7 +42,7 @@ class CrawlFlowMigrationKernel extends BaseMigrationKernel
             ],
             'database' => [
                 'driver' => 'wordpress',
-                'prefix' => $this->getWordPressPrefix(),
+                'prefix' => $this->getDatabasePrefix(),
                 'charset' => DB_CHARSET,
                 'collate' => DB_COLLATE,
             ],
@@ -51,5 +53,39 @@ class CrawlFlowMigrationKernel extends BaseMigrationKernel
             ],
         ]);
         return $this->boot();
+    }
+
+    public function runMigrations(array $options = []): array
+    {
+        $service = $this->getApp()->make('CrawlFlow\Admin\MigrationService');
+        $result = $service->runMigrations($options);
+
+        // Đảm bảo luôn trả về array
+        if (!is_array($result)) {
+            return [
+                'success' => (bool)$result,
+                'error' => $result === false ? 'Migration failed or no schema found' : null,
+            ];
+        }
+        return $result;
+    }
+
+    public function checkMigrationStatus(): array
+    {
+        $service = $this->getApp()->make('CrawlFlow\Admin\MigrationService');
+        return $service->checkMigrationStatus();
+    }
+
+    public function rollbackMigrations(int $steps = 1): array
+    {
+        $service = $this->getApp()->make('CrawlFlow\Admin\MigrationService');
+        return $service->rollbackMigrations($steps);
+    }
+
+    public function getDatabasePrefix(): string
+    {
+        global $wpdb;
+
+        return $wpdb->prefix;
     }
 }

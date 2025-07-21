@@ -85,7 +85,7 @@ class MigrationController
                         </tr>
                         <tr>
                             <td><strong><?php _e('Rake Tables Prefix', 'crawlflow'); ?></strong></td>
-                            <td><code><?php echo esc_html($wpdb->prefix ); ?></code></td>
+                            <td><code><?php echo esc_html($wpdb->prefix); ?></code></td>
                         </tr>
                         <tr>
                             <td><strong><?php _e('Database Name', 'crawlflow'); ?></strong></td>
@@ -108,16 +108,16 @@ class MigrationController
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($migrationStatus as $table => $status): ?>
+                        <?php foreach ($migrationStatus as $table => $status) : ?>
                         <tr>
                             <td><strong><?php echo esc_html($table); ?></strong></td>
                             <td><code><?php echo esc_html($wpdb->prefix . $table); ?></code></td>
                             <td><?php echo esc_html($status['current_version']); ?></td>
                             <td><?php echo esc_html($status['required_version']); ?></td>
                             <td>
-                                <?php if ($status['needs_migration']): ?>
+                                <?php if ($status['needs_migration']) : ?>
                                     <span class="crawlflow-status-needs-migration"><?php _e('Needs Migration', 'crawlflow'); ?></span>
-                                <?php else: ?>
+                                <?php else : ?>
                                     <span class="crawlflow-status-up-to-date"><?php _e('Up to Date', 'crawlflow'); ?></span>
                                 <?php endif; ?>
                             </td>
@@ -140,7 +140,7 @@ class MigrationController
                 <div id="migration-result"></div>
             </div>
 
-            <?php if (!empty($migrationHistory)): ?>
+            <?php if (!empty($migrationHistory)) : ?>
             <div class="crawlflow-migration-history">
                 <h2><?php _e('Migration History', 'crawlflow'); ?></h2>
                 <table class="wp-list-table widefat fixed striped">
@@ -154,7 +154,7 @@ class MigrationController
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($migrationHistory as $history): ?>
+                        <?php foreach ($migrationHistory as $history) : ?>
                         <tr>
                             <td><strong><?php echo esc_html($history['table_name']); ?></strong></td>
                             <td><?php echo esc_html($history['from_version']); ?></td>

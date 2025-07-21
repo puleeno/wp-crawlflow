@@ -1,4 +1,5 @@
 <?php
+
 namespace CrawlFlow\Admin;
 
 class AjaxController

@@ -182,22 +182,17 @@ class WP_CrawlFlow {
      */
     private function runRakeMigrations() {
         try {
-            // Initialize logger only when needed
-            if (class_exists('CrawlFlow\LoggerService')) {
-                \CrawlFlow\LoggerService::init();
-            }
+            // Khởi tạo kernel migration
+            $kernel = new \CrawlFlow\Kernel\CrawlFlowMigrationKernel();
+            $kernel->initializeMigration();
 
-            if (class_exists('CrawlFlow\Admin\MigrationService')) {
-                $migrationService = new \CrawlFlow\Admin\MigrationService();
-                $result = $migrationService->runMigrations();
+            // Thực thi migration qua kernel
+            $result = $kernel->runMigrations();
 
-                if ($result) {
-                    \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
-                } else {
-                    \Rake\Facade\Logger::error('CrawlFlow: Rake migrations failed');
-                }
+            if ($result['success'] ?? false) {
+                \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
             } else {
-                \Rake\Facade\Logger::error('CrawlFlow: MigrationService class not found');
+                \Rake\Facade\Logger::error('CrawlFlow: Rake migrations failed');
             }
         } catch (\Exception $e) {
             \Rake\Facade\Logger::error('CrawlFlow: Error running Rake migrations - ' . $e->getMessage());
