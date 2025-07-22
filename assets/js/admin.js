@@ -12,6 +12,7 @@
     CrawlFlowAdmin.init = function() {
         this.initDashboard();
         this.initProjectEditor();
+        this.initProjectCompose();
         this.initSettings();
         this.initLogs();
     };
@@ -45,6 +46,22 @@
         $('#project_type').on('change', function() {
             CrawlFlowAdmin.handleProjectTypeChange($(this).val());
         });
+    };
+
+    // Project compose functionality
+    CrawlFlowAdmin.initProjectCompose = function() {
+        if (!$('#project-compose-form').length) {
+            return;
+        }
+
+        // Setup form validation
+        this.setupProjectComposeValidation();
+
+        // Setup auto-save functionality
+        this.setupProjectComposeAutoSave();
+
+        // Setup form field change handlers
+        this.setupProjectComposeFieldHandlers();
     };
 
     // Settings functionality
@@ -135,6 +152,121 @@
             }
 
             return true;
+        });
+    };
+
+    // Setup project compose validation
+    CrawlFlowAdmin.setupProjectComposeValidation = function() {
+        $('#project-compose-form').on('submit', function(e) {
+            var projectName = $('#project_name').val().trim();
+            var toothType = $('#tooth_type').val();
+            var baseUrl = $('#base_url').val().trim();
+
+            // Clear previous errors
+            $('.error-message').remove();
+            $('input, select, textarea').removeClass('error');
+
+            var hasErrors = false;
+
+            if (!projectName) {
+                CrawlFlowAdmin.showFieldError('#project_name', 'Please enter a project name');
+                hasErrors = true;
+            }
+
+            if (!toothType) {
+                CrawlFlowAdmin.showFieldError('#tooth_type', 'Please select a tooth type');
+                hasErrors = true;
+            }
+
+            if (!baseUrl) {
+                CrawlFlowAdmin.showFieldError('#base_url', 'Please enter a base URL');
+                hasErrors = true;
+            } else {
+                // Validate URL format
+                try {
+                    new URL(baseUrl);
+                } catch (e) {
+                    CrawlFlowAdmin.showFieldError('#base_url', 'Please enter a valid URL');
+                    hasErrors = true;
+                }
+            }
+
+            if (hasErrors) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    };
+
+    // Show field error
+    CrawlFlowAdmin.showFieldError = function(fieldSelector, message) {
+        $(fieldSelector).addClass('error');
+        $(fieldSelector).after('<div class="error-message">' + message + '</div>');
+    };
+
+    // Setup project compose auto-save
+    CrawlFlowAdmin.setupProjectComposeAutoSave = function() {
+        var autoSaveTimer;
+        var autoSaveIndicator = $('<div class="crawlflow-auto-save-indicator">Auto-saved</div>');
+        $('body').append(autoSaveIndicator);
+
+        $('input, textarea, select').on('change', function() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(function() {
+                CrawlFlowAdmin.autoSaveProject();
+            }, 2000);
+        });
+    };
+
+    // Auto-save project
+    CrawlFlowAdmin.autoSaveProject = function() {
+        var formData = $('#project-compose-form').serialize();
+        formData += '&action=crawlflow_auto_save_project&nonce=' + crawlflowAdmin.nonce;
+
+        $.ajax({
+            url: crawlflowAdmin.ajaxUrl,
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    CrawlFlowAdmin.showAutoSaveIndicator();
+                }
+            },
+            error: function() {
+                console.error('Auto-save failed');
+            }
+        });
+    };
+
+    // Show auto-save indicator
+    CrawlFlowAdmin.showAutoSaveIndicator = function() {
+        var indicator = $('.crawlflow-auto-save-indicator');
+        indicator.addClass('show');
+        setTimeout(function() {
+            indicator.removeClass('show');
+        }, 2000);
+    };
+
+    // Setup project compose field handlers
+    CrawlFlowAdmin.setupProjectComposeFieldHandlers = function() {
+        // URL validation on blur
+        $('#base_url').on('blur', function() {
+            var url = $(this).val().trim();
+            if (url) {
+                try {
+                    new URL(url);
+                    $(this).removeClass('error');
+                    $(this).next('.error-message').remove();
+                } catch (e) {
+                    CrawlFlowAdmin.showFieldError('#base_url', 'Please enter a valid URL');
+                }
+            }
+        });
+
+        // Clear errors on focus
+        $('input, textarea, select').on('focus', function() {
+            $(this).removeClass('error');
+            $(this).next('.error-message').remove();
         });
     };
 

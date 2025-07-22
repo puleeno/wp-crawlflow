@@ -159,10 +159,22 @@ class ProjectService
     {
         // This would typically come from a configuration or database
         return [
-            'basic_crawler' => 'Basic Web Crawler',
-            'rss_reader' => 'RSS Feed Reader',
-            'sitemap_parser' => 'Sitemap Parser',
-            'api_crawler' => 'API Crawler',
+            [
+                'id' => 'basic_crawler',
+                'name' => 'Basic Web Crawler'
+            ],
+            [
+                'id' => 'rss_reader',
+                'name' => 'RSS Feed Reader'
+            ],
+            [
+                'id' => 'sitemap_parser',
+                'name' => 'Sitemap Parser'
+            ],
+            [
+                'id' => 'api_crawler',
+                'name' => 'API Crawler'
+            ],
         ];
     }
 
@@ -209,6 +221,80 @@ class ProjectService
             $data['created_at'] = current_time('mysql');
             $result = $wpdb->insert($table, $data);
         }
+
+        return $result !== false;
+    }
+
+    /**
+     * Create new project
+     */
+    public function createProject(array $projectData): int
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_tooths';
+
+        $data = [
+            'name' => sanitize_text_field($projectData['name'] ?? ''),
+            'description' => sanitize_textarea_field($projectData['description'] ?? ''),
+            'tooth_type' => sanitize_text_field($projectData['tooth_type'] ?? ''),
+            'base_url' => esc_url_raw($projectData['base_url'] ?? ''),
+            'max_urls' => (int) ($projectData['max_urls'] ?? 1000),
+            'status' => sanitize_text_field($projectData['status'] ?? 'draft'),
+            'config' => json_encode($projectData['config'] ?? []),
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+        ];
+
+        $result = $wpdb->insert($table, $data);
+
+        if ($result === false) {
+            return 0;
+        }
+
+        return $wpdb->insert_id;
+    }
+
+    /**
+     * Update existing project
+     */
+    public function updateProject(int $projectId, array $projectData): bool
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_tooths';
+
+        $data = [
+            'name' => sanitize_text_field($projectData['name'] ?? ''),
+            'description' => sanitize_textarea_field($projectData['description'] ?? ''),
+            'tooth_type' => sanitize_text_field($projectData['tooth_type'] ?? ''),
+            'base_url' => esc_url_raw($projectData['base_url'] ?? ''),
+            'max_urls' => (int) ($projectData['max_urls'] ?? 1000),
+            'status' => sanitize_text_field($projectData['status'] ?? 'draft'),
+            'config' => json_encode($projectData['config'] ?? []),
+            'updated_at' => current_time('mysql'),
+        ];
+
+        $result = $wpdb->update(
+            $table,
+            $data,
+            ['id' => $projectId]
+        );
+
+        return $result !== false;
+    }
+
+    /**
+     * Delete project
+     */
+    public function deleteProject(int $projectId): bool
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_tooths';
+
+        $result = $wpdb->delete(
+            $table,
+            ['id' => $projectId],
+            ['%d']
+        );
 
         return $result !== false;
     }

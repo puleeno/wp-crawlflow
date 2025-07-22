@@ -60,11 +60,14 @@ class CrawlFlowController
         // Admin menu
         \add_action('admin_menu', [$this, 'registerMenu']);
 
-                // AJAX handlers
+
+
+        // AJAX handlers
         \add_action('wp_ajax_crawlflow_refresh_dashboard', [$this, 'handleRefreshDashboard']);
         \add_action('wp_ajax_crawlflow_get_project_stats', [$this, 'handleGetProjectStats']);
         \add_action('wp_ajax_crawlflow_get_system_status', [$this, 'handleGetSystemStatus']);
         \add_action('wp_ajax_crawlflow_save_project', [$this, 'handleSaveProject']);
+        \add_action('wp_ajax_crawlflow_auto_save_project', [$this, 'handleAutoSaveProject']);
         \add_action('wp_ajax_crawlflow_delete_project', [$this, 'handleDeleteProject']);
         \add_action('wp_ajax_crawlflow_clear_logs', [$this, 'handleClearLogs']);
         \add_action('wp_ajax_crawlflow_export_data', [$this, 'handleExportData']);
@@ -77,7 +80,11 @@ class CrawlFlowController
         // Migration hooks
         \add_action('admin_post_crawlflow_run_migration', [$this, 'handleRunMigration']);
         \add_action('wp_ajax_crawlflow_check_migration_status', [$this, 'handleCheckMigrationStatus']);
+
+
     }
+
+
 
     /**
      * Detect current WordPress admin screen
@@ -122,15 +129,6 @@ class CrawlFlowController
         // Submenus
         add_submenu_page(
             'crawlflow',
-            'Dashboard',
-            'Dashboard',
-            'manage_options',
-            'crawlflow',
-            [$this, 'renderDashboardPage']
-        );
-
-        add_submenu_page(
-            'crawlflow',
             'Projects',
             'Projects',
             'manage_options',
@@ -138,23 +136,7 @@ class CrawlFlowController
             [$this, 'renderProjectsPage']
         );
 
-        add_submenu_page(
-            'crawlflow',
-            'Project Editor',
-            'Project Editor',
-            'manage_options',
-            'crawlflow-project-editor',
-            [$this, 'renderProjectEditorPage']
-        );
 
-        add_submenu_page(
-            'crawlflow',
-            'Migration',
-            'Migration',
-            'manage_options',
-            'crawlflow-migration',
-            [$this, 'renderMigrationPage']
-        );
 
         add_submenu_page(
             'crawlflow',
@@ -163,15 +145,6 @@ class CrawlFlowController
             'manage_options',
             'crawlflow-logs',
             [$this, 'renderLogsPage']
-        );
-
-        add_submenu_page(
-            'crawlflow',
-            'Settings',
-            'Settings',
-            'manage_options',
-            'crawlflow-settings',
-            [$this, 'renderSettingsPage']
         );
 
         add_submenu_page(
@@ -196,17 +169,8 @@ class CrawlFlowController
             case 'crawlflow':
                 $this->renderer->renderDashboardOverview($screenData);
                 break;
-            case 'crawlflow-project-editor':
-                $this->renderer->renderProjectEditor($screenData);
-                break;
-            case 'crawlflow-settings':
-                $this->renderer->renderSettings($screenData);
-                break;
             case 'crawlflow-logs':
                 $this->renderer->renderLogs($screenData);
-                break;
-            case 'crawlflow-migration':
-                $this->renderMigrationPage();
                 break;
             case 'crawlflow-projects':
                 $this->renderProjectsPage();
@@ -241,8 +205,41 @@ class CrawlFlowController
     {
         $this->currentScreen = 'crawlflow-projects';
         $this->detectCurrentScreen();
-        $projects = $this->projectService->getProjects();
-        $this->renderer->renderProjectsList($projects);
+
+        // Check for sub screen
+        $subScreen = \sanitize_text_field($_GET['sub'] ?? '');
+
+        if ($subScreen === 'compose') {
+            $this->renderProjectComposePage();
+        } else {
+            $projects = $this->projectService->getProjects();
+            $this->renderer->renderProjectsList($projects);
+        }
+    }
+
+    /**
+     * Render project compose page (sub screen)
+     */
+    public function renderProjectComposePage(): void
+    {
+        $projectId = (int) ($_GET['project_id'] ?? 0);
+
+        if ($projectId) {
+            $project = $this->projectService->getProject($projectId);
+            $data = [
+                'project' => $project,
+                'is_edit' => true,
+                'available_tooths' => $this->projectService->getAvailableTooths(),
+            ];
+        } else {
+            $data = [
+                'project' => [],
+                'is_edit' => false,
+                'available_tooths' => $this->projectService->getAvailableTooths(),
+            ];
+        }
+
+        $this->renderer->renderProjectCompose($data);
     }
 
         /**
@@ -273,17 +270,6 @@ class CrawlFlowController
     }
 
     /**
-     * Render migration page
-     */
-    public function renderMigrationPage(): void
-    {
-        $this->currentScreen = 'crawlflow-migration';
-        $this->detectCurrentScreen();
-        $migrationStatus = $this->migrationService->checkMigrationStatus();
-        $this->renderer->renderMigration($migrationStatus);
-    }
-
-        /**
      * Render logs page
      */
     public function renderLogsPage(): void
@@ -310,15 +296,7 @@ class CrawlFlowController
         $this->renderer->renderLogs($data);
     }
 
-    /**
-     * Render settings page
-     */
-    public function renderSettingsPage(): void
-    {
-        $this->currentScreen = 'crawlflow-settings';
-        $this->detectCurrentScreen();
-        $this->renderPage();
-    }
+    // Settings are now integrated into the main dashboard
 
         /**
      * Render analytics page
@@ -431,6 +409,55 @@ class CrawlFlowController
     }
 
     /**
+     * Handle auto-save project AJAX
+     */
+    public function handleAutoSaveProject(): void
+    {
+        if (!\wp_verify_nonce($_POST['nonce'] ?? '', 'crawlflow_admin_nonce')) {
+            wp_send_json_error('Security check failed');
+        }
+
+        $projectId = (int) ($_POST['project_id'] ?? 0);
+        $projectName = \sanitize_text_field($_POST['project_name'] ?? '');
+        $projectDescription = \sanitize_textarea_field($_POST['project_description'] ?? '');
+        $toothType = \sanitize_text_field($_POST['tooth_type'] ?? '');
+        $baseUrl = \esc_url_raw($_POST['base_url'] ?? '');
+        $maxUrls = (int) ($_POST['max_urls'] ?? 1000);
+        $status = \sanitize_text_field($_POST['status'] ?? 'draft');
+
+        // For auto-save, we only save if we have at least a project name
+        if (!$projectName) {
+            wp_send_json_error('Project name is required for auto-save');
+        }
+
+        $projectData = [
+            'name' => $projectName,
+            'description' => $projectDescription,
+            'tooth_type' => $toothType,
+            'base_url' => $baseUrl,
+            'max_urls' => $maxUrls,
+            'status' => $status,
+        ];
+
+        if ($projectId) {
+            $result = $this->projectService->updateProject($projectId, $projectData);
+        } else {
+            // For new projects, create as draft
+            $projectData['status'] = 'draft';
+            $result = $this->projectService->createProject($projectData);
+        }
+
+        if ($result) {
+            wp_send_json_success([
+                'message' => 'Project auto-saved successfully',
+                'project_id' => $result,
+            ]);
+        } else {
+            wp_send_json_error('Failed to auto-save project');
+        }
+    }
+
+    /**
      * Handle delete project AJAX
      */
     public function handleDeleteProject(): void
@@ -445,8 +472,13 @@ class CrawlFlowController
             wp_send_json_error('Project ID is required');
         }
 
-        // Add delete project logic here
-        wp_send_json_success(['message' => 'Project deleted successfully']);
+        $result = $this->projectService->deleteProject($projectId);
+
+        if ($result) {
+            wp_send_json_success(['message' => 'Project deleted successfully']);
+        } else {
+            wp_send_json_error('Failed to delete project');
+        }
     }
 
     /**

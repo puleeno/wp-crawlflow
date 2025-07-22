@@ -49,9 +49,6 @@ class DashboardService
             case 'crawlflow-project-editor':
                 return $this->getProjectEditorData();
 
-            case 'crawlflow-settings':
-                return $this->getSettingsData();
-
             case 'crawlflow-migration':
                 return $this->getMigrationData();
 
@@ -85,6 +82,10 @@ class DashboardService
             'total_logs' => $this->logService->getTotalLogs(),
             'recent_projects' => $this->projectService->getRecentProjects(5),
             'system_status' => $this->getSystemStatus(),
+            'settings' => $this->getSettings(),
+            'system_info' => $this->getSystemInfo(),
+            'migration_status' => $this->migrationService->checkMigrationStatus(),
+            'migration_history' => $this->migrationService->getMigrationHistory(),
         ];
     }
 

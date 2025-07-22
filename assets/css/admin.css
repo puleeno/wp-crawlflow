@@ -590,3 +590,224 @@
         width: 100%;
     }
 }
+
+/* Settings Section in Dashboard */
+.crawlflow-settings-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.crawlflow-settings-section h2 {
+    margin: 0 0 20px 0;
+    color: #23282d;
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.crawlflow-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.crawlflow-settings-card {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.crawlflow-settings-card h3 {
+    margin: 0 0 15px 0;
+    color: #23282d;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.crawlflow-settings-form .form-table {
+    margin-top: 0;
+}
+
+.crawlflow-settings-form .form-table th {
+    width: 200px;
+    padding: 10px 10px 10px 0;
+}
+
+.crawlflow-settings-form .form-table td {
+    padding: 10px 0;
+}
+
+.crawlflow-settings-form .submit {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+@media (max-width: 768px) {
+    .crawlflow-settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Project Compose Sub Screen Styles */
+.crawlflow-project-compose-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.crawlflow-project-compose-header h1 {
+    margin: 0;
+    color: #23282d;
+}
+
+.crawlflow-project-compose-form {
+    max-width: 800px;
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.crawlflow-project-compose-form .form-table {
+    margin-bottom: 0;
+}
+
+.crawlflow-project-compose-form .form-table th {
+    width: 180px;
+    padding: 15px 10px 15px 0;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.crawlflow-project-compose-form .form-table td {
+    padding: 15px 10px;
+}
+
+.crawlflow-project-compose-form .form-table input[type="text"],
+.crawlflow-project-compose-form .form-table input[type="url"],
+.crawlflow-project-compose-form .form-table input[type="number"],
+.crawlflow-project-compose-form .form-table select,
+.crawlflow-project-compose-form .form-table textarea {
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.crawlflow-project-compose-form .form-table input:focus,
+.crawlflow-project-compose-form .form-table select:focus,
+.crawlflow-project-compose-form .form-table textarea:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+    outline: none;
+}
+
+.crawlflow-project-compose-form .form-table textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.crawlflow-project-compose-form .description {
+    margin-top: 5px;
+    color: #666;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.crawlflow-project-compose-actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    text-align: right;
+}
+
+.crawlflow-project-compose-actions .button {
+    margin-left: 10px;
+}
+
+.crawlflow-project-compose-actions .button-primary {
+    background: #0073aa;
+    border-color: #0073aa;
+    color: #fff;
+}
+
+.crawlflow-project-compose-actions .button-primary:hover {
+    background: #005a87;
+    border-color: #005a87;
+}
+
+/* Form validation styles */
+.crawlflow-project-compose-form .form-table input.error,
+.crawlflow-project-compose-form .form-table select.error,
+.crawlflow-project-compose-form .form-table textarea.error {
+    border-color: #dc3232;
+    box-shadow: 0 0 0 1px #dc3232;
+}
+
+.crawlflow-project-compose-form .error-message {
+    color: #dc3232;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+/* Auto-save indicator */
+.crawlflow-auto-save-indicator {
+    position: fixed;
+    top: 32px;
+    right: 20px;
+    background: #46b450;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.crawlflow-auto-save-indicator.show {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .crawlflow-project-compose-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .crawlflow-project-compose-form {
+        padding: 20px;
+    }
+
+    .crawlflow-project-compose-form .form-table th {
+        width: auto;
+        display: block;
+        padding: 10px 0 5px 0;
+    }
+
+    .crawlflow-project-compose-form .form-table td {
+        padding: 5px 0 15px 0;
+    }
+
+    .crawlflow-project-compose-actions {
+        text-align: left;
+    }
+
+    .crawlflow-project-compose-actions .button {
+        margin-left: 0;
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+}
