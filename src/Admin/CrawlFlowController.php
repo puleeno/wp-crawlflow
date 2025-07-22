@@ -242,32 +242,7 @@ class CrawlFlowController
         $this->renderer->renderProjectCompose($data);
     }
 
-        /**
-     * Render project editor page
-     */
-    public function renderProjectEditorPage(): void
-    {
-        $this->currentScreen = 'crawlflow-project-editor';
-        $this->detectCurrentScreen();
-        $projectId = (int) ($_GET['project_id'] ?? 0);
 
-        if ($projectId) {
-            $project = $this->projectService->getProject($projectId);
-            $data = [
-                'project' => $project,
-                'is_edit' => true,
-                'available_tooths' => $this->projectService->getAvailableTooths(),
-            ];
-        } else {
-            $data = [
-                'project' => [],
-                'is_edit' => false,
-                'available_tooths' => $this->projectService->getAvailableTooths(),
-            ];
-        }
-
-        $this->renderer->renderProjectEditor($data);
-    }
 
     /**
      * Render logs page

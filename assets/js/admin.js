@@ -11,7 +11,6 @@
     // Initialize admin functionality
     CrawlFlowAdmin.init = function() {
         this.initDashboard();
-        this.initProjectEditor();
         this.initProjectCompose();
         this.initSettings();
         this.initLogs();
@@ -33,20 +32,7 @@
         });
     };
 
-    // Project editor functionality
-    CrawlFlowAdmin.initProjectEditor = function() {
-        if (!$('.crawlflow-project-form').length) {
-            return;
-        }
 
-        // Setup form validation
-        this.setupProjectFormValidation();
-
-        // Setup project type change handler
-        $('#project_type').on('change', function() {
-            CrawlFlowAdmin.handleProjectTypeChange($(this).val());
-        });
-    };
 
     // Project compose functionality
     CrawlFlowAdmin.initProjectCompose = function() {
@@ -133,27 +119,7 @@
         $('.stat-value[data-stat="total_logs"]').text(data.total_logs || 0);
     };
 
-    // Setup project form validation
-    CrawlFlowAdmin.setupProjectFormValidation = function() {
-        $('.crawlflow-project-form').on('submit', function(e) {
-            var projectName = $('#project_name').val();
-            var projectType = $('#project_type').val();
 
-            if (!projectName.trim()) {
-                alert('Project name is required');
-                e.preventDefault();
-                return false;
-            }
-
-            if (!projectType) {
-                alert('Please select a project type');
-                e.preventDefault();
-                return false;
-            }
-
-            return true;
-        });
-    };
 
     // Setup project compose validation
     CrawlFlowAdmin.setupProjectComposeValidation = function() {
@@ -270,12 +236,7 @@
         });
     };
 
-    // Handle project type change
-    CrawlFlowAdmin.handleProjectTypeChange = function(projectType) {
-        // Show/hide relevant configuration fields based on project type
-        $('.project-config-field').hide();
-        $('.project-config-field[data-type="' + projectType + '"]').show();
-    };
+
 
     // Setup settings form
     CrawlFlowAdmin.setupSettingsForm = function() {

@@ -171,79 +171,7 @@ class DashboardRenderer
         <?php
     }
 
-    /**
-     * Render project editor
-     */
-    public function renderProjectEditor(array $data): void
-    {
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html($data['title'] ?? 'Project Editor'); ?></h1>
 
-            <form method="post" action="" class="crawlflow-project-form">
-                <?php wp_nonce_field('crawlflow_project_nonce', 'project_nonce'); ?>
-
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">
-                            <label for="project_name">Project Name</label>
-                        </th>
-                        <td>
-                            <input type="text" id="project_name" name="project_name"
-                                   value="<?php echo esc_attr($data['project']['name'] ?? ''); ?>"
-                                   class="regular-text" required>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th scope="row">
-                            <label for="project_description">Description</label>
-                        </th>
-                        <td>
-                            <textarea id="project_description" name="project_description"
-                                      rows="3" class="large-text"><?php echo esc_textarea($data['project']['description'] ?? ''); ?></textarea>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th scope="row">
-                            <label for="project_type">Project Type</label>
-                        </th>
-                        <td>
-                            <select id="project_type" name="project_type" required>
-                                <option value="">Select Type</option>
-                                <?php foreach ($data['available_tooths'] as $key => $label): ?>
-                                <option value="<?php echo esc_attr($key); ?>"
-                                        <?php selected(($data['project']['tooth_type'] ?? ''), $key); ?>>
-                                    <?php echo esc_html($label); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th scope="row">
-                            <label for="project_status">Status</label>
-                        </th>
-                        <td>
-                            <select id="project_status" name="project_status">
-                                <option value="active" <?php selected(($data['project']['status'] ?? ''), 'active'); ?>>Active</option>
-                                <option value="inactive" <?php selected(($data['project']['status'] ?? ''), 'inactive'); ?>>Inactive</option>
-                                <option value="paused" <?php selected(($data['project']['status'] ?? ''), 'paused'); ?>>Paused</option>
-                            </select>
-                        </td>
-                    </tr>
-                </table>
-
-                <p class="submit">
-                    <input type="submit" name="submit" id="submit" class="button button-primary"
-                           value="<?php echo $data['is_edit'] ? 'Update Project' : 'Create Project'; ?>">
-                </p>
-            </form>
-        </div>
-        <?php
-    }
 
     /**
      * Render settings page

@@ -59,107 +59,9 @@
     color: white;
 }
 
-.crawlflow-control-panel {
-    background: #fff;
-    border: 1px solid #ccd0d4;
-    border-radius: 4px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
 
-.control-buttons {
-    margin-top: 15px;
-}
 
-.control-buttons .button {
-    margin-right: 10px;
-    margin-bottom: 10px;
-}
 
-.crawlflow-configuration {
-    background: #fff;
-    border: 1px solid #ccd0d4;
-    border-radius: 4px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.config-form {
-    margin-top: 15px;
-}
-
-.crawlflow-recent-activity {
-    background: #fff;
-    border: 1px solid #ccd0d4;
-    border-radius: 4px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.activity-log {
-    max-height: 300px;
-    overflow-y: auto;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    padding: 10px;
-    font-family: monospace;
-    font-size: 12px;
-    line-height: 1.4;
-}
-
-.activity-log p {
-    margin: 5px 0;
-}
-
-.activity-log .success {
-    color: #46b450;
-}
-
-.activity-log .error {
-    color: #dc3232;
-}
-
-.activity-log .warning {
-    color: #ffb900;
-}
-
-.activity-log .info {
-    color: #0073aa;
-}
-
-/* Progress Bar */
-.crawlflow-progress {
-    background: #f1f1f1;
-    border-radius: 3px;
-    height: 20px;
-    margin: 10px 0;
-    overflow: hidden;
-}
-
-.crawlflow-progress-bar {
-    background: #0073aa;
-    height: 100%;
-    width: 0%;
-    transition: width 0.3s ease;
-}
-
-/* Loading Spinner */
-.crawlflow-loading {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #0073aa;
-    border-radius: 50%;
-    animation: crawlflow-spin 1s linear infinite;
-    margin-right: 5px;
-}
-
-@keyframes crawlflow-spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
 
 /* overview Indicators */
 .crawlflow-overview {
@@ -210,30 +112,7 @@
     }
 }
 
-/* Form Styles */
-.crawlflow-form-group {
-    margin-bottom: 15px;
-}
 
-.crawlflow-form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
-}
-
-.crawlflow-form-group input[type="text"],
-.crawlflow-form-group input[type="number"],
-.crawlflow-form-group select,
-.crawlflow-form-group textarea {
-    width: 100%;
-    max-width: 400px;
-}
-
-.crawlflow-form-group .description {
-    margin-top: 5px;
-    color: #666;
-    font-style: italic;
-}
 
 /* Notification Styles */
 .crawlflow-notification {

@@ -21,10 +21,7 @@ class CrawlFlowDashboardServiceProvider extends AbstractServiceProvider
             return new \CrawlFlow\Kernel\CrawlFlowDashboardKernel();
         });
 
-        // Register dashboard controller
-        $app->singleton('CrawlFlow\Admin\DashboardController', function ($app) {
-            return new \CrawlFlow\Admin\DashboardController();
-        });
+
 
         // Register dashboard renderer
         $app->singleton('CrawlFlow\Admin\DashboardRenderer', function ($app) {

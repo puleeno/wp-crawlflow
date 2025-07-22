@@ -101,7 +101,7 @@ class CrawlFlowDashboardBootstrapper implements BootstrapperInterface
      */
     private function registerAdminMenu(Rake $app): void
     {
-        // Main menu is already registered in AdminController
+        // Main menu is already registered in CrawlFlowController
         // This is for additional menu items if needed
     }
 
