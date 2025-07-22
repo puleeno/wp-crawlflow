@@ -190,9 +190,9 @@ class WP_CrawlFlow {
             $result = $kernel->runMigrations();
 
             if ($result['success'] ?? false) {
-                \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
-            } else {
-                \Rake\Facade\Logger::error('CrawlFlow: Rake migrations failed');
+                    \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
+                } else {
+                    \Rake\Facade\Logger::error('CrawlFlow: Rake migrations failed');
             }
         } catch (\Exception $e) {
             \Rake\Facade\Logger::error('CrawlFlow: Error running Rake migrations - ' . $e->getMessage());

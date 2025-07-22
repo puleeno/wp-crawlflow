@@ -266,3 +266,327 @@
     border-color: #0073aa;
     color: #0c5460;
 }
+
+/* Dashboard Components */
+.crawlflow-overview-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.crawlflow-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.crawlflow-card h3 {
+    margin: 0 0 15px 0;
+    color: #23282d;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.card-content .stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 5px 0;
+}
+
+.stat-label {
+    font-weight: 500;
+    color: #666;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.crawlflow-system-status {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.crawlflow-system-status h2 {
+    margin: 0 0 15px 0;
+    color: #23282d;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 3px;
+}
+
+.status-label {
+    font-weight: 500;
+    color: #666;
+}
+
+.status-value {
+    font-weight: bold;
+}
+
+.status-value.status-connected,
+.status-value.status-ok {
+    color: #46b450;
+}
+
+.status-value.status-error,
+.status-value.status-warning {
+    color: #dc3232;
+}
+
+.status-value.status-warning {
+    color: #ffb900;
+}
+
+.crawlflow-recent-projects {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.crawlflow-recent-projects h2 {
+    margin: 0 0 15px 0;
+    color: #23282d;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.status-active {
+    background: #46b450;
+    color: white;
+}
+
+.status-badge.status-inactive {
+    background: #dc3232;
+    color: white;
+}
+
+.status-badge.status-paused {
+    background: #ffb900;
+    color: white;
+}
+
+.crawlflow-logs-controls {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.crawlflow-logs-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.log-level {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.log-level.log-level-debug {
+    background: #6c757d;
+    color: white;
+}
+
+.log-level.log-level-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.log-level.log-level-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.log-level.log-level-error,
+.log-level.log-level-critical {
+    background: #dc3545;
+    color: white;
+}
+
+.crawlflow-dashboard-widget {
+    padding: 10px;
+}
+
+.crawlflow-dashboard-widget .crawlflow-stats {
+    margin-bottom: 15px;
+}
+
+.crawlflow-dashboard-widget .stat-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 13px;
+}
+
+.crawlflow-dashboard-widget .stat-label {
+    font-weight: 500;
+    color: #666;
+}
+
+.crawlflow-dashboard-widget .stat-value {
+    font-weight: bold;
+    color: #0073aa;
+}
+
+/* Projects List */
+.crawlflow-projects-controls {
+    margin-bottom: 20px;
+}
+
+.crawlflow-projects-controls .button {
+    margin-right: 10px;
+}
+
+/* Migration Status */
+.crawlflow-migration-status {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.crawlflow-migration-status h2 {
+    margin: 0 0 15px 0;
+    color: #23282d;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.migration-status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 3px;
+    margin-bottom: 10px;
+}
+
+.crawlflow-migration-actions {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.crawlflow-migration-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 15px;
+    color: #155724;
+    margin-bottom: 20px;
+}
+
+/* Analytics */
+.crawlflow-analytics-controls {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.crawlflow-analytics-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.crawlflow-analytics-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.crawlflow-chart {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.crawlflow-chart h3 {
+    margin: 0 0 15px 0;
+    color: #23282d;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.chart-container {
+    min-height: 300px;
+    background: #f9f9f9;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+}
+
+/* Responsive Design for new components */
+@media (max-width: 768px) {
+    .crawlflow-analytics-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .crawlflow-analytics-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .crawlflow-analytics-filter {
+        width: 100%;
+    }
+}
