@@ -178,52 +178,9 @@ class ProjectService
         ];
     }
 
-    /**
-     * Get data sources
-     */
-    public function getDataSources(): array
-    {
-        // This would typically come from a configuration or database
-        return [
-            'urls' => 'URL List',
-            'rss' => 'RSS Feed',
-            'sitemap' => 'XML Sitemap',
-            'api' => 'API Endpoint',
-        ];
-    }
 
-    /**
-     * Save project
-     */
-    public function saveProject(array $projectData): bool
-    {
-        global $wpdb;
-        $table = $wpdb->prefix . 'rake_tooths';
 
-        $data = [
-            'name' => sanitize_text_field($projectData['name'] ?? ''),
-            'description' => sanitize_textarea_field($projectData['description'] ?? ''),
-            'tooth_type' => sanitize_text_field($projectData['tooth_type'] ?? ''),
-            'status' => sanitize_text_field($projectData['status'] ?? 'active'),
-            'config' => json_encode($projectData['config'] ?? []),
-            'updated_at' => current_time('mysql'),
-        ];
 
-        if (isset($projectData['id'])) {
-            // Update existing project
-            $result = $wpdb->update(
-                $table,
-                $data,
-                ['id' => (int) $projectData['id']]
-            );
-        } else {
-            // Create new project
-            $data['created_at'] = current_time('mysql');
-            $result = $wpdb->insert($table, $data);
-        }
-
-        return $result !== false;
-    }
 
     /**
      * Create new project

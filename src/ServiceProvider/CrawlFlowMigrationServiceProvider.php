@@ -9,8 +9,8 @@ class CrawlFlowMigrationServiceProvider extends AbstractServiceProvider
 {
     protected function registerServices(): void
     {
-        $this->app->singleton('CrawlFlow\Admin\MigrationService', function () {
-            return new \CrawlFlow\Admin\MigrationService();
+        $this->app->singleton('CrawlFlow\Admin\MigrationService', function ($app) {
+            return new \CrawlFlow\Admin\MigrationService($app);
         });
     }
 

@@ -20,6 +20,9 @@ class CrawlFlowMigrationBootstrapper implements BootstrapperInterface
      */
     public function bootstrap(Rake $app): void
     {
+        // Bind migration schema path to Rake
+        $schemaPath = CRAWLFLOW_PLUGIN_DIR . 'vendor/ramphor/rake/schema_definitions/';
+        $app->instance('migration_schema_path', $schemaPath);
         // Đăng ký service provider cho migration
         $app->register(new \CrawlFlow\ServiceProvider\CrawlFlowMigrationServiceProvider());
     }

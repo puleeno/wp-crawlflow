@@ -360,8 +360,10 @@ class CrawlFlowController
         $projectData = [
             'name' => sanitize_text_field($_POST['project_name'] ?? ''),
             'description' => sanitize_textarea_field($_POST['project_description'] ?? ''),
-            'tooth_type' => sanitize_text_field($_POST['project_type'] ?? ''),
-            'status' => sanitize_text_field($_POST['project_status'] ?? 'active'),
+            'tooth_type' => sanitize_text_field($_POST['tooth_type'] ?? ''),
+            'base_url' => esc_url_raw($_POST['base_url'] ?? ''),
+            'max_urls' => (int) ($_POST['max_urls'] ?? 1000),
+            'status' => sanitize_text_field($_POST['status'] ?? 'draft'),
         ];
 
         if (empty($projectData['name'])) {
@@ -371,12 +373,16 @@ class CrawlFlowController
         $projectId = (int) ($_POST['project_id'] ?? 0);
 
         if ($projectId) {
-            $projectData['id'] = $projectId;
+            // Update existing project
+            $result = $this->projectService->updateProject($projectId, $projectData);
+            $success = $result;
+        } else {
+            // Create new project
+            $result = $this->projectService->createProject($projectData);
+            $success = $result > 0;
         }
 
-        $result = $this->projectService->saveProject($projectData);
-
-        if ($result) {
+        if ($success) {
             wp_send_json_success(['message' => 'Project saved successfully']);
         } else {
             wp_send_json_error('Failed to save project');
@@ -587,7 +593,7 @@ class CrawlFlowController
 
         // Save settings logic here
         $redirectUrl = add_query_arg([
-            'page' => 'crawlflow-settings',
+            'page' => 'crawlflow',
             'updated' => '1',
         ], admin_url('admin.php'));
 
@@ -611,7 +617,7 @@ class CrawlFlowController
         $result = $this->migrationService->runMigrations();
 
         $redirectUrl = add_query_arg([
-            'page' => 'crawlflow-migration',
+            'page' => 'crawlflow',
             'migration_result' => $result ? 'success' : 'error',
         ], admin_url('admin.php'));
 

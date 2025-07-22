@@ -30,6 +30,8 @@ class DashboardRenderer
         <div class="wrap">
             <h1><?php echo esc_html($data['title'] ?? 'CrawlFlow Dashboard'); ?></h1>
 
+            <?php $this->renderAlertMessages(); ?>
+
             <div class="crawlflow-overview-cards">
                 <div class="crawlflow-card">
                     <h3>Projects</h3>
@@ -84,6 +86,133 @@ class DashboardRenderer
             <?php $this->renderSettingsSection($data['settings'] ?? [], $data['system_info'] ?? []); ?>
         </div>
         <?php
+    }
+
+    /**
+     * Render alert messages
+     */
+    private function renderAlertMessages(): void
+    {
+        // Check for migration result
+        if (isset($_GET['migration_result'])) {
+            $result = $_GET['migration_result'];
+            $message = '';
+            $type = '';
+
+            switch ($result) {
+                case 'success':
+                    $message = 'Migration completed successfully!';
+                    $type = 'success';
+                    break;
+                case 'error':
+                    $message = 'Migration failed. Please check the logs for details.';
+                    $type = 'error';
+                    break;
+                default:
+                    return;
+            }
+
+            if ($message && $type) {
+                ?>
+                <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible">
+                    <p><?php echo esc_html($message); ?></p>
+                </div>
+                <?php
+            }
+        }
+
+        // Check for settings update
+        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+            ?>
+            <div class="notice notice-success is-dismissible">
+                <p>Settings updated successfully!</p>
+            </div>
+            <?php
+        }
+
+        // Check for project save result
+        if (isset($_GET['project_saved'])) {
+            $result = $_GET['project_saved'];
+            $message = '';
+            $type = '';
+
+            switch ($result) {
+                case 'success':
+                    $message = 'Project saved successfully!';
+                    $type = 'success';
+                    break;
+                case 'error':
+                    $message = 'Failed to save project. Please try again.';
+                    $type = 'error';
+                    break;
+                default:
+                    return;
+            }
+
+            if ($message && $type) {
+                ?>
+                <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible">
+                    <p><?php echo esc_html($message); ?></p>
+                </div>
+                <?php
+            }
+        }
+
+        // Check for project delete result
+        if (isset($_GET['project_deleted'])) {
+            $result = $_GET['project_deleted'];
+            $message = '';
+            $type = '';
+
+            switch ($result) {
+                case 'success':
+                    $message = 'Project deleted successfully!';
+                    $type = 'success';
+                    break;
+                case 'error':
+                    $message = 'Failed to delete project. Please try again.';
+                    $type = 'error';
+                    break;
+                default:
+                    return;
+            }
+
+            if ($message && $type) {
+                ?>
+                <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible">
+                    <p><?php echo esc_html($message); ?></p>
+                </div>
+                <?php
+            }
+        }
+
+        // Check for logs clear result
+        if (isset($_GET['logs_cleared'])) {
+            $result = $_GET['logs_cleared'];
+            $message = '';
+            $type = '';
+
+            switch ($result) {
+                case 'success':
+                    $message = 'Logs cleared successfully!';
+                    $type = 'success';
+                    break;
+                case 'error':
+                    $message = 'Failed to clear logs. Please try again.';
+                    $type = 'error';
+                    break;
+                default:
+                    return;
+            }
+
+            if ($message && $type) {
+                ?>
+                <div class="notice notice-<?php echo esc_attr($type); ?> is-dismissible">
+                    <p><?php echo esc_html($message); ?></p>
+                </div>
+                <?php
+            }
+        }
     }
 
     /**
@@ -159,7 +288,7 @@ class DashboardRenderer
                         </td>
                         <td><?php echo esc_html($project['created_at'] ?? ''); ?></td>
                         <td>
-                            <a href="<?php echo admin_url('admin.php?page=crawlflow-project-editor&project_id=' . ($project['id'] ?? '')); ?>" class="button button-small">
+                            <a href="<?php echo admin_url('admin.php?page=crawlflow-projects&sub=compose&project_id=' . ($project['id'] ?? '')); ?>" class="button button-small">
                                 Edit
                             </a>
                         </td>
@@ -495,6 +624,8 @@ class DashboardRenderer
         <div class="wrap">
             <h1>Projects</h1>
 
+            <?php $this->renderAlertMessages(); ?>
+
             <div class="crawlflow-projects-controls">
                 <a href="<?php echo admin_url('admin.php?page=crawlflow-projects&sub=compose'); ?>" class="button button-primary">
                     Add New Project
@@ -619,6 +750,8 @@ class DashboardRenderer
                     ← Back to Projects
                 </a>
             </div>
+
+            <?php $this->renderAlertMessages(); ?>
 
             <div class="crawlflow-project-compose-form">
                 <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" id="project-compose-form">

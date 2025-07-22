@@ -57,7 +57,7 @@ class CrawlFlowMigrationKernel extends MigrationKernel
 
     public function runMigrations(array $options = []): array
     {
-        $service = $this->getApp()->make('CrawlFlow\Admin\MigrationService');
+        $service = new \CrawlFlow\Admin\MigrationService($this->getApp());
         $result = $service->runMigrations($options);
 
         // Đảm bảo luôn trả về array
@@ -72,13 +72,13 @@ class CrawlFlowMigrationKernel extends MigrationKernel
 
     public function checkMigrationStatus(): array
     {
-        $service = $this->getApp()->make('CrawlFlow\Admin\MigrationService');
+        $service = new \CrawlFlow\Admin\MigrationService($this->getApp());
         return $service->checkMigrationStatus();
     }
 
     public function rollbackMigrations(int $steps = 1): array
     {
-        $service = $this->getApp()->make('CrawlFlow\Admin\MigrationService');
+        $service = new \CrawlFlow\Admin\MigrationService($this->getApp());
         return $service->rollbackMigrations($steps);
     }
 

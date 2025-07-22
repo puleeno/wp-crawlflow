@@ -5,6 +5,8 @@ namespace CrawlFlow\Admin;
 use Rake\Manager\Database\MigrationManager;
 use Rake\Database\SchemaGenerator;
 use Puleeno\Rake\WordPress\Adapter\WordPressDatabaseAdapter;
+use Rake\Rake;
+use Rake\Facade\Logger;
 
 /**
  * Migration Service for CrawlFlow Plugin
@@ -27,9 +29,14 @@ class MigrationService
     private $wordpressAdapter;
 
     /**
+     * @var Rake
+     */
+    private $app;
+
+    /**
      * Constructor
      */
-    public function __construct()
+    public function __construct(Rake $app = null)
     {
         $this->wordpressAdapter = new WordPressDatabaseAdapter();
         $this->schemaGenerator = new SchemaGenerator($this->wordpressAdapter);
@@ -38,6 +45,9 @@ class MigrationService
         $databaseConfig = $this->createWordPressDatabaseConfig();
 
         $this->migrationManager = new MigrationManager($this->wordpressAdapter, $databaseConfig);
+
+        // Store Rake app instance for accessing bound values
+        $this->app = $app;
     }
 
     /**
@@ -65,7 +75,7 @@ class MigrationService
                 'password' => DB_PASSWORD,
                 'charset' => $wpdb->charset,
                 'collation' => $wpdb->collate,
-                'prefix' => $wpdb->prefix . 'rake_', // WordPress prefix with rake_
+                'prefix' => $wpdb->prefix, // WordPress prefix
             ];
 
             return new \Rake\Config\DatabaseConfig($dbConfig);
@@ -78,7 +88,7 @@ class MigrationService
     /**
      * Run migrations when plugin is activated
      */
-    public function runMigrations()
+        public function runMigrations()
     {
         try {
             // Initialize logger only when needed
@@ -86,29 +96,50 @@ class MigrationService
                 \CrawlFlow\LoggerService::init();
             }
 
-            // Logger::info('Starting CrawlFlow migrations');
+            Logger::debug("CrawlFlow: Starting migrations...");
 
             // Get schema definitions from Rake
             $schemaDefinitions = $this->getSchemaDefinitions();
+            Logger::debug("CrawlFlow: Found " . count($schemaDefinitions) . " schema definitions");
 
             if (empty($schemaDefinitions)) {
-                // Logger::warning('No schema definitions found');
+                Logger::error("CrawlFlow: No schema definitions found");
                 return false;
             }
 
-            // Run migration using the public method
-            $schemaDir = CRAWLFLOW_PLUGIN_DIR . '../rake/schema_definitions/';
-            $result = $this->migrationManager->runMigration($this->schemaGenerator, $schemaDir);
+            // Get schema directory from Rake container or use default
+            $schemaDir = $this->app ? $this->app->get('migration_schema_path') : CRAWLFLOW_PLUGIN_DIR . 'vendor/ramphor/rake/schema_definitions/';
+
+            // Debug: Log migration attempt
+            Logger::debug("CrawlFlow: Migration attempt - App: " . ($this->app ? 'Yes' : 'No') . ", SchemaDir: " . $schemaDir);
+
+            // Debug: Check if schema directory exists
+            if (!is_dir($schemaDir)) {
+                Logger::error("CrawlFlow: Schema directory not found: " . $schemaDir);
+                return false;
+            }
+
+            Logger::debug("CrawlFlow: Running migration with schemaDir: " . $schemaDir);
+
+            try {
+                $result = $this->migrationManager->runMigration($this->schemaGenerator, $schemaDir);
+                Logger::debug("CrawlFlow: Migration result: " . ($result ? 'true' : 'false'));
+            } catch (\Exception $e) {
+                Logger::error("CrawlFlow: MigrationManager error: " . $e->getMessage());
+                Logger::error("CrawlFlow: MigrationManager stack trace: " . $e->getTraceAsString());
+                return false;
+            }
 
             if ($result) {
-                // Logger::info('Database migration completed successfully');
+                Logger::debug("CrawlFlow: Database migration completed successfully");
                 return true;
             } else {
-                // Logger::error('Database migration failed');
+                Logger::error("CrawlFlow: Database migration failed");
                 return false;
             }
         } catch (\Exception $e) {
-            // Logger::error('Migration error - ' . $e->getMessage());
+            Logger::error("CrawlFlow: Migration error - " . $e->getMessage());
+            Logger::error("CrawlFlow: Migration stack trace - " . $e->getTraceAsString());
             return false;
         }
     }
@@ -118,25 +149,36 @@ class MigrationService
      */
     private function getSchemaDefinitions()
     {
-        $schemaPath = CRAWLFLOW_PLUGIN_DIR . '../rake/schema_definitions/';
+        $schemaPath = $this->app ? $this->app->get('migration_schema_path') : CRAWLFLOW_PLUGIN_DIR . 'vendor/ramphor/rake/schema_definitions/';
+        Logger::debug("CrawlFlow: Getting schema definitions from: " . $schemaPath);
 
         if (!is_dir($schemaPath)) {
-            // Logger::error('Schema definitions directory not found: ' . $schemaPath);
+            Logger::error("CrawlFlow: Schema definitions directory not found: " . $schemaPath);
             return [];
         }
 
         $definitions = [];
         $files = glob($schemaPath . '*.php');
+        Logger::debug("CrawlFlow: Found " . count($files) . " schema files");
 
         foreach ($files as $file) {
             $tableName = basename($file, '.php');
-            $definition = include $file;
+            Logger::debug("CrawlFlow: Loading schema file: " . $file);
 
-            if (is_array($definition)) {
-                $definitions[$tableName] = $definition;
+            try {
+                $definition = include $file;
+                if (is_array($definition)) {
+                    $definitions[$tableName] = $definition;
+                    Logger::debug("CrawlFlow: Loaded schema for table: " . $tableName);
+                } else {
+                    Logger::error("CrawlFlow: Invalid schema definition in file: " . $file);
+                }
+            } catch (\Exception $e) {
+                Logger::error("CrawlFlow: Error loading schema file " . $file . ": " . $e->getMessage());
             }
         }
 
+        Logger::debug("CrawlFlow: Total schema definitions loaded: " . count($definitions));
         return $definitions;
     }
 
@@ -188,7 +230,7 @@ class MigrationService
     private function getPrefixedTableName(string $tableName): string
     {
         global $wpdb;
-        return $wpdb->prefix . 'rake_' . $tableName;
+        return $wpdb->prefix . $tableName;
     }
 
     /**
@@ -214,6 +256,26 @@ class MigrationService
         }
 
         return 0;
+    }
+
+    /**
+     * Rollback migrations
+     */
+    public function rollbackMigrations(int $steps = 1): array
+    {
+        try {
+            // For now, just return success as rollback is not implemented
+            return [
+                'success' => true,
+                'message' => 'Rollback not implemented yet',
+                'steps_rolled_back' => 0,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 
     /**

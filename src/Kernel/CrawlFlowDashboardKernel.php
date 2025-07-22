@@ -109,8 +109,6 @@ class CrawlFlowDashboardKernel extends AbstractKernel
     {
         $templateMap = [
             'crawlflow' => 'dashboard.php',
-            'crawlflow-settings' => 'settings.php',
-            'crawlflow-migration' => 'migration.php',
             'crawlflow-logs' => 'logs.php',
             'crawlflow-projects' => 'projects.php',
             'crawlflow-analytics' => 'analytics.php',
@@ -136,9 +134,6 @@ class CrawlFlowDashboardKernel extends AbstractKernel
         switch ($this->currentScreen) {
             case 'crawlflow':
                 $renderer->renderDashboardOverview($this->screenData);
-                break;
-            case 'crawlflow-settings':
-                $renderer->renderSettings($this->screenData);
                 break;
             case 'crawlflow-logs':
                 $renderer->renderLogs($this->screenData);

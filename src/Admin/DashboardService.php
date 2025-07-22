@@ -46,11 +46,9 @@ class DashboardService
             case 'crawlflow':
                 return $this->getDashboardData();
 
-            case 'crawlflow-project-editor':
-                return $this->getProjectEditorData();
 
-            case 'crawlflow-migration':
-                return $this->getMigrationData();
+
+
 
             case 'crawlflow-logs':
                 return $this->getLogsData();
@@ -89,45 +87,11 @@ class DashboardService
         ];
     }
 
-    /**
-     * Get project editor data
-     */
-    private function getProjectEditorData(): array
-    {
-        $project_id = $_GET['project_id'] ?? null;
 
-        return [
-            'title' => 'Project Editor',
-            'project' => $project_id ? $this->projectService->getProject($project_id) : null,
-            'available_tooths' => $this->projectService->getAvailableTooths(),
-            'data_sources' => $this->projectService->getDataSources(),
-            'is_edit' => !empty($project_id),
-        ];
-    }
 
-    /**
-     * Get settings data
-     */
-    private function getSettingsData(): array
-    {
-        return [
-            'title' => 'CrawlFlow Settings',
-            'settings' => $this->getSettings(),
-            'system_info' => $this->getSystemInfo(),
-        ];
-    }
 
-    /**
-     * Get migration data
-     */
-    private function getMigrationData(): array
-    {
-        return [
-            'title' => 'Database Migration',
-            'migration_status' => $this->migrationService->checkMigrationStatus(),
-            'migration_history' => $this->migrationService->getMigrationHistory(),
-        ];
-    }
+
+
 
     /**
      * Get logs data
