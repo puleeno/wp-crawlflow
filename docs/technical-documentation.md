@@ -105,7 +105,7 @@ wp-crawlflow/
     "name": "crawlflow/wp-crawlflow",
     "require": {
         "php": ">=8.1",
-        "crawlflow/rake-wordpress-adapter": "^1.0",
+        "puleeno/rake-wordpress-adapter": "^2.0",
         "monolog/monolog": "^3.0"
     },
     "autoload": {

@@ -1,5 +1,5 @@
 {
-    "name": "puleeno/wp-crawlflow",
+    "name": "crawlflow/crawlflow",
     "description": "A powerful WordPress plugin for data migration and web crawling using Rake 2.0 framework",
     "type": "wordpress-plugin",
     "license": "GPL-3.0-or-later",

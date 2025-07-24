@@ -205,8 +205,8 @@ $version = $migrationService->getCurrentVersion();
     "name": "crawlflow/wp-crawlflow",
     "require": {
         "php": ">=8.1",
-        "crawlflow/rake-core": "^1.0",
-        "crawlflow/rake-wordpress-adapter": "^1.0"
+        "ramphor/rake": "^2.0",
+        "puleeno/rake-wordpress-adapter": "^2.0"
     },
     "autoload": {
         "psr-4": {
