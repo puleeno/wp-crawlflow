@@ -202,7 +202,7 @@ $version = $migrationService->getCurrentVersion();
 ### Package Dependencies
 ```json
 {
-    "name": "crawlflow/wp-crawlflow",
+    "name": "crawlflow/crawlflow",
     "require": {
         "php": ">=8.1",
         "ramphor/rake": "^2.0",
@@ -319,7 +319,7 @@ wp-content/plugins/wp-crawlflow/
 
 #### Composer Installation
 ```bash
-composer require crawlflow/wp-crawlflow
+composer create-project crawlflow/crawlflow wp-content/plugins/crawlflow
 ```
 
 ### 2. Khởi tạo Plugin

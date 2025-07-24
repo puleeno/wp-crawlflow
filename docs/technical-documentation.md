@@ -102,7 +102,7 @@ wp-crawlflow/
 ### 2.2 Package Dependencies
 ```json
 {
-    "name": "crawlflow/wp-crawlflow",
+    "name": "crawlflow/crawlflow",
     "require": {
         "php": ">=8.1",
         "puleeno/rake-wordpress-adapter": "^2.0",
