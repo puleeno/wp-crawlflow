@@ -1,1554 +1,1206 @@
-# TÀI LIỆU KỸ THUẬT CRAWFLOW & RAKE FRAMEWORK
-**Phiên bản:** 2.0
-**Ngày tạo:** 2024
+# TÀI LIỆU THIẾT KẾ KỸ THUẬT CRAWFLOW PLUGIN
+**Phiên bản:** 1.0
+**Ngày tạo:** 2025
 **Tác giả:** Development Team
 
 ---
 
 ## MỤC LỤC
 
-1. [Tổng quan hệ thống](#1-tổng-quan-hệ-thống)
-2. [Kiến trúc Rake Framework](#2-kiến-trúc-rake-framework)
-3. [CrawlFlow Plugin Architecture](#3-crawlflow-plugin-architecture)
-4. [Database Migration System](#4-database-migration-system)
-5. [Logging System](#5-logging-system)
-6. [Dependency Injection Container](#6-dependency-injection-container)
-7. [Kernel & Bootstrapper System](#7-kernel--bootstrapper-system)
-8. [Facade Pattern Implementation](#8-facade-pattern-implementation)
-9. [WordPress Integration](#9-wordpress-integration)
-10. [Performance Optimization](#10-performance-optimization)
-11. [Error Handling & Debugging](#11-error-handling--debugging)
-12. [Development Guidelines](#12-development-guidelines)
-13. [API Reference](#13-api-reference)
-14. [Deployment Guide](#14-deployment-guide)
-15. [Troubleshooting](#15-troubleshooting)
+1. [Tổng quan CrawlFlow Plugin](#1-tổng-quan-crawlflow-plugin)
+2. [Kiến trúc Plugin](#2-kiến-trúc-plugin)
+3. [Dashboard System](#3-dashboard-system)
+4. [Project Management](#4-project-management)
+5. [Migration Integration](#5-migration-integration)
+6. [Logging System](#6-logging-system)
+7. [Frontend Assets](#7-frontend-assets)
+8. [Development Guidelines](#8-development-guidelines)
 
 ---
 
-## 1. TỔNG QUAN HỆ THỐNG
+## 1. TỔNG QUAN CRAWFLOW PLUGIN
 
-### 1.1 Mục tiêu dự án
-CrawlFlow là một WordPress plugin được xây dựng trên Rake Framework 2.0, cung cấp hệ thống crawling và xử lý dữ liệu mạnh mẽ với các tính năng:
-- Database migration tự động
-- Logging system tích hợp
-- Dependency injection container
-- Modular architecture
-- WordPress integration
-- Performance optimization
+### 1.1 Mục tiêu
+CrawlFlow Plugin là WordPress plugin sử dụng Rake Framework, cung cấp:
+- Dashboard quản lý projects
+- Visual flow composer cho database schemas
+- Migration system tích hợp
+- Logging và analytics
+- WordPress admin integration
 
 ### 1.2 Kiến trúc tổng thể
 ```
-CrawlFlow Plugin
-├── Rake Framework Core
-│   ├── Container (Dependency Injection)
-│   ├── Kernel System
-│   ├── Bootstrapper System
-│   ├── Facade Pattern
-│   └── Manager Classes
-├── WordPress Integration
-│   ├── Database Adapter
-│   ├── WordPress Driver
-│   └── Prefix Handling
-├── Migration System
-│   ├── Migration Kernel
-│   ├── Schema Definitions
-│   ├── Backup Service
-│   └── Validator Service
-└── Logging System
-    ├── Logger Manager
-    ├── Monolog Integration
-    └── Logger Facade
+┌─────────────────────────────────────────────────────────────┐
+│                    CRAWFLOW PLUGIN                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
+│  │   DASHBOARD     │  │    PROJECTS     │  │  MIGRATION  │ │
+│  │     SYSTEM      │  │   MANAGEMENT    │  │ INTEGRATION │ │
+│  │                 │  │                 │  │             │ │
+│  │ • Overview      │  │ • Project CRUD  │  │ • Schema    │ │
+│  │ • Analytics     │  │ • Flow Composer │  │   Migration │ │
+│  │ • Settings      │  │ • Visual Editor │  │ • Status    │ │
+│  │ • System Info   │  │ • Data Preview  │  │ • History   │ │
+│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
+│                                                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
+│  │    LOGGING      │  │   FRONTEND      │  │   ASSETS    │ │
+│  │     SYSTEM      │  │    ASSETS       │  │ MANAGEMENT  │ │
+│  │                 │  │                 │  │             │ │
+│  │ • Log Viewer    │  │ • React Composer│  │ • CSS/JS    │ │
+│  │ • Log Filter    │  │ • XYFlow React  │  │ • CDN       │ │
+│  │ • Log Export    │  │ • Admin Styles  │  │ • Build     │ │
+│  │ • Analytics     │  │ • Responsive    │  │ • Minify    │ │
+│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-### 1.3 Công nghệ sử dụng
-- **PHP 8.1+**: Ngôn ngữ chính
-- **WordPress**: Platform hosting
-- **Monolog**: Logging library
-- **Composer**: Dependency management
-- **PSR-4**: Autoloading standard
-- **PSR-3**: Logger interface
 
 ---
 
-## 2. KIẾN TRÚC RAKE FRAMEWORK
+## 2. KIẾN TRÚC PLUGIN
 
-### 2.1 Core Container (Rake.php)
-```php
-class Rake
-{
-    private array $services = [];
-    private array $singletons = [];
-    private array $resolved = [];
-
-    public function bind(string $abstract, $concrete): void
-    public function singleton(string $abstract, $concrete): void
-    public function make(string $abstract)
-    public function has(string $abstract): bool
-    public function resolve(string $abstract)
-}
+### 2.1 Package Structure
+```
+wp-crawlflow/
+├── src/
+│   ├── Admin/                 # Admin Controllers & Services
+│   │   ├── CrawlFlowController.php
+│   │   ├── DashboardService.php
+│   │   ├── ProjectService.php
+│   │   ├── LogService.php
+│   │   ├── MigrationService.php
+│   │   └── DashboardRenderer.php
+│   ├── Kernel/                # Plugin Kernels
+│   │   ├── CrawlFlowDashboardKernel.php
+│   │   ├── CrawlFlowMigrationKernel.php
+│   │   └── CrawlFlowConsoleKernel.php
+│   ├── Bootstrapper/          # Plugin Bootstrappers
+│   │   ├── CrawlFlowDashboardBootstrapper.php
+│   │   ├── CrawlFlowMigrationBootstrapper.php
+│   │   └── CrawlFlowCoreBootstrapper.php
+│   ├── ServiceProvider/       # Service Providers
+│   │   ├── CrawlFlowDashboardServiceProvider.php
+│   │   ├── CrawlFlowMigrationServiceProvider.php
+│   │   └── CrawlFlowCoreServiceProvider.php
+│   └── Assets/                # Asset Management
+│       ├── AssetManager.php
+│       └── ScriptManager.php
+├── assets/
+│   ├── css/                   # Stylesheets
+│   │   ├── admin.css
+│   │   └── composer.css
+│   └── js/                    # JavaScript
+│       ├── admin.js
+│       ├── composer-simple.js
+│       └── composer-test.js
+├── wp-crawlflow.php           # Main plugin file
+├── composer.json
+└── README.md
 ```
 
-**Chức năng:**
-- Dependency injection container
-- Service registration và resolution
-- Singleton pattern support
-- Lazy loading implementation
-
-### 2.2 Manager Classes
-#### 2.2.1 LoggerManager
-```php
-class LoggerManager
+### 2.2 Package Dependencies
+```json
 {
-    private ?LoggerInterface $logger = null;
-    private array $config = [];
-
-    public function getLogger(): LoggerInterface
-    public function setConfig(array $config): void
-    public function log(string $level, string $message, array $context = []): void
+    "name": "crawlflow/wp-crawlflow",
+    "require": {
+        "php": ">=8.1",
+        "crawlflow/rake-wordpress-adapter": "^1.0",
+        "monolog/monolog": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "CrawlFlow\\": "src/"
+        }
+    }
 }
 ```
-
-#### 2.2.2 DatabaseDriverManager
-```php
-class DatabaseDriverManager
-{
-    private array $drivers = [];
-    private ?DatabaseDriverInterface $defaultDriver = null;
-
-    public function registerDriver(string $name, DatabaseDriverInterface $driver): void
-    public function getDriver(string $name = null): DatabaseDriverInterface
-    public function setDefaultDriver(string $name): void
-}
-```
-
-### 2.3 Bootstrapper System
-```php
-abstract class Bootstrapper
-{
-    abstract public function register(Rake $container): void;
-    abstract public function boot(Rake $container): void;
-}
-```
-
-**CoreBootstrapper:**
-- Đăng ký các service cơ bản
-- Khởi tạo logger manager
-- Cấu hình database driver manager
 
 ---
 
-## 3. CRAWFLOW PLUGIN ARCHITECTURE
+## 3. DASHBOARD SYSTEM
 
-### 3.1 Plugin Main File (wp-crawlflow.php)
+### 3.1 Main Plugin File
 ```php
-class CrawlFlow
+class WP_CrawlFlow
 {
-    private Rake $container;
-    private CrawlFlowKernel $kernel;
+    private static ?self $instance = null;
+    private Rake $app;
+    private CrawlFlowDashboardKernel $dashboardKernel;
+    private CrawlFlowMigrationKernel $migrationKernel;
 
-    public function __construct()
+    public static function getInstance(): self
     {
-        $this->container = new Rake();
-        $this->kernel = new CrawlFlowKernel($this->container);
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    private function __construct()
+    {
+        $this->app = new Rake();
+        $this->initializeKernels();
+        $this->registerHooks();
+    }
+
+    private function initializeKernels(): void
+    {
+        $this->dashboardKernel = new CrawlFlowDashboardKernel($this->app);
+        $this->migrationKernel = new CrawlFlowMigrationKernel($this->app);
+    }
+
+    private function registerHooks(): void
+    {
+        \add_action('plugins_loaded', [$this, 'initializePlugin']);
+        \add_action('init', [$this, 'initialize']);
+        \register_activation_hook(__FILE__, [$this, 'activate']);
+        \register_deactivation_hook(__FILE__, [$this, 'deactivate']);
+    }
+
+    public function initializePlugin(): void
+    {
+        $this->dashboardKernel->bootstrap();
+        $this->migrationKernel->bootstrap();
     }
 
     public function activate(): void
     {
-        $this->kernel->bootstrap();
-        $this->runMigrations();
+        $this->migrationKernel->runMigrations();
+        \flush_rewrite_rules();
+    }
+
+    public function deactivate(): void
+    {
+        \flush_rewrite_rules();
     }
 }
+
+// Initialize plugin
+WP_CrawlFlow::getInstance();
 ```
 
-### 3.2 CrawlFlow Kernel
+### 3.2 Dashboard Kernel
 ```php
-class CrawlFlowKernel extends AbstractKernel
+class CrawlFlowDashboardKernel extends AbstractKernel
 {
+    private DashboardService $dashboardService;
+    private CrawlFlowController $controller;
+    private ?string $currentScreen = null;
+    private array $screenData = [];
+
+    public function __construct(Rake $app)
+    {
+        parent::__construct($app);
+        $this->dashboardService = new DashboardService();
+        $this->controller = new CrawlFlowController($app);
+        $this->detectCurrentScreen();
+        $this->loadScreenData();
+    }
+
     public function getBootstrappers(): array
     {
         return [
-            CoreBootstrapper::class,
-            CrawlFlowBootstrapper::class,
-            MigrationBootstrapper::class,
+            CrawlFlowDashboardBootstrapper::class,
+            CrawlFlowMigrationBootstrapper::class,
         ];
     }
 
     protected function getConfig(): array
     {
         return [
-            'plugin_path' => plugin_dir_path(__FILE__),
-            'plugin_url' => plugin_dir_url(__FILE__),
-            'version' => '2.0.0',
+            'plugin_path' => \plugin_dir_path(__FILE__),
+            'plugin_url' => \plugin_dir_url(__FILE__),
+            'version' => '1.0.0',
         ];
     }
-}
-```
 
-### 3.3 Service Registration
-#### 3.3.1 CrawlFlowBootstrapper
-```php
-class CrawlFlowBootstrapper extends Bootstrapper
-{
-    public function register(Rake $container): void
+    private function detectCurrentScreen(): void
     {
-        $container->singleton(LoggerService::class, function() {
-            return new LoggerService();
-        });
+        $screen = \get_current_screen();
+        $this->currentScreen = $screen ? $screen->id : null;
+    }
 
-        $container->singleton(MigrationService::class, function($container) {
-            return new MigrationService($container);
-        });
+    private function loadScreenData(): void
+    {
+        if ($this->currentScreen) {
+            $this->screenData = $this->dashboardService->getScreenData($this->currentScreen);
+        }
+    }
+
+    public function render(): void
+    {
+        $this->controller->renderPage();
     }
 }
 ```
 
-#### 3.3.2 MigrationBootstrapper
+### 3.3 Dashboard Service
 ```php
-class MigrationBootstrapper extends Bootstrapper
+class DashboardService
 {
-    public function register(Rake $container): void
-    {
-        $container->singleton(MigrationKernel::class, function($container) {
-            return new MigrationKernel($container);
-        });
-
-        $container->singleton(DatabaseBackupService::class, function($container) {
-            return new DatabaseBackupService($container);
-        });
-
-        $container->singleton(MigrationValidatorService::class, function($container) {
-            return new MigrationValidatorService($container);
-        });
-    }
-}
-```
-
----
-
-## 4. DATABASE MIGRATION SYSTEM
-
-### 4.1 Migration Kernel
-```php
-class MigrationKernel
-{
-    private Rake $container;
     private MigrationService $migrationService;
-    private DatabaseBackupService $backupService;
-    private MigrationValidatorService $validatorService;
-
-    public function __construct(Rake $container)
-    {
-        $this->container = $container;
-        $this->migrationService = $container->make(MigrationService::class);
-        $this->backupService = $container->make(DatabaseBackupService::class);
-        $this->validatorService = $container->make(MigrationValidatorService::class);
-    }
-
-    public function runMigrations(): void
-    {
-        try {
-            $this->backupService->createBackup();
-            $this->migrationService->runMigrations();
-            $this->validatorService->validateMigrations();
-        } catch (Exception $e) {
-            Logger::error('Migration failed: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-}
-```
-
-### 4.2 Migration Service
-```php
-class MigrationService
-{
-    private Rake $container;
-    private LoggerInterface $logger;
-    private DatabaseDriverInterface $driver;
-
-    public function __construct(Rake $container)
-    {
-        $this->container = $container;
-        $this->logger = $container->make(LoggerService::class)->getLogger();
-        $this->driver = $container->make(DatabaseDriverManager::class)->getDriver();
-    }
-
-    public function runMigrations(): void
-    {
-        $migrations = $this->getMigrationFiles();
-        $executedMigrations = $this->getExecutedMigrations();
-
-        foreach ($migrations as $migration) {
-            if (!in_array($migration['name'], $executedMigrations)) {
-                $this->executeMigration($migration);
-            }
-        }
-    }
-
-    private function executeMigration(array $migration): void
-    {
-        $this->logger->info('Executing migration: ' . $migration['name']);
-
-        try {
-            $sql = $this->generateSQL($migration['schema']);
-            $this->driver->execute($sql);
-            $this->recordMigration($migration['name']);
-
-            $this->logger->info('Migration completed: ' . $migration['name']);
-        } catch (Exception $e) {
-            $this->logger->error('Migration failed: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-}
-```
-
-### 4.3 Schema Definitions
-```php
-// rake/schema_definitions/rake_configs.php
-return [
-    'table' => 'rake_configs',
-    'columns' => [
-        'id' => [
-            'type' => 'bigint',
-            'unsigned' => true,
-            'auto_increment' => true,
-        ],
-        'key' => [
-            'type' => 'varchar',
-            'length' => 255,
-            'not_null' => true,
-        ],
-        'value' => [
-            'type' => 'longtext',
-            'nullable' => true,
-        ],
-        'created_at' => [
-            'type' => 'datetime',
-            'default' => 'CURRENT_TIMESTAMP',
-        ],
-        'updated_at' => [
-            'type' => 'datetime',
-            'default' => 'CURRENT_TIMESTAMP',
-            'on_update' => 'CURRENT_TIMESTAMP',
-        ],
-    ],
-    'primary_key' => ['id'],
-    'indexes' => [
-        'idx_key' => ['columns' => ['key'], 'unique' => true],
-    ],
-];
-```
-
-### 4.4 Backup Service
-```php
-class DatabaseBackupService
-{
-    private Rake $container;
-    private LoggerInterface $logger;
-
-    public function createBackup(): void
-    {
-        $backupDir = WP_CONTENT_DIR . '/crawlflow-backups/';
-        if (!is_dir($backupDir)) {
-            mkdir($backupDir, 0755, true);
-        }
-
-        $backupFile = $backupDir . 'backup_' . date('Y-m-d_H-i-s') . '.sql';
-
-        // Tạo backup của database
-        $this->createDatabaseBackup($backupFile);
-
-        $this->logger->info('Database backup created: ' . $backupFile);
-    }
-
-    private function createDatabaseBackup(string $file): void
-    {
-        global $wpdb;
-
-        $tables = $wpdb->get_results("SHOW TABLES LIKE '{$wpdb->prefix}%'");
-
-        $backup = "-- CrawlFlow Database Backup\n";
-        $backup .= "-- Generated: " . date('Y-m-d H:i:s') . "\n\n";
-
-        foreach ($tables as $table) {
-            $tableName = array_values((array) $table)[0];
-            $backup .= $this->backupTable($tableName);
-        }
-
-        file_put_contents($file, $backup);
-    }
-}
-```
-
-### 4.5 Validator Service
-```php
-class MigrationValidatorService
-{
-    private Rake $container;
-    private LoggerInterface $logger;
-
-    public function validateMigrations(): void
-    {
-        $this->validateTableStructure();
-        $this->validateForeignKeys();
-        $this->validateIndexes();
-    }
-
-    private function validateTableStructure(): void
-    {
-        $expectedTables = [
-            $this->getPrefix() . 'rake_configs',
-            $this->getPrefix() . 'rake_migrations',
-            // Thêm các bảng khác
-        ];
-
-        foreach ($expectedTables as $table) {
-            if (!$this->tableExists($table)) {
-                throw new Exception("Required table missing: {$table}");
-            }
-        }
-    }
-}
-```
-
----
-
-## 5. LOGGING SYSTEM
-
-### 5.1 Logger Service
-```php
-class LoggerService
-{
-    private ?LoggerInterface $logger = null;
-    private array $config = [];
+    private ProjectService $projectService;
+    private LogService $logService;
 
     public function __construct()
     {
-        $this->config = [
-            'log_path' => WP_CONTENT_DIR . '/logs/crawlflow/',
+        $this->migrationService = new MigrationService();
+        $this->projectService = new ProjectService();
+        $this->logService = new LogService();
+    }
+
+    public function getScreenData(string $screenId): array
+    {
+        switch ($screenId) {
+            case 'toplevel_page_crawlflow':
+                return $this->getDashboardData();
+            case 'crawlflow_page_crawlflow-projects':
+                return $this->getProjectsData();
+            case 'crawlflow_page_crawlflow-logs':
+                return $this->getLogsData();
+            default:
+                return [];
+        }
+    }
+
+    private function getDashboardData(): array
+    {
+        return [
+            'projects' => $this->projectService->getRecentProjects(),
+            'migration_status' => $this->migrationService->getMigrationStatus(),
+            'system_info' => $this->getSystemInfo(),
+            'settings' => $this->getSettings(),
+            'migration_history' => $this->migrationService->getMigrationHistory(),
+        ];
+    }
+
+    private function getProjectsData(): array
+    {
+        return [
+            'projects' => $this->projectService->getProjects(),
+            'available_tooths' => $this->projectService->getAvailableTooths(),
+        ];
+    }
+
+    private function getLogsData(): array
+    {
+        return [
+            'logs' => $this->logService->getLogs(),
+            'log_stats' => $this->logService->getLogStats(),
+        ];
+    }
+
+    private function getSystemInfo(): array
+    {
+        return [
+            'php_version' => PHP_VERSION,
+            'wordpress_version' => \get_bloginfo('version'),
+            'plugin_version' => '1.0.0',
+            'memory_limit' => \ini_get('memory_limit'),
+            'max_execution_time' => \ini_get('max_execution_time'),
+        ];
+    }
+
+    private function getSettings(): array
+    {
+        return [
+            'debug_mode' => \defined('WP_DEBUG') && WP_DEBUG,
             'log_level' => 'info',
-            'max_files' => 30,
-            'file_size' => 10 * 1024 * 1024, // 10MB
+            'auto_migration' => true,
         ];
-    }
-
-    public function getLogger(): LoggerInterface
-    {
-        if ($this->logger === null) {
-            $this->initializeLogger();
-        }
-
-        return $this->logger;
-    }
-
-    private function initializeLogger(): void
-    {
-        if (!is_dir($this->config['log_path'])) {
-            mkdir($this->config['log_path'], 0755, true);
-        }
-
-        $logger = new Logger('crawlflow');
-
-        // File handler
-        $fileHandler = new RotatingFileHandler(
-            $this->config['log_path'] . 'crawlflow.log',
-            $this->config['max_files'],
-            $this->getLogLevel()
-        );
-
-        // Console handler (for development)
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            $consoleHandler = new StreamHandler('php://stdout', $this->getLogLevel());
-            $logger->pushHandler($consoleHandler);
-        }
-
-        $logger->pushHandler($fileHandler);
-
-        $this->logger = $logger;
-    }
-
-    private function getLogLevel(): int
-    {
-        $levels = [
-            'debug' => Logger::DEBUG,
-            'info' => Logger::INFO,
-            'warning' => Logger::WARNING,
-            'error' => Logger::ERROR,
-            'critical' => Logger::CRITICAL,
-        ];
-
-        return $levels[$this->config['log_level']] ?? Logger::INFO;
     }
 }
 ```
 
-### 5.2 Logger Facade
+---
+
+## 4. PROJECT MANAGEMENT
+
+### 4.1 Project Service
 ```php
-class Logger
+class ProjectService
 {
-    private static ?LoggerManager $manager = null;
+    private DatabaseAdapterInterface $db;
 
-    public static function setManager(LoggerManager $manager): void
+    public function __construct()
     {
-        self::$manager = $manager;
+        $this->db = new WordPressDatabaseAdapter();
     }
 
-    public static function emergency(string $message, array $context = []): void
+    public function getProjects(): array
     {
-        self::log('emergency', $message, $context);
+        $sql = "SELECT * FROM {$this->db->getPrefix()}crawlflow_projects ORDER BY created_at DESC";
+        return $this->db->getResults($sql);
     }
 
-    public static function alert(string $message, array $context = []): void
+    public function getRecentProjects(int $limit = 5): array
     {
-        self::log('alert', $message, $context);
+        $sql = "SELECT * FROM {$this->db->getPrefix()}crawlflow_projects ORDER BY created_at DESC LIMIT {$limit}";
+        return $this->db->getResults($sql);
     }
 
-    public static function critical(string $message, array $context = []): void
+    public function getProject(int $id): ?array
     {
-        self::log('critical', $message, $context);
+        $sql = "SELECT * FROM {$this->db->getPrefix()}crawlflow_projects WHERE id = {$id}";
+        return $this->db->getRow($sql);
     }
 
-    public static function error(string $message, array $context = []): void
+    public function createProject(array $data): int
     {
-        self::log('error', $message, $context);
+        $data['created_at'] = \current_time('mysql');
+        $data['updated_at'] = \current_time('mysql');
+
+        return $this->db->insert('crawlflow_projects', $data);
     }
 
-    public static function warning(string $message, array $context = []): void
+    public function updateProject(int $id, array $data): bool
     {
-        self::log('warning', $message, $context);
+        $data['updated_at'] = \current_time('mysql');
+
+        $affected = $this->db->update('crawlflow_projects', $data, ['id' => $id]);
+        return $affected > 0;
     }
 
-    public static function notice(string $message, array $context = []): void
+    public function deleteProject(int $id): bool
     {
-        self::log('notice', $message, $context);
+        $affected = $this->db->delete('crawlflow_projects', ['id' => $id]);
+        return $affected > 0;
     }
 
-    public static function info(string $message, array $context = []): void
+    public function getAvailableTooths(): array
     {
-        self::log('info', $message, $context);
+        return [
+            ['id' => 'mysql', 'name' => 'MySQL Database'],
+            ['id' => 'postgresql', 'name' => 'PostgreSQL Database'],
+            ['id' => 'mongodb', 'name' => 'MongoDB Database'],
+            ['id' => 'redis', 'name' => 'Redis Cache'],
+            ['id' => 'elasticsearch', 'name' => 'Elasticsearch'],
+            ['id' => 'api', 'name' => 'REST API'],
+            ['id' => 'file', 'name' => 'File System'],
+        ];
+    }
+}
+```
+
+### 4.2 Project Controller
+```php
+class CrawlFlowController
+{
+    private Rake $app;
+    private DashboardService $dashboardService;
+    private ProjectService $projectService;
+    private LogService $logService;
+    private MigrationService $migrationService;
+    private DashboardRenderer $renderer;
+
+    public function __construct(Rake $app)
+    {
+        $this->app = $app;
+        $this->dashboardService = new DashboardService();
+        $this->projectService = new ProjectService();
+        $this->logService = new LogService();
+        $this->migrationService = new MigrationService($app);
+        $this->renderer = new DashboardRenderer();
     }
 
-    public static function debug(string $message, array $context = []): void
+    public function registerHooks(): void
     {
-        self::log('debug', $message, $context);
+        \add_action('admin_menu', [$this, 'registerMenu']);
+        \add_action('wp_ajax_crawlflow_save_project', [$this, 'handleSaveProject']);
+        \add_action('wp_ajax_crawlflow_delete_project', [$this, 'handleDeleteProject']);
+        \add_action('wp_ajax_crawlflow_auto_save_project', [$this, 'handleAutoSaveProject']);
+        \add_action('admin_post_crawlflow_run_migration', [$this, 'handleRunMigration']);
+        \add_action('admin_post_crawlflow_clear_logs', [$this, 'handleClearLogsAction']);
+        \add_action('admin_post_crawlflow_export_data', [$this, 'handleExportDataAction']);
+        \add_action('admin_post_crawlflow_save_settings', [$this, 'handleSaveSettings']);
     }
 
-    private static function log(string $level, string $message, array $context = []): void
+    public function registerMenu(): void
     {
-        if (self::$manager === null) {
-            // Fallback logging
-            error_log("[CrawlFlow] [{$level}] {$message}");
+        \add_menu_page(
+            'CrawlFlow',
+            'CrawlFlow',
+            'manage_options',
+            'crawlflow',
+            [$this, 'renderPage'],
+            'dashicons-networking',
+            30
+        );
+
+        \add_submenu_page(
+            'crawlflow',
+            'Projects',
+            'Projects',
+            'manage_options',
+            'crawlflow-projects',
+            [$this, 'renderProjectsPage']
+        );
+
+        \add_submenu_page(
+            'crawlflow',
+            'Logs',
+            'Logs',
+            'manage_options',
+            'crawlflow-logs',
+            [$this, 'renderLogsPage']
+        );
+    }
+
+    public function renderPage(): void
+    {
+        $screen = \get_current_screen();
+        $this->renderer->renderDashboardOverview($this->dashboardService->getScreenData($screen->id));
+    }
+
+    public function renderProjectsPage(): void
+    {
+        $sub = $_GET['sub'] ?? 'list';
+
+        if ($sub === 'compose') {
+            $this->renderer->renderProjectCompose($this->dashboardService->getScreenData('crawlflow_page_crawlflow-projects'));
+        } else {
+            $this->renderer->renderProjectsList($this->dashboardService->getScreenData('crawlflow_page_crawlflow-projects'));
+        }
+    }
+
+    public function handleSaveProject(): void
+    {
+        \check_ajax_referer('crawlflow_nonce', 'nonce');
+
+        if (!\current_user_can('manage_options')) {
+            \wp_send_json_error('Insufficient permissions');
+        }
+
+        $projectData = [
+            'name' => \sanitize_text_field($_POST['name'] ?? ''),
+            'description' => \sanitize_textarea_field($_POST['description'] ?? ''),
+            'config' => \sanitize_textarea_field($_POST['config'] ?? ''),
+            'status' => \sanitize_text_field($_POST['status'] ?? 'active'),
+        ];
+
+        try {
+            if (isset($_POST['id']) && !empty($_POST['id'])) {
+                $id = (int) $_POST['id'];
+                $success = $this->projectService->updateProject($id, $projectData);
+                $message = 'Project updated successfully';
+            } else {
+                $id = $this->projectService->createProject($projectData);
+                $success = $id > 0;
+                $message = 'Project created successfully';
+            }
+
+            if ($success) {
+                \wp_send_json_success(['message' => $message, 'id' => $id]);
+            } else {
+                \wp_send_json_error('Failed to save project');
+            }
+        } catch (Exception $e) {
+            \wp_send_json_error('Error: ' . $e->getMessage());
+        }
+    }
+
+    public function handleDeleteProject(): void
+    {
+        \check_ajax_referer('crawlflow_nonce', 'nonce');
+
+        if (!\current_user_can('manage_options')) {
+            \wp_send_json_error('Insufficient permissions');
+        }
+
+        $id = (int) ($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            \wp_send_json_error('Invalid project ID');
+        }
+
+        try {
+            $success = $this->projectService->deleteProject($id);
+
+            if ($success) {
+                \wp_send_json_success('Project deleted successfully');
+            } else {
+                \wp_send_json_error('Failed to delete project');
+            }
+        } catch (Exception $e) {
+            \wp_send_json_error('Error: ' . $e->getMessage());
+        }
+    }
+}
+```
+
+---
+
+## 5. MIGRATION INTEGRATION
+
+### 5.1 Migration Service
+```php
+class MigrationService
+{
+    private Rake $app;
+    private DatabaseAdapterInterface $adapter;
+    private LoggerInterface $logger;
+
+    public function __construct(Rake $app)
+    {
+        $this->app = $app;
+        $this->adapter = new WordPressDatabaseAdapter();
+        $this->logger = \Rake\Facade\Logger::getLogger();
+    }
+
+    public function getMigrationStatus(): array
+    {
+        try {
+            $sql = "SELECT COUNT(*) as count FROM {$this->adapter->getPrefix()}rake_migrations";
+            $result = $this->adapter->getVar($sql);
+
+            return [
+                'total_migrations' => (int) $result,
+                'last_migration' => $this->getLastMigration(),
+                'status' => 'ready',
+            ];
+        } catch (Exception $e) {
+            return [
+                'total_migrations' => 0,
+                'last_migration' => null,
+                'status' => 'error',
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function getMigrationHistory(): array
+    {
+        try {
+            $sql = "SELECT * FROM {$this->adapter->getPrefix()}rake_migrations ORDER BY executed_at DESC LIMIT 10";
+            return $this->adapter->getResults($sql);
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    public function runMigrations(): array
+    {
+        try {
+            $this->logger->info('Starting migrations');
+
+            $migrationKernel = new CrawlFlowMigrationKernel($this->app);
+            $migrationKernel->runMigrations();
+
+            $this->logger->info('Migrations completed successfully');
+
+            return [
+                'success' => true,
+                'message' => 'Migrations completed successfully',
+            ];
+        } catch (Exception $e) {
+            $this->logger->error('Migration failed: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Migration failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    private function getLastMigration(): ?array
+    {
+        try {
+            $sql = "SELECT * FROM {$this->adapter->getPrefix()}rake_migrations ORDER BY executed_at DESC LIMIT 1";
+            return $this->adapter->getRow($sql);
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+}
+```
+
+---
+
+## 6. LOGGING SYSTEM
+
+### 6.1 Log Service
+```php
+class LogService
+{
+    private DatabaseAdapterInterface $db;
+
+    public function __construct()
+    {
+        $this->db = new WordPressDatabaseAdapter();
+    }
+
+    public function getLogs(int $limit = 100, int $offset = 0, array $filters = []): array
+    {
+        $sql = "SELECT * FROM {$this->db->getPrefix()}crawlflow_logs";
+
+        $whereConditions = [];
+        if (!empty($filters['level'])) {
+            $level = $this->db->escape($filters['level']);
+            $whereConditions[] = "level = '{$level}'";
+        }
+
+        if (!empty($filters['date_from'])) {
+            $dateFrom = $this->db->escape($filters['date_from']);
+            $whereConditions[] = "created_at >= '{$dateFrom}'";
+        }
+
+        if (!empty($filters['date_to'])) {
+            $dateTo = $this->db->escape($filters['date_to']);
+            $whereConditions[] = "created_at <= '{$dateTo}'";
+        }
+
+        if (!empty($whereConditions)) {
+            $sql .= " WHERE " . implode(' AND ', $whereConditions);
+        }
+
+        $sql .= " ORDER BY created_at DESC LIMIT {$limit} OFFSET {$offset}";
+
+        return $this->db->getResults($sql);
+    }
+
+    public function getLogStats(): array
+    {
+        $sql = "SELECT
+                    level,
+                    COUNT(*) as count,
+                    MIN(created_at) as first_log,
+                    MAX(created_at) as last_log
+                FROM {$this->db->getPrefix()}crawlflow_logs
+                GROUP BY level";
+
+        $results = $this->db->getResults($sql);
+
+        $stats = [];
+        foreach ($results as $result) {
+            $stats[$result['level']] = [
+                'count' => (int) $result['count'],
+                'first_log' => $result['first_log'],
+                'last_log' => $result['last_log'],
+            ];
+        }
+
+        return $stats;
+    }
+
+    public function clearLogs(): bool
+    {
+        $sql = "DELETE FROM {$this->db->getPrefix()}crawlflow_logs";
+        return $this->db->query($sql);
+    }
+
+    public function exportLogs(string $format = 'json'): string
+    {
+        $logs = $this->getLogs(1000, 0);
+
+        switch ($format) {
+            case 'json':
+                return json_encode($logs, JSON_PRETTY_PRINT);
+            case 'csv':
+                return $this->exportToCsv($logs);
+            default:
+                return json_encode($logs);
+        }
+    }
+
+    private function exportToCsv(array $logs): string
+    {
+        if (empty($logs)) {
+            return '';
+        }
+
+        $output = fopen('php://temp', 'r+');
+
+        // Write headers
+        fputcsv($output, array_keys($logs[0]));
+
+        // Write data
+        foreach ($logs as $log) {
+            fputcsv($output, $log);
+        }
+
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        return $csv;
+    }
+}
+```
+
+---
+
+## 7. FRONTEND ASSETS
+
+### 7.1 Asset Manager
+```php
+class AssetManager
+{
+    private string $pluginUrl;
+    private string $pluginPath;
+
+    public function __construct()
+    {
+        $this->pluginUrl = \plugin_dir_url(__FILE__);
+        $this->pluginPath = \plugin_dir_path(__FILE__);
+    }
+
+    public function enqueueAdminAssets(): void
+    {
+        \add_action('admin_enqueue_scripts', [$this, 'enqueueAdminScripts']);
+        \add_action('admin_enqueue_scripts', [$this, 'enqueueAdminStyles']);
+    }
+
+    public function enqueueAdminScripts(): void
+    {
+        $screen = \get_current_screen();
+
+        if (!$screen || !strpos($screen->id, 'crawlflow')) {
             return;
         }
 
-        try {
-            self::$manager->log($level, $message, $context);
-        } catch (Exception $e) {
-            error_log("[CrawlFlow] Logger error: " . $e->getMessage());
+        // Enqueue jQuery for AJAX
+        \wp_enqueue_script('jquery');
+
+        // Enqueue admin script
+        \wp_enqueue_script(
+            'crawlflow-admin',
+            $this->pluginUrl . 'assets/js/admin.js',
+            ['jquery'],
+            '1.0.0',
+            true
+        );
+
+        // Localize script
+        \wp_localize_script('crawlflow-admin', 'crawlflowAdmin', [
+            'ajaxUrl' => \admin_url('admin-ajax.php'),
+            'adminUrl' => \admin_url(),
+            'nonce' => \wp_create_nonce('crawlflow_nonce'),
+            'strings' => [
+                'confirmDelete' => 'Are you sure you want to delete this project?',
+                'saving' => 'Saving...',
+                'saved' => 'Saved successfully',
+                'error' => 'An error occurred',
+            ],
+        ]);
+
+        // Enqueue React and XYFlow for composer
+        if ($screen->id === 'crawlflow_page_crawlflow-projects' && isset($_GET['sub']) && $_GET['sub'] === 'compose') {
+            $this->enqueueComposerAssets();
         }
     }
+
+    public function enqueueAdminStyles(): void
+    {
+        $screen = \get_current_screen();
+
+        if (!$screen || !strpos($screen->id, 'crawlflow')) {
+            return;
+        }
+
+        \wp_enqueue_style(
+            'crawlflow-admin',
+            $this->pluginUrl . 'assets/css/admin.css',
+            [],
+            '1.0.0'
+        );
+
+        // Enqueue composer styles
+        if ($screen->id === 'crawlflow_page_crawlflow-projects' && isset($_GET['sub']) && $_GET['sub'] === 'compose') {
+            \wp_enqueue_style(
+                'crawlflow-composer',
+                $this->pluginUrl . 'assets/css/composer.css',
+                [],
+                '1.0.0'
+            );
+        }
+    }
+
+    private function enqueueComposerAssets(): void
+    {
+        // React CDN
+        \wp_enqueue_script(
+            'react',
+            'https://unpkg.com/react@18/umd/react.production.min.js',
+            [],
+            '18.0.0',
+            true
+        );
+
+        \wp_enqueue_script(
+            'react-dom',
+            'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+            ['react'],
+            '18.0.0',
+            true
+        );
+
+        // XYFlow CDN
+        \wp_enqueue_script(
+            'xyflow',
+            'https://cdn.jsdelivr.net/npm/@xyflow/react@12.8.2/dist/index.umd.js',
+            ['react', 'react-dom'],
+            '12.8.2',
+            true
+        );
+
+        // Composer script
+        \wp_enqueue_script(
+            'crawlflow-composer',
+            $this->pluginUrl . 'assets/js/composer-simple.js',
+            ['react', 'react-dom', 'xyflow'],
+            '1.0.0',
+            true
+        );
+    }
 }
+```
+
+### 7.2 Composer JavaScript
+```javascript
+// assets/js/composer-simple.js
+(function() {
+    'use strict';
+
+    const { useState, useCallback, createElement } = React;
+    const { ReactFlow, Background, Controls, MiniMap } = window.ReactFlow;
+
+    const SCHEMA_DEFINITIONS = {
+        mysql: {
+            name: 'MySQL Database',
+            tables: ['users', 'posts', 'comments', 'categories'],
+            fields: ['id', 'name', 'email', 'created_at', 'updated_at']
+        },
+        postgresql: {
+            name: 'PostgreSQL Database',
+            tables: ['users', 'posts', 'comments', 'categories'],
+            fields: ['id', 'name', 'email', 'created_at', 'updated_at']
+        },
+        mongodb: {
+            name: 'MongoDB Database',
+            collections: ['users', 'posts', 'comments'],
+            fields: ['_id', 'name', 'email', 'createdAt', 'updatedAt']
+        },
+        redis: {
+            name: 'Redis Cache',
+            keys: ['session', 'cache', 'queue'],
+            dataTypes: ['string', 'hash', 'list', 'set', 'zset']
+        },
+        elasticsearch: {
+            name: 'Elasticsearch',
+            indices: ['users', 'posts', 'comments'],
+            fields: ['id', 'title', 'content', 'created_at']
+        },
+        api: {
+            name: 'REST API',
+            endpoints: ['GET', 'POST', 'PUT', 'DELETE'],
+            methods: ['users', 'posts', 'comments']
+        },
+        file: {
+            name: 'File System',
+            directories: ['uploads', 'logs', 'cache'],
+            fileTypes: ['txt', 'json', 'xml', 'csv']
+        }
+    };
+
+    function ProjectComposer() {
+        const [projectName, setProjectName] = useState('');
+        const [projectDescription, setProjectDescription] = useState('');
+        const [selectedTooth, setSelectedTooth] = useState('');
+        const [nodes, setNodes] = useState([]);
+        const [edges, setEdges] = useState([]);
+        const [isSaving, setIsSaving] = useState(false);
+        const [saveStatus, setSaveStatus] = useState('');
+
+        const generateSampleData = useCallback((toothType) => {
+            const definition = SCHEMA_DEFINITIONS[toothType];
+            if (!definition) return [];
+
+            const sampleNodes = [];
+            const sampleEdges = [];
+
+            if (definition.tables) {
+                definition.tables.forEach((table, index) => {
+                    sampleNodes.push({
+                        id: `table-${index}`,
+                        type: 'default',
+                        position: { x: 100 + (index * 200), y: 100 },
+                        data: {
+                            label: table,
+                            type: 'table',
+                            fields: definition.fields
+                        }
+                    });
+                });
+            }
+
+            if (definition.collections) {
+                definition.collections.forEach((collection, index) => {
+                    sampleNodes.push({
+                        id: `collection-${index}`,
+                        type: 'default',
+                        position: { x: 100 + (index * 200), y: 100 },
+                        data: {
+                            label: collection,
+                            type: 'collection',
+                            fields: definition.fields
+                        }
+                    });
+                });
+            }
+
+            setNodes(sampleNodes);
+            setEdges(sampleEdges);
+        }, []);
+
+        const handleToothChange = useCallback((toothType) => {
+            setSelectedTooth(toothType);
+            generateSampleData(toothType);
+        }, [generateSampleData]);
+
+        const handleSaveProject = useCallback(async () => {
+            if (!projectName.trim()) {
+                setSaveStatus('Project name is required');
+                return;
+            }
+
+            setIsSaving(true);
+            setSaveStatus('Saving...');
+
+            try {
+                const response = await fetch(crawlflowAdmin.ajaxUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'crawlflow_save_project',
+                        nonce: crawlflowAdmin.nonce,
+                        name: projectName,
+                        description: projectDescription,
+                        config: JSON.stringify({
+                            tooth: selectedTooth,
+                            nodes: nodes,
+                            edges: edges
+                        }),
+                        status: 'active'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    setSaveStatus('Project saved successfully!');
+                    setTimeout(() => {
+                        window.location.href = crawlflowAdmin.adminUrl + 'admin.php?page=crawlflow-projects';
+                    }, 2000);
+                } else {
+                    setSaveStatus('Error: ' + (result.data || 'Unknown error'));
+                }
+            } catch (error) {
+                setSaveStatus('Error: ' + error.message);
+            } finally {
+                setIsSaving(false);
+            }
+        }, [projectName, projectDescription, selectedTooth, nodes, edges]);
+
+        return createElement('div', { className: 'crawlflow-project-composer' },
+            createElement('div', { className: 'crawlflow-project-compose-header' },
+                createElement('h1', null, 'Create New Project'),
+                createElement('p', null, 'Design your data flow using the visual composer')
+            ),
+
+            createElement('div', { className: 'crawlflow-project-compose-form' },
+                createElement('div', { className: 'form-group' },
+                    createElement('label', { htmlFor: 'project-name' }, 'Project Name'),
+                    createElement('input', {
+                        type: 'text',
+                        id: 'project-name',
+                        value: projectName,
+                        onChange: (e) => setProjectName(e.target.value),
+                        placeholder: 'Enter project name'
+                    })
+                ),
+
+                createElement('div', { className: 'form-group' },
+                    createElement('label', { htmlFor: 'project-description' }, 'Description'),
+                    createElement('textarea', {
+                        id: 'project-description',
+                        value: projectDescription,
+                        onChange: (e) => setProjectDescription(e.target.value),
+                        placeholder: 'Enter project description',
+                        rows: 3
+                    })
+                ),
+
+                createElement('div', { className: 'form-group' },
+                    createElement('label', { htmlFor: 'tooth-type' }, 'Data Source Type'),
+                    createElement('select', {
+                        id: 'tooth-type',
+                        value: selectedTooth,
+                        onChange: (e) => handleToothChange(e.target.value)
+                    },
+                        createElement('option', { value: '' }, 'Select data source type'),
+                        Object.entries(SCHEMA_DEFINITIONS).map(([key, def]) =>
+                            createElement('option', { key, value: key }, def.name)
+                        )
+                    )
+                ),
+
+                createElement('div', { className: 'form-group' },
+                    createElement('button', {
+                        onClick: handleSaveProject,
+                        disabled: isSaving || !projectName.trim(),
+                        className: 'button button-primary'
+                    }, isSaving ? 'Saving...' : 'Save Project')
+                ),
+
+                saveStatus && createElement('div', {
+                    className: 'save-status ' + (saveStatus.includes('Error') ? 'error' : 'success')
+                }, saveStatus)
+            ),
+
+            selectedTooth && createElement('div', { className: 'crawlflow-project-compose-flow' },
+                createElement(ReactFlow, {
+                    nodes: nodes,
+                    edges: edges,
+                    onNodesChange: (changes) => {
+                        setNodes((nds) => applyNodeChanges(changes, nds));
+                    },
+                    onEdgesChange: (changes) => {
+                        setEdges((eds) => applyEdgeChanges(changes, eds));
+                    },
+                    fitView: true
+                },
+                    createElement(Background),
+                    createElement(Controls),
+                    createElement(MiniMap)
+                )
+            )
+        );
+    }
+
+    function initComposer() {
+        const container = document.getElementById('crawlflow-project-composer');
+        if (container) {
+            const root = ReactDOM.createRoot(container);
+            root.render(createElement(ProjectComposer));
+        }
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initComposer);
+    } else {
+        initComposer();
+    }
+})();
 ```
 
 ---
 
-## 6. DEPENDENCY INJECTION CONTAINER
+## 8. DEVELOPMENT GUIDELINES
 
-### 6.1 Container Implementation
+### 8.1 Coding Standards
+- **WordPress Coding Standards**: Follow WordPress coding standards
+- **PSR-12 Compliance**: Adhere to PSR-12 for non-WordPress specific code
+- **Type Declarations**: Use strict types and type hints
+- **Documentation**: PHPDoc required for all public methods
+
+### 8.2 Plugin Development Best Practices
 ```php
-class Rake
+// Always use WordPress functions with backslash prefix
+$result = \wp_verify_nonce($nonce, $action);
+
+// Use WordPress security functions
+$sanitized = \sanitize_text_field($input);
+
+// Check capabilities before actions
+if (\current_user_can('manage_options')) {
+    // Perform admin action
+}
+
+// Use WordPress hooks properly
+\add_action('init', [$this, 'initialize']);
+```
+
+### 8.3 Testing Guidelines
+```php
+class CrawlFlowPluginTest extends TestCase
 {
-    private array $services = [];
-    private array $singletons = [];
-    private array $resolved = [];
-
-    public function bind(string $abstract, $concrete): void
+    public function testProjectService(): void
     {
-        $this->services[$abstract] = $concrete;
+        // Arrange
+        $service = new ProjectService();
+
+        // Act
+        $projects = $service->getProjects();
+
+        // Assert
+        $this->assertIsArray($projects);
     }
 
-    public function singleton(string $abstract, $concrete): void
+    public function testMigrationService(): void
     {
-        $this->singletons[$abstract] = $concrete;
-    }
+        // Arrange
+        $app = new Rake();
+        $service = new MigrationService($app);
 
-    public function make(string $abstract)
-    {
-        if ($this->has($abstract)) {
-            return $this->resolve($abstract);
-        }
+        // Act
+        $status = $service->getMigrationStatus();
 
-        throw new Exception("Service not found: {$abstract}");
-    }
-
-    public function has(string $abstract): bool
-    {
-        return isset($this->services[$abstract]) || isset($this->singletons[$abstract]);
-    }
-
-    private function resolve(string $abstract)
-    {
-        // Check if already resolved
-        if (isset($this->resolved[$abstract])) {
-            return $this->resolved[$abstract];
-        }
-
-        $concrete = $this->getConcrete($abstract);
-        $instance = $this->build($concrete);
-
-        // Store singleton instances
-        if (isset($this->singletons[$abstract])) {
-            $this->resolved[$abstract] = $instance;
-        }
-
-        return $instance;
-    }
-
-    private function getConcrete(string $abstract)
-    {
-        if (isset($this->services[$abstract])) {
-            return $this->services[$abstract];
-        }
-
-        if (isset($this->singletons[$abstract])) {
-            return $this->singletons[$abstract];
-        }
-
-        throw new Exception("Service not found: {$abstract}");
-    }
-
-    private function build($concrete)
-    {
-        if (is_callable($concrete)) {
-            return $concrete($this);
-        }
-
-        if (is_string($concrete)) {
-            return new $concrete();
-        }
-
-        return $concrete;
+        // Assert
+        $this->assertIsArray($status);
+        $this->assertArrayHasKey('total_migrations', $status);
     }
 }
 ```
 
-### 6.2 Service Registration Patterns
-```php
-// Singleton registration
-$container->singleton(LoggerService::class, function($container) {
-    return new LoggerService();
-});
-
-// Interface binding
-$container->bind(LoggerInterface::class, LoggerService::class);
-
-// Factory pattern
-$container->bind(DatabaseDriverInterface::class, function($container) {
-    $config = $container->make('config');
-    return new WordPressDatabaseDriver($config);
-});
-```
-
----
-
-## 7. KERNEL & BOOTSTRAPPER SYSTEM
-
-### 7.1 Abstract Kernel
-```php
-abstract class AbstractKernel
-{
-    protected Rake $container;
-    protected array $config = [];
-    protected array $bootstrappers = [];
-
-    public function __construct(Rake $container)
-    {
-        $this->container = $container;
-        $this->config = $this->getConfig();
-        $this->bootstrappers = $this->getBootstrappers();
-    }
-
-    public function bootstrap(): void
-    {
-        $this->registerServices();
-        $this->bootServices();
-    }
-
-    private function registerServices(): void
-    {
-        foreach ($this->bootstrappers as $bootstrapperClass) {
-            $bootstrapper = new $bootstrapperClass();
-            $bootstrapper->register($this->container);
-        }
-    }
-
-    private function bootServices(): void
-    {
-        foreach ($this->bootstrappers as $bootstrapperClass) {
-            $bootstrapper = new $bootstrapperClass();
-            $bootstrapper->boot($this->container);
-        }
-    }
-
-    abstract public function getBootstrappers(): array;
-    abstract protected function getConfig(): array;
-}
-```
-
-### 7.2 Bootstrapper Interface
-```php
-abstract class Bootstrapper
-{
-    abstract public function register(Rake $container): void;
-    abstract public function boot(Rake $container): void;
-}
-```
-
-### 7.3 Core Bootstrapper
-```php
-class CoreBootstrapper extends Bootstrapper
-{
-    public function register(Rake $container): void
-    {
-        // Register core services
-        $container->singleton(LoggerManager::class, function() {
-            return new LoggerManager();
-        });
-
-        $container->singleton(DatabaseDriverManager::class, function() {
-            return new DatabaseDriverManager();
-        });
-
-        // Register configuration
-        $container->singleton('config', function() {
-            return [
-                'database' => [
-                    'prefix' => $GLOBALS['wpdb']->prefix,
-                    'charset' => $GLOBALS['wpdb']->charset,
-                    'collate' => $GLOBALS['wpdb']->collate,
-                ],
-                'logging' => [
-                    'path' => WP_CONTENT_DIR . '/logs/crawlflow/',
-                    'level' => 'info',
-                ],
-            ];
-        });
-    }
-
-    public function boot(Rake $container): void
-    {
-        // Initialize logger manager
-        $loggerManager = $container->make(LoggerManager::class);
-        Logger::setManager($loggerManager);
-
-        // Register WordPress database driver
-        $driverManager = $container->make(DatabaseDriverManager::class);
-        $driverManager->registerDriver('wordpress', new WordPressDatabaseDriver());
-        $driverManager->setDefaultDriver('wordpress');
-    }
-}
-```
-
----
-
-## 8. FACADE PATTERN IMPLEMENTATION
-
-### 8.1 Facade Base Class
-```php
-abstract class Facade
-{
-    protected static Rake $container;
-
-    public static function setContainer(Rake $container): void
-    {
-        self::$container = $container;
-    }
-
-    protected static function getFacadeAccessor(): string
-    {
-        throw new Exception('Facade must implement getFacadeAccessor method.');
-    }
-
-    protected static function resolveFacadeInstance(string $name)
-    {
-        if (!isset(self::$container)) {
-            throw new Exception('Container not set for facade.');
-        }
-
-        return self::$container->make($name);
-    }
-
-    public static function __callStatic(string $method, array $arguments)
-    {
-        $instance = static::resolveFacadeInstance(static::getFacadeAccessor());
-
-        return $instance->$method(...$arguments);
-    }
-}
-```
-
-### 8.2 Logger Facade Implementation
-```php
-class Logger extends Facade
-{
-    protected static function getFacadeAccessor(): string
-    {
-        return LoggerManager::class;
-    }
-
-    // Convenience methods
-    public static function info(string $message, array $context = []): void
-    {
-        static::log('info', $message, $context);
-    }
-
-    public static function error(string $message, array $context = []): void
-    {
-        static::log('error', $message, $context);
-    }
-
-    public static function debug(string $message, array $context = []): void
-    {
-        static::log('debug', $message, $context);
-    }
-}
-```
-
----
-
-## 9. WORDPRESS INTEGRATION
-
-### 9.1 WordPress Database Adapter
-```php
-class WordPressDatabaseAdapter implements DatabaseAdapterInterface
-{
-    private \wpdb $wpdb;
-    private string $prefix;
-
-    public function __construct()
-    {
-        global $wpdb;
-        $this->wpdb = $wpdb;
-        $this->prefix = $wpdb->prefix;
-    }
-
-    public function query(string $sql): bool
-    {
-        return $this->wpdb->query($sql) !== false;
-    }
-
-    public function getResults(string $sql): array
-    {
-        return $this->wpdb->get_results($sql, ARRAY_A);
-    }
-
-    public function getRow(string $sql): ?array
-    {
-        $result = $this->wpdb->get_row($sql, ARRAY_A);
-        return $result ?: null;
-    }
-
-    public function getVar(string $sql): mixed
-    {
-        return $this->wpdb->get_var($sql);
-    }
-
-    public function insert(string $table, array $data): int
-    {
-        $table = $this->addPrefix($table);
-        $result = $this->wpdb->insert($table, $data);
-
-        if ($result === false) {
-            throw new Exception('Insert failed: ' . $this->wpdb->last_error);
-        }
-
-        return $this->wpdb->insert_id;
-    }
-
-    public function update(string $table, array $data, array $where): int
-    {
-        $table = $this->addPrefix($table);
-        $result = $this->wpdb->update($table, $data, $where);
-
-        if ($result === false) {
-            throw new Exception('Update failed: ' . $this->wpdb->last_error);
-        }
-
-        return $result;
-    }
-
-    public function delete(string $table, array $where): int
-    {
-        $table = $this->addPrefix($table);
-        $result = $this->wpdb->delete($table, $where);
-
-        if ($result === false) {
-            throw new Exception('Delete failed: ' . $this->wpdb->last_error);
-        }
-
-        return $result;
-    }
-
-    private function addPrefix(string $table): string
-    {
-        if (strpos($table, $this->prefix) === 0) {
-            return $table;
-        }
-
-        return $this->prefix . $table;
-    }
-
-    public function getPrefix(): string
-    {
-        return $this->prefix;
-    }
-
-    public function escape(string $value): string
-    {
-        return $this->wpdb->_real_escape($value);
-    }
-}
-```
-
-### 9.2 WordPress Database Driver
-```php
-class WordPressDatabaseDriver implements DatabaseDriverInterface
-{
-    private WordPressDatabaseAdapter $adapter;
-
-    public function __construct()
-    {
-        $this->adapter = new WordPressDatabaseAdapter();
-    }
-
-    public function execute(string $sql): bool
-    {
-        return $this->adapter->query($sql);
-    }
-
-    public function query(string $sql): array
-    {
-        return $this->adapter->getResults($sql);
-    }
-
-    public function getRow(string $sql): ?array
-    {
-        return $this->adapter->getRow($sql);
-    }
-
-    public function getValue(string $sql): mixed
-    {
-        return $this->adapter->getVar($sql);
-    }
-
-    public function insert(string $table, array $data): int
-    {
-        return $this->adapter->insert($table, $data);
-    }
-
-    public function update(string $table, array $data, array $where): int
-    {
-        return $this->adapter->update($table, $data, $where);
-    }
-
-    public function delete(string $table, array $where): int
-    {
-        return $this->adapter->delete($table, $where);
-    }
-
-    public function tableExists(string $table): bool
-    {
-        $sql = "SHOW TABLES LIKE '{$this->adapter->getPrefix()}{$table}'";
-        $result = $this->adapter->getRow($sql);
-        return $result !== null;
-    }
-
-    public function getTables(): array
-    {
-        $sql = "SHOW TABLES LIKE '{$this->adapter->getPrefix()}%'";
-        $results = $this->adapter->getResults($sql);
-
-        $tables = [];
-        foreach ($results as $result) {
-            $tables[] = array_values($result)[0];
-        }
-
-        return $tables;
-    }
-}
-```
-
----
-
-## 10. PERFORMANCE OPTIMIZATION
-
-### 10.1 Lazy Loading Implementation
-```php
-class LazyServiceLoader
-{
-    private Rake $container;
-    private array $loadedServices = [];
-
-    public function __construct(Rake $container)
-    {
-        $this->container = $container;
-    }
-
-    public function load(string $serviceName): void
-    {
-        if (!isset($this->loadedServices[$serviceName])) {
-            $this->container->make($serviceName);
-            $this->loadedServices[$serviceName] = true;
-        }
-    }
-
-    public function isLoaded(string $serviceName): bool
-    {
-        return isset($this->loadedServices[$serviceName]);
-    }
-}
-```
-
-### 10.2 Memory Management
-```php
-class MemoryManager
-{
-    private static array $memoryUsage = [];
-
-    public static function startTracking(string $operation): void
-    {
-        self::$memoryUsage[$operation] = [
-            'start' => memory_get_usage(true),
-            'peak_start' => memory_get_peak_usage(true),
-        ];
-    }
-
-    public static function endTracking(string $operation): array
-    {
-        if (!isset(self::$memoryUsage[$operation])) {
-            return [];
-        }
-
-        $current = memory_get_usage(true);
-        $peak = memory_get_peak_usage(true);
-
-        $usage = [
-            'current' => $current,
-            'peak' => $peak,
-            'difference' => $current - self::$memoryUsage[$operation]['start'],
-            'peak_difference' => $peak - self::$memoryUsage[$operation]['peak_start'],
-        ];
-
-        unset(self::$memoryUsage[$operation]);
-
-        return $usage;
-    }
-
-    public static function optimize(): void
-    {
-        if (function_exists('gc_collect_cycles')) {
-            gc_collect_cycles();
-        }
-    }
-}
-```
-
-### 10.3 Caching Strategy
-```php
-class CacheManager
-{
-    private array $cache = [];
-    private array $config = [];
-
-    public function __construct(array $config = [])
-    {
-        $this->config = array_merge([
-            'default_ttl' => 3600,
-            'max_items' => 1000,
-        ], $config);
-    }
-
-    public function get(string $key)
-    {
-        if (!isset($this->cache[$key])) {
-            return null;
-        }
-
-        $item = $this->cache[$key];
-
-        if (time() > $item['expires']) {
-            unset($this->cache[$key]);
-            return null;
-        }
-
-        return $item['value'];
-    }
-
-    public function set(string $key, $value, int $ttl = null): void
-    {
-        $ttl = $ttl ?? $this->config['default_ttl'];
-
-        $this->cache[$key] = [
-            'value' => $value,
-            'expires' => time() + $ttl,
-        ];
-
-        // Cleanup if too many items
-        if (count($this->cache) > $this->config['max_items']) {
-            $this->cleanup();
-        }
-    }
-
-    private function cleanup(): void
-    {
-        $now = time();
-        $this->cache = array_filter($this->cache, function($item) use ($now) {
-            return $item['expires'] > $now;
-        });
-    }
-}
-```
-
----
-
-## 11. ERROR HANDLING & DEBUGGING
-
-### 11.1 Exception Classes
+### 8.4 Error Handling
 ```php
 class CrawlFlowException extends Exception
 {
-    private array $context = [];
-
     public function __construct(string $message, array $context = [], int $code = 0, ?Throwable $previous = null)
     {
-        parent::__construct($message, $code, $previous);
-        $this->context = $context;
-    }
-
-    public function getContext(): array
-    {
-        return $this->context;
+        parent::__construct("CrawlFlow error: {$message}", $code, $previous);
     }
 }
 
-class MigrationException extends CrawlFlowException
-{
-    public function __construct(string $message, array $context = [], int $code = 0, ?Throwable $previous = null)
-    {
-        parent::__construct("Migration error: {$message}", $context, $code, $previous);
-    }
+// Usage
+try {
+    $projectService = new ProjectService();
+    $result = $projectService->createProject($data);
+} catch (CrawlFlowException $e) {
+    Logger::error('Project creation failed: ' . $e->getMessage());
 }
-
-class DatabaseException extends CrawlFlowException
-{
-    public function __construct(string $message, array $context = [], int $code = 0, ?Throwable $previous = null)
-    {
-        parent::__construct("Database error: {$message}", $context, $code, $previous);
-    }
-}
-```
-
-### 11.2 Error Handler
-```php
-class ErrorHandler
-{
-    private LoggerInterface $logger;
-
-    public function __construct(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
-    }
-
-    public function handleError(int $errno, string $errstr, string $errfile, int $errline): bool
-    {
-        $this->logger->error("PHP Error: {$errstr}", [
-            'file' => $errfile,
-            'line' => $errline,
-            'type' => $errno,
-        ]);
-
-        return true;
-    }
-
-    public function handleException(Throwable $exception): void
-    {
-        $this->logger->critical("Uncaught Exception: " . $exception->getMessage(), [
-            'file' => $exception->getFile(),
-            'line' => $exception->getLine(),
-            'trace' => $exception->getTraceAsString(),
-        ]);
-    }
-
-    public function handleFatalError(): void
-    {
-        $error = error_get_last();
-
-        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-            $this->logger->critical("Fatal Error: {$error['message']}", [
-                'file' => $error['file'],
-                'line' => $error['line'],
-                'type' => $error['type'],
-            ]);
-        }
-    }
-}
-```
-
-### 11.3 Debug Utilities
-```php
-class Debug
-{
-    public static function dump($var, string $label = ''): void
-    {
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            echo "<pre>";
-            if ($label) {
-                echo "<strong>{$label}:</strong>\n";
-            }
-            var_dump($var);
-            echo "</pre>";
-        }
-    }
-
-    public static function log($var, string $label = ''): void
-    {
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            $output = $label ? "{$label}: " : '';
-            $output .= print_r($var, true);
-            error_log("[CrawlFlow Debug] {$output}");
-        }
-    }
-
-    public static function trace(): void
-    {
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-            self::log($trace, 'Stack Trace');
-        }
-    }
-}
-```
-
----
-
-## 12. DEVELOPMENT GUIDELINES
-
-### 12.1 Coding Standards
-```php
-/**
- * PSR-12 Coding Standards
- * - 4 spaces indentation
- * - UTF-8 encoding
- * - Unix line endings
- * - Trailing whitespace removal
- * - Single blank line at end of file
- */
-
-// Class naming: PascalCase
-class MigrationService
-{
-    // Method naming: camelCase
-    public function runMigrations(): void
-    {
-        // Variable naming: camelCase
-        $migrationFiles = $this->getMigrationFiles();
-
-        // Constant naming: UPPER_SNAKE_CASE
-        const DEFAULT_TIMEOUT = 30;
-
-        // Private properties: camelCase with underscore prefix
-        private string $_privateProperty;
-    }
-}
-```
-
-### 12.2 Documentation Standards
-```php
-/**
- * Migration Service for handling database migrations
- *
- * This service is responsible for:
- * - Executing migration files
- * - Tracking migration history
- * - Validating migration results
- * - Rolling back failed migrations
- *
- * @package CrawlFlow
- * @author Development Team
- * @version 2.0.0
- */
-class MigrationService
-{
-    /**
-     * Run all pending migrations
-     *
-     * @throws MigrationException When migration fails
-     * @throws DatabaseException When database operation fails
-     * @return void
-     */
-    public function runMigrations(): void
-    {
-        // Implementation
-    }
-
-    /**
-     * Get list of migration files
-     *
-     * @return array Array of migration file information
-     */
-    private function getMigrationFiles(): array
-    {
-        // Implementation
-    }
-}
-```
-
-### 12.3 Testing Guidelines
-```php
-/**
- * Migration Service Test
- *
- * @package CrawlFlow\Tests
- */
-class MigrationServiceTest extends TestCase
-{
-    private MigrationService $service;
-    private Rake $container;
-
-    protected function setUp(): void
-    {
-        $this->container = new Rake();
-        $this->service = new MigrationService($this->container);
-    }
-
-    public function testRunMigrations(): void
-    {
-        // Arrange
-        $migrationFiles = ['test_migration.php'];
-
-        // Act
-        $this->service->runMigrations();
-
-        // Assert
-        $this->assertTrue($this->migrationWasExecuted('test_migration'));
-    }
-
-    public function testMigrationFailure(): void
-    {
-        // Arrange
-        $this->expectException(MigrationException::class);
-
-        // Act
-        $this->service->runMigrations();
-    }
-}
-```
-
----
-
-## 13. API REFERENCE
-
-### 13.1 Container API
-```php
-// Service registration
-$container->bind('service.name', ServiceClass::class);
-$container->singleton('service.name', ServiceClass::class);
-
-// Service resolution
-$service = $container->make('service.name');
-$hasService = $container->has('service.name');
-```
-
-### 13.2 Logger API
-```php
-// Direct usage
-$logger = $container->make(LoggerService::class)->getLogger();
-$logger->info('Message', ['context' => 'data']);
-
-// Facade usage
-Logger::info('Message', ['context' => 'data']);
-Logger::error('Error message');
-Logger::debug('Debug info');
-```
-
-### 13.3 Migration API
-```php
-// Run migrations
-$migrationKernel = $container->make(MigrationKernel::class);
-$migrationKernel->runMigrations();
-
-// Check migration status
-$migrationService = $container->make(MigrationService::class);
-$pendingMigrations = $migrationService->getPendingMigrations();
-$executedMigrations = $migrationService->getExecutedMigrations();
-```
-
-### 13.4 Database API
-```php
-// Database operations
-$driver = $container->make(DatabaseDriverManager::class)->getDriver();
-
-// Query execution
-$results = $driver->query('SELECT * FROM table');
-$row = $driver->getRow('SELECT * FROM table LIMIT 1');
-$value = $driver->getValue('SELECT COUNT(*) FROM table');
-
-// Data manipulation
-$id = $driver->insert('table', ['column' => 'value']);
-$affected = $driver->update('table', ['column' => 'value'], ['id' => 1]);
-$deleted = $driver->delete('table', ['id' => 1]);
-```
-
----
-
-## 14. DEPLOYMENT GUIDE
-
-### 14.1 Installation Steps
-```bash
-# 1. Clone repository
-git clone https://github.com/your-repo/crawlflow.git
-
-# 2. Install dependencies
-composer install
-
-# 3. Copy to WordPress plugins directory
-cp -r wp-crawlflow /path/to/wordpress/wp-content/plugins/
-
-# 4. Activate plugin in WordPress admin
-```
-
-### 14.2 Configuration
-```php
-// wp-config.php additions
-define('CRAWFLOW_DEBUG', true);
-define('CRAWFLOW_LOG_LEVEL', 'info');
-define('CRAWFLOW_LOG_PATH', WP_CONTENT_DIR . '/logs/crawlflow/');
-```
-
-### 14.3 Environment Setup
-```bash
-# Development environment
-export WP_DEBUG=true
-export CRAWFLOW_DEBUG=true
-
-# Production environment
-export WP_DEBUG=false
-export CRAWFLOW_DEBUG=false
-```
-
-### 14.4 Database Setup
-```sql
--- Verify tables exist
-SHOW TABLES LIKE 'wp_rake_%';
-
--- Check migration history
-SELECT * FROM wp_rake_migrations ORDER BY executed_at DESC;
-
--- Verify configuration
-SELECT * FROM wp_rake_configs;
-```
-
----
-
-## 15. TROUBLESHOOTING
-
-### 15.1 Common Issues
-
-#### 15.1.1 Memory Exhaustion
-**Symptoms:** Fatal error: Allowed memory size exhausted
-**Solutions:**
-```php
-// Increase memory limit
-ini_set('memory_limit', '256M');
-
-// Optimize logging
-Logger::setConfig(['max_files' => 10]);
-
-// Use lazy loading
-$container->singleton(HeavyService::class, function() {
-    return new HeavyService();
-});
-```
-
-#### 15.1.2 Database Connection Issues
-**Symptoms:** Database connection failed
-**Solutions:**
-```php
-// Check WordPress database configuration
-global $wpdb;
-if (!$wpdb->db_connect()) {
-    throw new DatabaseException('Database connection failed');
-}
-
-// Verify table prefix
-$prefix = $wpdb->prefix;
-Logger::info("Using database prefix: {$prefix}");
-```
-
-#### 15.1.3 Migration Failures
-**Symptoms:** Migration execution fails
-**Solutions:**
-```php
-// Check migration files
-$migrationFiles = glob(RAKE_PATH . '/schema_definitions/*.php');
-Logger::info("Found migration files: " . count($migrationFiles));
-
-// Verify database permissions
-$driver = $container->make(DatabaseDriverManager::class)->getDriver();
-if (!$driver->tableExists('rake_migrations')) {
-    throw new MigrationException('Migration table not found');
-}
-```
-
-### 15.2 Debug Commands
-```php
-// Enable debug mode
-define('WP_DEBUG', true);
-define('CRAWFLOW_DEBUG', true);
-
-// Check service registration
-$container = new Rake();
-$services = $container->getRegisteredServices();
-Debug::dump($services, 'Registered Services');
-
-// Test database connection
-$driver = $container->make(DatabaseDriverManager::class)->getDriver();
-$tables = $driver->getTables();
-Debug::dump($tables, 'Database Tables');
-```
-
-### 15.3 Performance Monitoring
-```php
-// Memory usage tracking
-MemoryManager::startTracking('migration');
-$migrationKernel->runMigrations();
-$usage = MemoryManager::endTracking('migration');
-Logger::info('Migration memory usage', $usage);
-
-// Execution time tracking
-$start = microtime(true);
-$migrationKernel->runMigrations();
-$duration = microtime(true) - $start;
-Logger::info("Migration completed in {$duration}s");
 ```
 
 ---
 
 ## KẾT LUẬN
 
-Tài liệu kỹ thuật này cung cấp hướng dẫn toàn diện cho việc phát triển và bảo trì hệ thống CrawlFlow và Rake Framework. Các điểm chính:
+CrawlFlow Plugin cung cấp hệ thống quản lý projects với visual flow composer:
 
-1. **Kiến trúc modular** với dependency injection container
-2. **Hệ thống logging** tích hợp Monolog với facade pattern
-3. **Database migration** tự động với backup và validation
-4. **WordPress integration** hoàn chỉnh với prefix handling
-5. **Performance optimization** với lazy loading và memory management
-6. **Error handling** toàn diện với custom exceptions
-7. **Development guidelines** theo PSR-12 standards
+### Điểm nổi bật:
+1. **Dashboard System**: Overview, analytics, settings
+2. **Project Management**: CRUD operations với visual composer
+3. **Migration Integration**: Tích hợp với Rake migration system
+4. **Logging System**: Log viewer và analytics
+5. **Frontend Assets**: React-based visual composer với XYFlow
 
-Để tiếp tục phát triển, hãy tuân thủ các nguyên tắc và patterns đã được thiết lập trong tài liệu này.
+### Sử dụng:
+```php
+// Initialize plugin
+WP_CrawlFlow::getInstance();
+
+// Use services
+$projectService = new ProjectService();
+$projects = $projectService->getProjects();
+
+$migrationService = new MigrationService($app);
+$status = $migrationService->getMigrationStatus();
+```
 
 ---
 
-**Tài liệu này sẽ được cập nhật thường xuyên khi có thay đổi trong hệ thống.**
+**Tài liệu này sẽ được cập nhật thường xuyên khi có thay đổi trong plugin.**
