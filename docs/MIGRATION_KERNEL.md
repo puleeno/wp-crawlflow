@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-MigrationKernel là một kernel chuyên biệt cho việc xử lý database migration trong CrawlFlow, đảm bảo mọi xử lý đều thống nhất qua Rake class.
+MigrationKernel là một kernel chuyên biệt cho việc xử lý database migration trong CrawlFlow, đảm bảo mọi xử lý đều thống nhất qua Rake class. Migration được quản lý thông qua table `rake_configs` thay vì table riêng biệt.
 
 ## Kiến trúc
 
@@ -44,6 +44,28 @@ wp-crawlflow/src/Services/
 - DatabaseBackupService
 - MigrationValidatorService
 - Migration bindings (manager, backup, validator, config)
+```
+
+## Migration Management với rake_configs
+
+### 1. Version Tracking
+Migration versions được lưu trong table `rake_configs` với key pattern:
+- `table_version_{table_name}`: Lưu version hiện tại của table
+- `migration_history_{table_name}_{timestamp}`: Lưu lịch sử migration
+
+### 2. Migration Status Check
+```php
+// Kiểm tra version từ rake_configs
+$configTable = $this->getPrefixedTableName('rake_configs');
+$result = $driver->query("SELECT config_value FROM $configTable WHERE config_key = 'table_version_$table' LIMIT 1");
+$currentVersion = $result[0]['config_value'] ?? '0.0.0';
+```
+
+### 3. Migration History
+```php
+// Lấy migration history từ rake_configs
+$pattern = "migration_history_{$table}_%";
+$history = $this->adapter->select($configTable, ['config_value'], ['config_key' => $pattern], $limit, ['updated_at' => 'DESC']);
 ```
 
 ## Usage
@@ -259,6 +281,7 @@ $connection = $dbManager->getConnection();
 6. **📝 Logging**: Logging đầy đủ qua Rake Logger
 7. **🔄 Rollback**: Hỗ trợ rollback migrations
 8. **🧪 Testable**: Dễ test và debug
+9. **🗄️ Config-based**: Sử dụng rake_configs table thay vì table riêng biệt
 
 ## Best Practices
 

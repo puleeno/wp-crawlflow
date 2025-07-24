@@ -17,10 +17,11 @@ $wordpressPrefix = $wpdb->prefix; // Ví dụ: 'wp_'
 
 Tất cả tables của Rake sẽ sử dụng prefix: `{wordpress_prefix}rake_`
 
+
 **Ví dụ:**
 - WordPress prefix: `wp_`
 - Rake tables prefix: `wp_rake_`
-- Tables: `wp_rake_configs`, `wp_rake_urls`, `wp_rake_resources`, etc.
+- Tables: `wp_rake_configs`, `wp_rake_urls`, `wp_resources`, etc.
 
 ### 3. Database Configuration
 
@@ -36,7 +37,7 @@ $dbConfig = [
     'password' => DB_PASSWORD,
     'charset' => $wpdb->charset,
     'collation' => $wpdb->collate,
-    'prefix' => $wpdb->prefix . 'rake_', // WordPress prefix + rake prefix
+    'prefix' => $wpdb->prefix, // WordPress prefix trực tiếp
 ];
 ```
 
@@ -49,7 +50,7 @@ Khi activate plugin CrawlFlow:
 1. **Load WordPress settings**: Lấy `$wpdb->prefix` và database constants
 2. **Create DatabaseConfig**: Tạo config với WordPress prefix
 3. **Run migrations**: Chạy migration với prefixed table names
-4. **Create tables**: Tạo tables với prefix `{wp_prefix}rake_`
+4. **Create tables**: Tạo tables với prefix `{wp_prefix}`
 
 ### 2. Migration Process
 
@@ -67,7 +68,7 @@ private function createWordPressDatabaseConfig()
         'password' => DB_PASSWORD,
         'charset' => $wpdb->charset,
         'collation' => $wpdb->collate,
-        'prefix' => $wpdb->prefix . 'rake_',
+        'prefix' => $wpdb->prefix,
     ];
 
     return new \Rake\Config\DatabaseConfig($dbConfig);
@@ -137,7 +138,6 @@ php test-wordpress-prefix.php
 
 3. Testing prefixed table names...
    - configs -> wp_rake_configs
-   - migration_history -> wp_rake_migration_history
    - urls -> wp_rake_urls
    - resources -> wp_rake_resources
 ```
@@ -170,7 +170,7 @@ Nếu muốn custom prefix khác WordPress:
 
 ```php
 // Trong wp-config.php hoặc plugin settings
-define('CRAWLFLOW_RAKE_PREFIX', 'custom_rake_');
+define('CRAWLFLOW_RAKE_PREFIX', 'custom_');
 ```
 
 ### 2. Disable Prefix (Not Recommended)

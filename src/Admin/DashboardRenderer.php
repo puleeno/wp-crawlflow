@@ -82,7 +82,7 @@ class DashboardRenderer
 
             <?php $this->renderSystemStatus($data['system_status'] ?? []); ?>
             <?php $this->renderRecentProjects($data['recent_projects'] ?? []); ?>
-            <?php $this->renderMigrationSection($data['migration_status'] ?? [], $data['migration_history'] ?? []); ?>
+            <?php $this->renderMigrationSection($data['migration_status'] ?? []); ?>
             <?php $this->renderSettingsSection($data['settings'] ?? [], $data['system_info'] ?? []); ?>
         </div>
         <?php
@@ -539,7 +539,7 @@ class DashboardRenderer
     /**
      * Render migration section in dashboard
      */
-    private function renderMigrationSection(array $migrationStatus, array $migrationHistory): void
+    private function renderMigrationSection(array $migrationStatus): void
     {
         ?>
         <div class="crawlflow-migration-section">
@@ -584,32 +584,9 @@ class DashboardRenderer
                     <input type="submit" value="Run Migration" class="button button-primary">
                 </form>
             </div>
-            <div class="crawlflow-migration-history" style="margin-top:20px;">
-                <h3>Migration History</h3>
-                <?php if (!empty($migrationHistory)): ?>
-                    <table class="wp-list-table widefat fixed striped">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Table</th>
-                                <th>Version</th>
-                                <th>Applied At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($migrationHistory as $row): ?>
-                            <tr>
-                                <td><?php echo esc_html($row['id'] ?? ''); ?></td>
-                                <td><?php echo esc_html($row['table'] ?? ''); ?></td>
-                                <td><?php echo esc_html($row['version'] ?? ''); ?></td>
-                                <td><?php echo esc_html($row['applied_at'] ?? ''); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <p>No migration history available.</p>
-                <?php endif; ?>
+            <div class="crawlflow-migration-info" style="margin-top:20px;">
+                <h3>Migration Information</h3>
+                <p>Migration status is managed through the <code>rake_configs</code> table. Version tracking uses keys with pattern <code>table_version_{table_name}</code> and migration history uses <code>migration_history_{table_name}_{timestamp}</code>.</p>
             </div>
         </div>
         <?php

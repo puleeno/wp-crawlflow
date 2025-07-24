@@ -83,7 +83,7 @@ class DashboardService
             'settings' => $this->getSettings(),
             'system_info' => $this->getSystemInfo(),
             'migration_status' => $this->migrationService->checkMigrationStatus(),
-            'migration_history' => $this->migrationService->getMigrationHistory(),
+
         ];
     }
 

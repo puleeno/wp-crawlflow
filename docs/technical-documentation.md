@@ -271,7 +271,7 @@ class DashboardService
             'migration_status' => $this->migrationService->getMigrationStatus(),
             'system_info' => $this->getSystemInfo(),
             'settings' => $this->getSettings(),
-            'migration_history' => $this->migrationService->getMigrationHistory(),
+            'migration_status' => $this->migrationService->getMigrationStatus(),
         ];
     }
 
@@ -330,19 +330,19 @@ class ProjectService
 
     public function getProjects(): array
     {
-        $sql = "SELECT * FROM {$this->db->getPrefix()}crawlflow_projects ORDER BY created_at DESC";
+        $sql = "SELECT * FROM {$this->db->getPrefix()}projects ORDER BY created_at DESC";
         return $this->db->getResults($sql);
     }
 
     public function getRecentProjects(int $limit = 5): array
     {
-        $sql = "SELECT * FROM {$this->db->getPrefix()}crawlflow_projects ORDER BY created_at DESC LIMIT {$limit}";
+        $sql = "SELECT * FROM {$this->db->getPrefix()}projects ORDER BY created_at DESC LIMIT {$limit}";
         return $this->db->getResults($sql);
     }
 
     public function getProject(int $id): ?array
     {
-        $sql = "SELECT * FROM {$this->db->getPrefix()}crawlflow_projects WHERE id = {$id}";
+        $sql = "SELECT * FROM {$this->db->getPrefix()}projects WHERE id = {$id}";
         return $this->db->getRow($sql);
     }
 
@@ -351,20 +351,20 @@ class ProjectService
         $data['created_at'] = \current_time('mysql');
         $data['updated_at'] = \current_time('mysql');
 
-        return $this->db->insert('crawlflow_projects', $data);
+        return $this->db->insert('projects', $data);
     }
 
     public function updateProject(int $id, array $data): bool
     {
         $data['updated_at'] = \current_time('mysql');
 
-        $affected = $this->db->update('crawlflow_projects', $data, ['id' => $id]);
+        $affected = $this->db->update('projects', $data, ['id' => $id]);
         return $affected > 0;
     }
 
     public function deleteProject(int $id): bool
     {
-        $affected = $this->db->delete('crawlflow_projects', ['id' => $id]);
+        $affected = $this->db->delete('projects', ['id' => $id]);
         return $affected > 0;
     }
 
@@ -551,7 +551,9 @@ class MigrationService
     public function getMigrationStatus(): array
     {
         try {
-            $sql = "SELECT COUNT(*) as count FROM {$this->adapter->getPrefix()}rake_migrations";
+            // Kiểm tra migration status từ rake_configs table
+            $configTable = $this->adapter->getPrefix() . 'rake_configs';
+            $sql = "SELECT COUNT(*) as count FROM {$configTable} WHERE config_key LIKE 'table_version_%'";
             $result = $this->adapter->getVar($sql);
 
             return [
@@ -572,7 +574,9 @@ class MigrationService
     public function getMigrationHistory(): array
     {
         try {
-            $sql = "SELECT * FROM {$this->adapter->getPrefix()}rake_migrations ORDER BY executed_at DESC LIMIT 10";
+            // Lấy migration history từ rake_configs table
+            $configTable = $this->adapter->getPrefix() . 'rake_configs';
+            $sql = "SELECT * FROM {$configTable} WHERE config_key LIKE 'migration_history_%' ORDER BY updated_at DESC LIMIT 10";
             return $this->adapter->getResults($sql);
         } catch (Exception $e) {
             return [];
@@ -606,7 +610,9 @@ class MigrationService
     private function getLastMigration(): ?array
     {
         try {
-            $sql = "SELECT * FROM {$this->adapter->getPrefix()}rake_migrations ORDER BY executed_at DESC LIMIT 1";
+            // Lấy migration cuối cùng từ rake_configs table
+            $configTable = $this->adapter->getPrefix() . 'rake_configs';
+            $sql = "SELECT * FROM {$configTable} WHERE config_key LIKE 'migration_history_%' ORDER BY updated_at DESC LIMIT 1";
             return $this->adapter->getRow($sql);
         } catch (Exception $e) {
             return null;
@@ -632,7 +638,7 @@ class LogService
 
     public function getLogs(int $limit = 100, int $offset = 0, array $filters = []): array
     {
-        $sql = "SELECT * FROM {$this->db->getPrefix()}crawlflow_logs";
+        $sql = "SELECT * FROM {$this->db->getPrefix()}logs";
 
         $whereConditions = [];
         if (!empty($filters['level'])) {
@@ -666,7 +672,7 @@ class LogService
                     COUNT(*) as count,
                     MIN(created_at) as first_log,
                     MAX(created_at) as last_log
-                FROM {$this->db->getPrefix()}crawlflow_logs
+                FROM {$this->db->getPrefix()}logs
                 GROUP BY level";
 
         $results = $this->db->getResults($sql);
@@ -685,7 +691,7 @@ class LogService
 
     public function clearLogs(): bool
     {
-        $sql = "DELETE FROM {$this->db->getPrefix()}crawlflow_logs";
+        $sql = "DELETE FROM {$this->db->getPrefix()}logs";
         return $this->db->query($sql);
     }
 
