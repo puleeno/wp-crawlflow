@@ -190,14 +190,37 @@ class ProjectService
         global $wpdb;
         $table = $wpdb->prefix . 'rake_tooths';
 
+        // Only use columns that exist in the schema: id, name, description, config, status, created_at, updated_at
+        // Store additional fields (tooth_type, base_url, max_urls) in config JSON
+        $config = $projectData['config'] ?? [];
+        
+        // If config is a string (JSON), decode it first
+        if (is_string($config)) {
+            $decoded = json_decode($config, true);
+            $config = ($decoded !== null && json_last_error() === JSON_ERROR_NONE) ? $decoded : [];
+        }
+        
+        // Ensure config is an array
+        if (!is_array($config)) {
+            $config = [];
+        }
+        
+        // Merge additional fields into config if they exist
+        if (isset($projectData['tooth_type'])) {
+            $config['tooth_type'] = $projectData['tooth_type'];
+        }
+        if (isset($projectData['base_url'])) {
+            $config['base_url'] = $projectData['base_url'];
+        }
+        if (isset($projectData['max_urls'])) {
+            $config['max_urls'] = $projectData['max_urls'];
+        }
+
         $data = [
             'name' => sanitize_text_field($projectData['name'] ?? ''),
             'description' => sanitize_textarea_field($projectData['description'] ?? ''),
-            'tooth_type' => sanitize_text_field($projectData['tooth_type'] ?? ''),
-            'base_url' => esc_url_raw($projectData['base_url'] ?? ''),
-            'max_urls' => (int) ($projectData['max_urls'] ?? 1000),
             'status' => sanitize_text_field($projectData['status'] ?? 'draft'),
-            'config' => json_encode($projectData['config'] ?? []),
+            'config' => json_encode($config),
             'created_at' => current_time('mysql'),
             'updated_at' => current_time('mysql'),
         ];
@@ -219,14 +242,31 @@ class ProjectService
         global $wpdb;
         $table = $wpdb->prefix . 'rake_tooths';
 
+        // Only use columns that exist in the schema: id, name, description, config, status, created_at, updated_at
+        // Store additional fields (tooth_type, base_url, max_urls) in config JSON
+        $config = $projectData['config'] ?? [];
+        
+        // If config is a string, decode it first
+        if (is_string($config)) {
+            $config = json_decode($config, true) ?: [];
+        }
+        
+        // Merge additional fields into config if they exist
+        if (isset($projectData['tooth_type'])) {
+            $config['tooth_type'] = $projectData['tooth_type'];
+        }
+        if (isset($projectData['base_url'])) {
+            $config['base_url'] = $projectData['base_url'];
+        }
+        if (isset($projectData['max_urls'])) {
+            $config['max_urls'] = $projectData['max_urls'];
+        }
+
         $data = [
             'name' => sanitize_text_field($projectData['name'] ?? ''),
             'description' => sanitize_textarea_field($projectData['description'] ?? ''),
-            'tooth_type' => sanitize_text_field($projectData['tooth_type'] ?? ''),
-            'base_url' => esc_url_raw($projectData['base_url'] ?? ''),
-            'max_urls' => (int) ($projectData['max_urls'] ?? 1000),
             'status' => sanitize_text_field($projectData['status'] ?? 'draft'),
-            'config' => json_encode($projectData['config'] ?? []),
+            'config' => json_encode($config),
             'updated_at' => current_time('mysql'),
         ];
 

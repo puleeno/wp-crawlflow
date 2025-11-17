@@ -71,6 +71,10 @@ class CrawlFlowController
         \add_action('wp_ajax_crawlflow_delete_project', [$this, 'handleDeleteProject']);
         \add_action('wp_ajax_crawlflow_clear_logs', [$this, 'handleClearLogs']);
         \add_action('wp_ajax_crawlflow_export_data', [$this, 'handleExportData']);
+        
+        // React Flow AJAX handlers
+        \add_action('wp_ajax_crawlflow_save_flow_config', [$this, 'handleSaveFlowConfig']);
+        \add_action('wp_ajax_crawlflow_load_flow_config', [$this, 'handleLoadFlowConfig']);
 
         // Admin actions
         \add_action('admin_post_crawlflow_clear_logs', [$this, 'handleClearLogsAction']);
@@ -223,6 +227,14 @@ class CrawlFlowController
     public function renderProjectComposePage(): void
     {
         $projectId = (int) ($_GET['project_id'] ?? 0);
+        
+        // Check if using React Flow editor
+        $editor = \sanitize_text_field($_GET['editor'] ?? 'flow');
+        
+        if ($editor === 'flow') {
+            $this->renderReactFlowEditor($projectId);
+            return;
+        }
 
         if ($projectId) {
             $project = $this->projectService->getProject($projectId);
@@ -240,6 +252,45 @@ class CrawlFlowController
         }
 
         $this->renderer->renderProjectCompose($data);
+    }
+    
+    /**
+     * Render React Flow editor page
+     */
+    public function renderReactFlowEditor(?int $projectId = null): void
+    {
+        $project = null;
+        $projectConfig = null;
+        
+        if ($projectId) {
+            $project = $this->projectService->getProject($projectId);
+            if ($project && isset($project['config'])) {
+                $projectConfig = json_decode($project['config'], true);
+            }
+        }
+        
+        ?>
+        <div class="wrap crawlflow-react-flow-wrapper">
+            <div class="crawlflow-react-flow-header">
+                <h1><?php echo $projectId ? 'Edit Project' : 'Create New Project'; ?></h1>
+                <a href="<?php echo admin_url('admin.php?page=crawlflow-projects'); ?>" class="button">
+                    ← Back to Projects
+                </a>
+            </div>
+            <div id="crawlflow-react-flow-root"></div>
+        </div>
+        
+        <script>
+        window.crawlflowConfig = {
+            projectId: <?php echo $projectId ?: 'null'; ?>,
+            project: <?php echo json_encode($project); ?>,
+            projectConfig: <?php echo json_encode($projectConfig); ?>,
+            ajaxUrl: '<?php echo admin_url('admin-ajax.php'); ?>',
+            nonce: '<?php echo wp_create_nonce('crawlflow_admin_nonce'); ?>',
+            pluginUrl: '<?php echo CRAWLFLOW_PLUGIN_URL; ?>'
+        };
+        </script>
+        <?php
     }
 
 
@@ -782,5 +833,121 @@ class CrawlFlowController
     public function getMigrationService(): MigrationService
     {
         return $this->migrationService;
+    }
+    
+    /**
+     * Handle save flow config AJAX
+     */
+    public function handleSaveFlowConfig(): void
+    {
+        if (!\wp_verify_nonce($_POST['nonce'] ?? '', 'crawlflow_admin_nonce')) {
+            wp_send_json_error('Security check failed');
+        }
+        
+        $projectId = (int) ($_POST['project_id'] ?? 0);
+        
+        // Get raw config JSON - don't sanitize as it will break JSON structure
+        // wp_unslash handles magic quotes automatically
+        $configJson = isset($_POST['config']) ? wp_unslash($_POST['config']) : '';
+        
+        // Trim whitespace only
+        $configJson = trim($configJson);
+        
+        if (empty($configJson)) {
+            wp_send_json_error(['message' => 'Config is required']);
+        }
+        
+        // Validate JSON before decoding
+        $config = json_decode($configJson, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // Log the error for debugging
+            error_log('CrawlFlow JSON Error: ' . json_last_error_msg());
+            error_log('CrawlFlow JSON Error Code: ' . json_last_error());
+            error_log('CrawlFlow JSON Input length: ' . strlen($configJson));
+            error_log('CrawlFlow JSON Input (first 1000 chars): ' . substr($configJson, 0, 1000));
+            if (strlen($configJson) > 1000) {
+                error_log('CrawlFlow JSON Input (last 1000 chars): ' . substr($configJson, -1000));
+            }
+            
+            wp_send_json_error([
+                'message' => 'Invalid JSON config: ' . json_last_error_msg(),
+                'error_code' => json_last_error(),
+                'debug_info' => [
+                    'input_length' => strlen($configJson),
+                    'first_chars' => substr($configJson, 0, 200),
+                ],
+            ]);
+        }
+        
+        // Extract project settings from config
+        $projectSettings = $config['projectSettings'] ?? [];
+        $projectData = [
+            'name' => sanitize_text_field($projectSettings['name'] ?? 'New Crawler Project'),
+            'description' => sanitize_textarea_field($projectSettings['description'] ?? ''),
+            'tooth_type' => sanitize_text_field($projectSettings['tooth_type'] ?? 'basic_crawler'),
+            'base_url' => esc_url_raw($projectSettings['base_url'] ?? ''),
+            'max_urls' => (int) ($projectSettings['max_urls'] ?? 1000),
+            'status' => sanitize_text_field($projectSettings['status'] ?? 'draft'),
+            'config' => $configJson, // Store full flow config
+        ];
+        
+        if ($projectId) {
+            // Update existing project
+            $result = $this->projectService->updateProject($projectId, $projectData);
+            if ($result) {
+                wp_send_json_success([
+                    'message' => 'Project updated successfully',
+                    'project_id' => $projectId,
+                ]);
+            } else {
+                wp_send_json_error('Failed to update project');
+            }
+        } else {
+            // Create new project
+            $newProjectId = $this->projectService->createProject($projectData);
+            if ($newProjectId > 0) {
+                wp_send_json_success([
+                    'message' => 'Project created successfully',
+                    'project_id' => $newProjectId,
+                ]);
+            } else {
+                wp_send_json_error('Failed to create project');
+            }
+        }
+    }
+    
+    /**
+     * Handle load flow config AJAX
+     */
+    public function handleLoadFlowConfig(): void
+    {
+        if (!\wp_verify_nonce($_POST['nonce'] ?? '', 'crawlflow_admin_nonce')) {
+            wp_send_json_error('Security check failed');
+        }
+        
+        $projectId = (int) ($_POST['project_id'] ?? 0);
+        
+        if (!$projectId) {
+            wp_send_json_error('Project ID is required');
+        }
+        
+        $project = $this->projectService->getProject($projectId);
+        
+        if (!$project) {
+            wp_send_json_error('Project not found');
+        }
+        
+        $config = null;
+        if (isset($project['config']) && !empty($project['config'])) {
+            $config = json_decode($project['config'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                wp_send_json_error('Invalid config format: ' . json_last_error_msg());
+            }
+        }
+        
+        wp_send_json_success([
+            'config' => $config,
+            'project' => $project,
+        ]);
     }
 }

@@ -26,13 +26,60 @@ class DashboardRenderer
      */
     public function renderDashboardOverview(array $data): void
     {
+        $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'overview';
         ?>
-        <div class="wrap">
-            <h1><?php echo esc_html($data['title'] ?? 'CrawlFlow Dashboard'); ?></h1>
+        <div class="wrap crawlflow-dashboard-wrap">
+            <div class="crawlflow-dashboard-header">
+                <h1 class="crawlflow-dashboard-title"><?php echo esc_html($data['title'] ?? 'CrawlFlow Dashboard'); ?></h1>
+            </div>
 
             <?php $this->renderAlertMessages(); ?>
 
-            <div class="crawlflow-overview-cards">
+            <!-- Tabs Navigation -->
+            <nav class="crawlflow-tabs-nav">
+                <a href="<?php echo admin_url('admin.php?page=crawlflow&tab=overview'); ?>" 
+                   class="crawlflow-tab <?php echo $current_tab === 'overview' ? 'active' : ''; ?>">
+                    Overview
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=crawlflow&tab=system-status'); ?>" 
+                   class="crawlflow-tab <?php echo $current_tab === 'system-status' ? 'active' : ''; ?>">
+                    System Status
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=crawlflow&tab=settings'); ?>" 
+                   class="crawlflow-tab <?php echo $current_tab === 'settings' ? 'active' : ''; ?>">
+                    Settings
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=crawlflow&tab=migration'); ?>" 
+                   class="crawlflow-tab <?php echo $current_tab === 'migration' ? 'active' : ''; ?>">
+                    Migration
+                </a>
+            </nav>
+
+            <!-- Tab Content -->
+            <div class="crawlflow-tab-content">
+                <?php if ($current_tab === 'overview'): ?>
+                    <?php $this->renderOverviewTab($data); ?>
+                <?php elseif ($current_tab === 'system-status'): ?>
+                    <?php $this->renderSystemStatusTab($data); ?>
+                <?php elseif ($current_tab === 'settings'): ?>
+                    <?php $this->renderSettingsTab($data); ?>
+                <?php elseif ($current_tab === 'migration'): ?>
+                    <?php $this->renderMigrationTab($data); ?>
+                <?php else: ?>
+                    <?php $this->renderOverviewTab($data); ?>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render Overview Tab
+     */
+    private function renderOverviewTab(array $data): void
+    {
+        ?>
+        <div class="crawlflow-overview-cards">
                 <div class="crawlflow-card">
                     <h3>Projects</h3>
                     <div class="card-content">
@@ -80,12 +127,101 @@ class DashboardRenderer
                 </div>
             </div>
 
-            <?php $this->renderSystemStatus($data['system_status'] ?? []); ?>
             <?php $this->renderRecentProjects($data['recent_projects'] ?? []); ?>
-            <?php $this->renderMigrationSection($data['migration_status'] ?? []); ?>
-            <?php $this->renderSettingsSection($data['settings'] ?? [], $data['system_info'] ?? []); ?>
         </div>
         <?php
+    }
+
+    /**
+     * Render System Status Tab
+     */
+    private function renderSystemStatusTab(array $data): void
+    {
+        $systemStatus = $data['system_status'] ?? [];
+        $systemInfo = $data['system_info'] ?? [];
+        ?>
+        <div class="crawlflow-system-status-tab">
+            <?php $this->renderSystemStatus($systemStatus); ?>
+            
+            <div class="crawlflow-system-info-section">
+                <div class="crawlflow-section-header">
+                    <h2>System Info</h2>
+                    <button type="button" class="button crawlflow-copy-system-info" onclick="crawlflowCopySystemInfo()">
+                        Copy System Info to Clipboard
+                    </button>
+                </div>
+                
+                <div class="crawlflow-collapsible-sections" id="crawlflow-system-info">
+                    <?php $this->renderCollapsibleSection('CrawlFlow', $this->getCrawlFlowInfo($data)); ?>
+                    <?php $this->renderCollapsibleSection('WordPress', $this->getWordPressInfo($systemInfo)); ?>
+                    <?php $this->renderCollapsibleSection('Server', $this->getServerInfo($systemInfo)); ?>
+                    <?php $this->renderCollapsibleSection('Database', $this->getDatabaseInfo($systemInfo, $systemStatus)); ?>
+                </div>
+            </div>
+        </div>
+        <script>
+        function crawlflowToggleSection(sectionId) {
+            const content = document.getElementById(sectionId);
+            const arrow = document.getElementById('arrow-' + sectionId);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.textContent = '▲';
+            } else {
+                content.style.display = 'none';
+                arrow.textContent = '▼';
+            }
+        }
+
+        function crawlflowCopySystemInfo() {
+            const sections = document.querySelectorAll('#crawlflow-system-info .crawlflow-collapsible-section');
+            let text = '=== CrawlFlow System Info ===\n\n';
+            
+            sections.forEach(function(section) {
+                const title = section.querySelector('.crawlflow-section-title').textContent;
+                const rows = section.querySelectorAll('.crawlflow-info-table tr');
+                
+                text += '[' + title + ']\n';
+                rows.forEach(function(row) {
+                    const key = row.querySelector('.crawlflow-info-key').textContent;
+                    const value = row.querySelector('.crawlflow-info-value').textContent;
+                    text += key + ' ' + value + '\n';
+                });
+                text += '\n';
+            });
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(text).then(function() {
+                alert('System info copied to clipboard!');
+            }, function() {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('System info copied to clipboard!');
+            });
+        }
+        </script>
+        <?php
+    }
+
+    /**
+     * Render Settings Tab
+     */
+    private function renderSettingsTab(array $data): void
+    {
+        $this->renderSettingsSection($data['settings'] ?? [], $data['system_info'] ?? []);
+    }
+
+    /**
+     * Render Migration Tab
+     */
+    private function renderMigrationTab(array $data): void
+    {
+        $this->renderMigrationSection($data['migration_status'] ?? []);
     }
 
     /**
@@ -237,7 +373,13 @@ class DashboardRenderer
                 <div class="status-item">
                     <span class="status-label">Disk Space:</span>
                     <span class="status-value status-<?php echo esc_attr($systemStatus['disk_space']['status'] ?? 'unknown'); ?>">
-                        <?php echo esc_html($systemStatus['disk_space']['usage_percentage'] ?? 0); ?>% used
+                        <?php 
+                        $diskUsage = $systemStatus['disk_space']['usage_percentage'] ?? 0;
+                        echo esc_html(number_format($diskUsage, 1)) . '% used';
+                        if (isset($systemStatus['disk_space']['free_space'])) {
+                            echo ' (' . esc_html($systemStatus['disk_space']['free_space']) . ' free)';
+                        }
+                        ?>
                     </span>
                 </div>
                 <?php endif; ?>
@@ -246,8 +388,21 @@ class DashboardRenderer
                 <div class="status-item">
                     <span class="status-label">Memory Usage:</span>
                     <span class="status-value status-<?php echo esc_attr($systemStatus['memory_usage']['status'] ?? 'unknown'); ?>">
-                        <?php echo esc_html($systemStatus['memory_usage']['usage_percentage'] ?? 0); ?>% used
+                        <?php 
+                        $memUsage = $systemStatus['memory_usage']['usage_percentage'] ?? 0;
+                        echo esc_html(number_format($memUsage, 1)) . '% used';
+                        if (isset($systemStatus['memory_usage']['current_usage'])) {
+                            echo ' (' . esc_html($systemStatus['memory_usage']['current_usage']) . ')';
+                        }
+                        ?>
                     </span>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (empty($systemStatus)): ?>
+                <div class="status-item crawlflow-empty-status">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value crawlflow-empty-message">No status information available</span>
                 </div>
                 <?php endif; ?>
             </div>
@@ -515,19 +670,48 @@ class DashboardRenderer
                     <table class="form-table">
                         <tr>
                             <th scope="row">PHP Version</th>
-                            <td><?php echo esc_html($systemInfo['php_version'] ?? ''); ?></td>
+                            <td><?php 
+                                $phpVersion = $systemInfo['php_version'] ?? '';
+                                if (empty($phpVersion) && defined('PHP_VERSION')) {
+                                    $phpVersion = PHP_VERSION;
+                                }
+                                echo esc_html($phpVersion ?: 'Unknown'); 
+                            ?></td>
                         </tr>
                         <tr>
                             <th scope="row">WordPress Version</th>
-                            <td><?php echo esc_html($systemInfo['wordpress_version'] ?? ''); ?></td>
+                            <td><?php 
+                                $wpVersion = $systemInfo['wordpress_version'] ?? '';
+                                if (empty($wpVersion)) {
+                                    $wpVersion = get_bloginfo('version') ?: (defined('WP_VERSION') ? WP_VERSION : 'Unknown');
+                                }
+                                echo esc_html($wpVersion ?: 'Unknown'); 
+                            ?></td>
                         </tr>
                         <tr>
                             <th scope="row">MySQL Version</th>
-                            <td><?php echo esc_html($systemInfo['mysql_version'] ?? ''); ?></td>
+                            <td><?php 
+                                global $wpdb;
+                                $mysqlVersion = $systemInfo['mysql_version'] ?? '';
+                                if (empty($mysqlVersion) && isset($wpdb)) {
+                                    try {
+                                        $mysqlVersion = $wpdb->db_version() ?: 'Unknown';
+                                    } catch (\Exception $e) {
+                                        $mysqlVersion = 'Unknown';
+                                    }
+                                }
+                                echo esc_html($mysqlVersion ?: 'Unknown'); 
+                            ?></td>
                         </tr>
                         <tr>
                             <th scope="row">Memory Limit</th>
-                            <td><?php echo esc_html($systemInfo['memory_limit'] ?? ''); ?></td>
+                            <td><?php 
+                                $memoryLimit = $systemInfo['memory_limit'] ?? '';
+                                if (empty($memoryLimit)) {
+                                    $memoryLimit = ini_get('memory_limit') ?: 'Unknown';
+                                }
+                                echo esc_html($memoryLimit ?: 'Unknown'); 
+                            ?></td>
                         </tr>
                     </table>
                 </div>
@@ -603,47 +787,90 @@ class DashboardRenderer
 
             <?php $this->renderAlertMessages(); ?>
 
-            <div class="crawlflow-projects-controls">
-                <a href="<?php echo admin_url('admin.php?page=crawlflow-projects&sub=compose'); ?>" class="button button-primary">
-                    Add New Project
-                </a>
-            </div>
+            <?php if (empty($projects)): ?>
+                <!-- Empty State -->
+                <div class="crawlflow-empty-state" style="text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #ccd0d4; border-radius: 4px; margin-top: 20px;">
+                    <div style="max-width: 500px; margin: 0 auto;">
+                        <div style="font-size: 64px; color: #ddd; margin-bottom: 30px; line-height: 1; display: block;">
+                            📋
+                        </div>
+                        <h2 style="font-size: 24px; color: #23282d; margin: 0 0 15px 0; font-weight: 400; line-height: 1.4;">
+                            No projects yet
+                        </h2>
+                        <p style="color: #666; font-size: 14px; margin: 0 0 30px 0; line-height: 1.6;">
+                            Get started by creating your first crawler project. Use the visual flow editor to build powerful web scraping workflows.
+                        </p>
+                        <a href="<?php echo admin_url('admin.php?page=crawlflow-projects&sub=compose&editor=flow'); ?>" class="button button-primary button-hero" style="font-size: 14px; padding: 8px 16px; height: auto;">
+                            Create Your First Project
+                        </a>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="crawlflow-projects-controls">
+                    <a href="<?php echo admin_url('admin.php?page=crawlflow-projects&sub=compose&editor=flow'); ?>" class="button button-primary">
+                        Add New Project
+                    </a>
+                </div>
 
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>URLs Processed</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($projects as $project): ?>
-                    <tr>
-                        <td><?php echo esc_html($project['name'] ?? ''); ?></td>
-                        <td><?php echo esc_html($project['tooth_type'] ?? ''); ?></td>
-                        <td>
-                            <span class="status-badge status-<?php echo esc_attr($project['status'] ?? 'unknown'); ?>">
-                                <?php echo esc_html(ucfirst($project['status'] ?? 'unknown')); ?>
-                            </span>
-                        </td>
-                        <td><?php echo esc_html($project['urls_processed'] ?? 0); ?></td>
-                        <td><?php echo esc_html($project['created_at'] ?? ''); ?></td>
-                        <td>
-                            <a href="<?php echo admin_url('admin.php?page=crawlflow-projects&sub=compose&project_id=' . ($project['id'] ?? '')); ?>" class="button button-small">
-                                Edit
-                            </a>
-                            <button class="button button-small button-link-delete" onclick="deleteProject(<?php echo $project['id'] ?? 0; ?>)">
-                                Delete
-                            </button>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>URLs Processed</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($projects as $project): 
+                            // Get tooth_type from config JSON if not directly available
+                            $toothType = $project['tooth_type'] ?? '';
+                            if (empty($toothType) && !empty($project['config'])) {
+                                $config = json_decode($project['config'], true);
+                                if (is_array($config) && isset($config['tooth_type'])) {
+                                    $toothType = $config['tooth_type'];
+                                } elseif (is_array($config) && isset($config['projectSettings']['tooth_type'])) {
+                                    $toothType = $config['projectSettings']['tooth_type'];
+                                }
+                            }
+                            if (empty($toothType)) {
+                                $toothType = 'basic_crawler'; // Default
+                            }
+                            
+                            // Format tooth_type for display
+                            $toothTypeDisplay = ucwords(str_replace(['_', '-'], ' ', $toothType));
+                            
+                            $editUrl = admin_url('admin.php?page=crawlflow-projects&sub=compose&project_id=' . ($project['id'] ?? '') . '&editor=flow');
+                        ?>
+                        <tr>
+                            <td>
+                                <a href="<?php echo esc_url($editUrl); ?>" style="text-decoration: none; font-weight: 500; color: #2271b1;">
+                                    <?php echo esc_html($project['name'] ?? 'Untitled Project'); ?>
+                                </a>
+                            </td>
+                            <td><?php echo esc_html($toothTypeDisplay); ?></td>
+                            <td>
+                                <span class="status-badge status-<?php echo esc_attr($project['status'] ?? 'unknown'); ?>">
+                                    <?php echo esc_html(ucfirst($project['status'] ?? 'unknown')); ?>
+                                </span>
+                            </td>
+                            <td><?php echo esc_html($project['urls_processed'] ?? 0); ?></td>
+                            <td><?php echo esc_html($project['created_at'] ?? ''); ?></td>
+                            <td>
+                                <a href="<?php echo esc_url($editUrl); ?>" class="button button-small">
+                                    Edit
+                                </a>
+                                <button class="button button-small button-link-delete" onclick="deleteProject(<?php echo $project['id'] ?? 0; ?>)">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -929,5 +1156,121 @@ class DashboardRenderer
             </div>
         </div>
         <?php
+    }
+
+    /**
+     * Render collapsible section
+     */
+    private function renderCollapsibleSection(string $title, array $data): void
+    {
+        $sectionId = 'crawlflow-section-' . sanitize_title($title);
+        ?>
+        <div class="crawlflow-collapsible-section">
+            <div class="crawlflow-collapsible-header" onclick="crawlflowToggleSection('<?php echo esc_js($sectionId); ?>')">
+                <h3 class="crawlflow-section-title"><?php echo esc_html($title); ?></h3>
+                <span class="crawlflow-section-arrow" id="arrow-<?php echo esc_attr($sectionId); ?>">▼</span>
+            </div>
+            <div class="crawlflow-collapsible-content" id="<?php echo esc_attr($sectionId); ?>" style="display: none;">
+                <table class="crawlflow-info-table">
+                    <tbody>
+                        <?php foreach ($data as $key => $value): ?>
+                        <tr>
+                            <td class="crawlflow-info-key"><?php echo esc_html($key); ?>:</td>
+                            <td class="crawlflow-info-value"><?php echo esc_html($value); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Get CrawlFlow info
+     */
+    private function getCrawlFlowInfo(array $data): array
+    {
+        return [
+            'Version' => defined('CRAWLFLOW_VERSION') ? CRAWLFLOW_VERSION : 'Unknown',
+            'Total Projects' => $data['total_projects'] ?? 0,
+            'Active Projects' => $data['active_projects'] ?? 0,
+            'Total URLs Processed' => $data['total_urls_processed'] ?? 0,
+        ];
+    }
+
+    /**
+     * Get WordPress info
+     */
+    private function getWordPressInfo(array $systemInfo): array
+    {
+        $wpVersion = $systemInfo['wordpress_version'] ?? '';
+        if (empty($wpVersion)) {
+            $wpVersion = get_bloginfo('version') ?: (defined('WP_VERSION') ? WP_VERSION : 'Unknown');
+        }
+
+        return [
+            'Version' => $wpVersion,
+            'Site URL' => get_site_url(),
+            'Home URL' => get_home_url(),
+            'Multisite' => is_multisite() ? 'Yes' : 'No',
+            'Language' => get_locale(),
+        ];
+    }
+
+    /**
+     * Get Server info
+     */
+    private function getServerInfo(array $systemInfo): array
+    {
+        $phpVersion = $systemInfo['php_version'] ?? '';
+        if (empty($phpVersion) && defined('PHP_VERSION')) {
+            $phpVersion = PHP_VERSION;
+        }
+
+        $memoryLimit = $systemInfo['memory_limit'] ?? '';
+        if (empty($memoryLimit)) {
+            $memoryLimit = ini_get('memory_limit') ?: 'Unknown';
+        }
+
+        return [
+            'PHP Version' => $phpVersion ?: 'Unknown',
+            'Memory Limit' => $memoryLimit ?: 'Unknown',
+            'Max Execution Time' => $systemInfo['max_execution_time'] ?? ini_get('max_execution_time') ?: 'Unknown',
+            'Upload Max Filesize' => $systemInfo['upload_max_filesize'] ?? ini_get('upload_max_filesize') ?: 'Unknown',
+            'Post Max Size' => $systemInfo['post_max_size'] ?? ini_get('post_max_size') ?: 'Unknown',
+            'Server Software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+        ];
+    }
+
+    /**
+     * Get Database info
+     */
+    private function getDatabaseInfo(array $systemInfo, array $systemStatus): array
+    {
+        global $wpdb;
+        
+        $mysqlVersion = $systemInfo['mysql_version'] ?? '';
+        if (empty($mysqlVersion) && isset($wpdb)) {
+            try {
+                $mysqlVersion = $wpdb->db_version() ?: 'Unknown';
+            } catch (\Exception $e) {
+                $mysqlVersion = 'Unknown';
+            }
+        }
+
+        $dbStatus = 'Unknown';
+        if (isset($systemStatus['database'])) {
+            $dbStatus = $systemStatus['database']['status'] === 'connected' ? 'Connected' : 'Error';
+        }
+
+        return [
+            'MySQL Version' => $mysqlVersion ?: 'Unknown',
+            'Database Name' => DB_NAME ?? 'Unknown',
+            'Database Host' => DB_HOST ?? 'Unknown',
+            'Database Charset' => $wpdb->charset ?? 'Unknown',
+            'Database Collate' => $wpdb->collate ?? 'Unknown',
+            'Connection Status' => $dbStatus,
+        ];
     }
 }

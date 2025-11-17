@@ -165,12 +165,51 @@ class DashboardService
      */
     private function getSystemStatus(): array
     {
-        return [
-            'database' => $this->checkDatabaseStatus(),
-            'migrations' => $this->migrationService->checkMigrationStatus(),
-            'disk_space' => $this->checkDiskSpace(),
-            'memory_usage' => $this->checkMemoryUsage(),
-        ];
+        $status = [];
+        
+        // Database status
+        try {
+            $status['database'] = $this->checkDatabaseStatus();
+        } catch (\Exception $e) {
+            $status['database'] = [
+                'status' => 'error',
+                'message' => 'Unable to check database status',
+            ];
+        }
+        
+        // Migration status
+        try {
+            $migrationStatus = $this->migrationService->checkMigrationStatus();
+            if (!empty($migrationStatus)) {
+                $status['migrations'] = $migrationStatus;
+            }
+        } catch (\Exception $e) {
+            // Migration status optional, skip if error
+        }
+        
+        // Disk space
+        try {
+            $status['disk_space'] = $this->checkDiskSpace();
+        } catch (\Exception $e) {
+            $status['disk_space'] = [
+                'status' => 'unknown',
+                'usage_percentage' => 0,
+                'message' => 'Unable to check disk space',
+            ];
+        }
+        
+        // Memory usage
+        try {
+            $status['memory_usage'] = $this->checkMemoryUsage();
+        } catch (\Exception $e) {
+            $status['memory_usage'] = [
+                'status' => 'unknown',
+                'usage_percentage' => 0,
+                'message' => 'Unable to check memory usage',
+            ];
+        }
+        
+        return $status;
     }
 
     /**
@@ -192,14 +231,47 @@ class DashboardService
     {
         global $wpdb;
 
+        // Get PHP version
+        $phpVersion = defined('PHP_VERSION') ? PHP_VERSION : 'Unknown';
+        
+        // Get WordPress version
+        $wpVersion = '';
+        try {
+            $wpVersion = get_bloginfo('version');
+        } catch (\Exception $e) {
+            $wpVersion = 'Unknown';
+        }
+        if (empty($wpVersion)) {
+            $wpVersion = get_bloginfo('version') ?: (defined('WP_VERSION') ? WP_VERSION : 'Unknown');
+        }
+
+        // Get MySQL version safely
+        $mysqlVersion = 'Unknown';
+        try {
+            if (isset($wpdb) && method_exists($wpdb, 'db_version')) {
+                $mysqlVersion = $wpdb->db_version();
+            }
+        } catch (\Exception $e) {
+            $mysqlVersion = 'Unknown';
+        }
+        if (empty($mysqlVersion)) {
+            $mysqlVersion = 'Unknown';
+        }
+
+        // Get memory limit
+        $memoryLimit = ini_get('memory_limit');
+        if (empty($memoryLimit) || $memoryLimit === false) {
+            $memoryLimit = 'Unknown';
+        }
+
         return [
-            'php_version' => PHP_VERSION,
-            'wordpress_version' => get_bloginfo('version'),
-            'mysql_version' => $wpdb->db_version(),
-            'memory_limit' => ini_get('memory_limit'),
-            'max_execution_time' => ini_get('max_execution_time'),
-            'upload_max_filesize' => ini_get('upload_max_filesize'),
-            'post_max_size' => ini_get('post_max_size'),
+            'php_version' => $phpVersion,
+            'wordpress_version' => $wpVersion,
+            'mysql_version' => $mysqlVersion,
+            'memory_limit' => $memoryLimit,
+            'max_execution_time' => ini_get('max_execution_time') ?: 'Unknown',
+            'upload_max_filesize' => ini_get('upload_max_filesize') ?: 'Unknown',
+            'post_max_size' => ini_get('post_max_size') ?: 'Unknown',
         ];
     }
 
@@ -223,15 +295,34 @@ class DashboardService
         global $wpdb;
 
         try {
-            $wpdb->query('SELECT 1');
-            return [
-                'status' => 'connected',
-                'message' => 'Database connection successful',
-            ];
+            if (!isset($wpdb)) {
+                return [
+                    'status' => 'error',
+                    'message' => 'WordPress database not available',
+                ];
+            }
+            
+            $result = $wpdb->query('SELECT 1');
+            if ($result !== false) {
+                return [
+                    'status' => 'connected',
+                    'message' => 'Database connection successful',
+                ];
+            } else {
+                return [
+                    'status' => 'error',
+                    'message' => 'Database query failed',
+                ];
+            }
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
                 'message' => 'Database connection failed: ' . $e->getMessage(),
+            ];
+        } catch (\Error $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Database error: ' . $e->getMessage(),
             ];
         }
     }
@@ -241,18 +332,39 @@ class DashboardService
      */
     private function checkDiskSpace(): array
     {
-        $free_space = disk_free_space(ABSPATH);
-        $total_space = disk_total_space(ABSPATH);
-        $used_space = $total_space - $free_space;
-        $usage_percentage = ($used_space / $total_space) * 100;
+        try {
+            $free_space = @disk_free_space(ABSPATH);
+            $total_space = @disk_total_space(ABSPATH);
+            
+            if ($free_space === false || $total_space === false || $total_space == 0) {
+                return [
+                    'status' => 'unknown',
+                    'usage_percentage' => 0,
+                    'free_space' => 'Unknown',
+                    'total_space' => 'Unknown',
+                    'message' => 'Unable to check disk space',
+                ];
+            }
+            
+            $used_space = $total_space - $free_space;
+            $usage_percentage = ($used_space / $total_space) * 100;
 
-        return [
-            'free_space' => $this->formatBytes($free_space),
-            'total_space' => $this->formatBytes($total_space),
-            'used_space' => $this->formatBytes($used_space),
-            'usage_percentage' => round($usage_percentage, 2),
-            'status' => $usage_percentage > 90 ? 'warning' : 'ok',
-        ];
+            return [
+                'free_space' => $this->formatBytes($free_space),
+                'total_space' => $this->formatBytes($total_space),
+                'used_space' => $this->formatBytes($used_space),
+                'usage_percentage' => round($usage_percentage, 2),
+                'status' => $usage_percentage > 90 ? 'warning' : 'ok',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'unknown',
+                'usage_percentage' => 0,
+                'free_space' => 'Unknown',
+                'total_space' => 'Unknown',
+                'message' => 'Error checking disk space: ' . $e->getMessage(),
+            ];
+        }
     }
 
     /**
@@ -260,17 +372,49 @@ class DashboardService
      */
     private function checkMemoryUsage(): array
     {
-        $memory_usage = memory_get_usage(true);
-        $memory_limit = ini_get('memory_limit');
-        $memory_limit_bytes = $this->parseBytes($memory_limit);
-        $usage_percentage = ($memory_usage / $memory_limit_bytes) * 100;
+        try {
+            $memory_usage = memory_get_usage(true);
+            $memory_limit = ini_get('memory_limit');
+            
+            if (empty($memory_limit) || $memory_limit === false) {
+                return [
+                    'status' => 'unknown',
+                    'usage_percentage' => 0,
+                    'current_usage' => $this->formatBytes($memory_usage),
+                    'memory_limit' => 'Unknown',
+                    'message' => 'Memory limit not configured',
+                ];
+            }
+            
+            $memory_limit_bytes = $this->parseBytes($memory_limit);
+            
+            if ($memory_limit_bytes == 0) {
+                return [
+                    'status' => 'unknown',
+                    'usage_percentage' => 0,
+                    'current_usage' => $this->formatBytes($memory_usage),
+                    'memory_limit' => $memory_limit,
+                    'message' => 'Unable to parse memory limit',
+                ];
+            }
+            
+            $usage_percentage = ($memory_usage / $memory_limit_bytes) * 100;
 
-        return [
-            'current_usage' => $this->formatBytes($memory_usage),
-            'memory_limit' => $memory_limit,
-            'usage_percentage' => round($usage_percentage, 2),
-            'status' => $usage_percentage > 80 ? 'warning' : 'ok',
-        ];
+            return [
+                'current_usage' => $this->formatBytes($memory_usage),
+                'memory_limit' => $memory_limit,
+                'usage_percentage' => round($usage_percentage, 2),
+                'status' => $usage_percentage > 80 ? 'warning' : 'ok',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'unknown',
+                'usage_percentage' => 0,
+                'current_usage' => 'Unknown',
+                'memory_limit' => 'Unknown',
+                'message' => 'Error checking memory usage: ' . $e->getMessage(),
+            ];
+        }
     }
 
     /**

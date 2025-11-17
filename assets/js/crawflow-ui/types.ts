@@ -1,0 +1,268 @@
+// FIX: The content for this file was missing. These are the type definitions for the application.
+import type { Node, NodeProps, ReactNode } from 'reactflow';
+
+export type DataSourceType = 'url' | 'api' | 'xml' | 'csv' | 'json' | 'mysql';
+export type FileInputMethod = 'paste' | 'upload' | 'cloudUrl';
+
+export interface MySQLConnection {
+  host?: string;
+  port?: string;
+  user?: string;
+  password?: string;
+  database?: string;
+}
+
+export interface ProjectSettings {
+  name: string;
+  description: string;
+  crawlDelay: number;
+  userAgent: string;
+  concurrency: number;
+}
+
+
+// --- NEW TYPES FOR DATA SOURCE SETTINGS ---
+
+export type CrawlScope = 'current-url' | 'entire-website';
+export type DomainImportPolicy = 'all' | 'whitelist-only';
+
+export interface URLSourceSettings {
+  scope: CrawlScope;
+  excludeExtensions: string[];
+  excludePatterns: string[];
+  whitelistPatterns: string[];
+  domainPolicy: DomainImportPolicy;
+  domainWhitelist: string[];
+}
+
+export type APIAuthType = 'none' | 'api-key' | 'bearer' | 'basic';
+export type APIKeyLocation = 'header' | 'query';
+
+export interface APIKeyAuth {
+  location: APIKeyLocation;
+  keyName: string;
+  keyValue: string;
+}
+
+export interface BearerTokenAuth {
+  token: string;
+}
+
+export interface BasicAuth {
+  username: string;
+  password: string;
+}
+
+export type APIPaginationType = 'none' | 'page' | 'offset-limit' | 'next-url';
+
+export interface PagePagination {
+    paramName: string;
+    startsAt: number;
+}
+
+export interface OffsetLimitPagination {
+    offsetParam: string;
+    limitParam: string;
+    limitValue: number;
+    startsAt: number;
+}
+
+export interface NextURLPagination {
+    jsonPath: string; // Path to the next URL in the response
+}
+
+export interface APISourceSettings {
+  authType: APIAuthType;
+  authDetails: APIKeyAuth | BearerTokenAuth | BasicAuth | {};
+  paginationType: APIPaginationType;
+  paginationDetails: PagePagination | OffsetLimitPagination | NextURLPagination | {};
+}
+
+export interface XMLSourceSettings {
+  scanUrls: boolean;
+  domainPolicy: DomainImportPolicy;
+  domainWhitelist: string[];
+}
+
+export type JSONDataHandling = 'raw' | 'scan-urls';
+export type JSONURLSource = 'all-values' | 'specific-key';
+
+export interface JSONSourceSettings {
+  dataHandling: JSONDataHandling;
+  urlSource?: JSONURLSource;
+  urlKey?: string;
+  domainPolicy?: DomainImportPolicy;
+  domainWhitelist?: string[];
+}
+
+export interface StartNodeData {
+  sourceType: DataSourceType;
+  sourceValue: string | MySQLConnection;
+  inputMethod?: FileInputMethod; // Relevant for xml, csv, json
+  fileName?: string; // For file uploads
+  
+  // New detailed settings
+  urlSettings?: URLSourceSettings;
+  apiSettings?: APISourceSettings;
+  xmlSettings?: XMLSourceSettings;
+  jsonSettings?: JSONSourceSettings;
+}
+// --- END OF NEW TYPES ---
+
+
+export interface ClickNodeData {
+  selector: string;
+}
+
+export type ExtractFrom = 'html-element' | 'json-ld' | 'html-comment';
+
+export interface ExtractionRule {
+    id: string;
+    name: string;
+    extractFrom: ExtractFrom;
+    // For 'html-element'
+    selector?: string;
+    extract?: 'text' | 'attribute' | 'regex' | 'html';
+    attribute?: string; // e.g., 'href', 'src', 'content'
+    regexPattern?: string;
+    regexGroup?: number;
+    extractMultiple?: boolean;
+    // For 'json-ld' and 'html-comment'
+    jsonPath?: string;
+}
+
+
+export interface LoopNodeData {
+  iteratorSelector: string;
+}
+
+export interface RepositoryNodeData {
+  // This node serves as a structural element and may not need specific data.
+}
+
+// FIX: Added missing ReceptionNodeData and ReceptionRule types to resolve import errors.
+export interface ReceptionRule {
+    id: string;
+    // The exact properties are unknown as this feature seems incomplete.
+    // Defining `id` is a safe assumption based on other rule types.
+}
+
+export interface ReceptionNodeData {
+    rules: ReceptionRule[];
+    logic: 'and' | 'or';
+}
+
+export type RuleCondition = 'exists' | 'not-exists' | 'contains' | 'not-contains' | 'matches-regex';
+
+export type PresetType = 'woocommerce-product' | 'blog-post' | 'seo-metadata' | 'open-graph';
+
+export interface DataExtractorNodeData {
+    presets: PresetType[];
+    customRules: ExtractionRule[];
+    // Inspector related fields
+    inspectorUrl?: string;
+    inspectorHtmlContent?: string;
+    inspectorLoading?: boolean;
+    inspectorError?: string;
+}
+
+// --- PROCESSOR SETTINGS ---
+export interface SaveToDbSettings {
+    connectionType: 'mysql' | 'postgresql';
+    host?: string;
+    port?: string;
+    user?: string;
+    password?: string;
+    database?: string;
+    tableName?: string;
+    conflictStrategy: 'insert' | 'upsert' | 'skip';
+}
+
+export interface SendToApiSettings {
+    endpointUrl: string;
+    method: 'POST' | 'PUT' | 'PATCH';
+    authType: 'none' | 'api-key' | 'bearer' | 'basic';
+    authDetails: APIKeyAuth | BearerTokenAuth | BasicAuth | {};
+    headers: { id: string; key: string; value: string }[];
+}
+
+export interface GenerateCsvSettings {
+    fileName: string; 
+    delimiter: ',' | ';' | '\t';
+    includeHeader: boolean;
+}
+
+export interface SendEmailSettings {
+    recipients: string; // comma-separated
+    subject: string;
+    body: string;
+}
+
+// Discriminated Union for ProcessorNodeData
+export type ProcessorNodeData = 
+    | { processorType: 'save-to-database'; settings: SaveToDbSettings; }
+    | { processorType: 'send-to-api'; settings: SendToApiSettings; }
+    | { processorType: 'generate-csv-file'; settings: GenerateCsvSettings; }
+    | { processorType: 'send-email-notification'; settings: SendEmailSettings; };
+
+
+export type WorkerRuleType = 'url-format' | 'html-contains' | 'dom-value' | 'tag-attribute' | 'data-source-type';
+
+export interface BaseWorkerRule {
+    id: string;
+    type: WorkerRuleType;
+}
+
+export interface URLFormatRule extends BaseWorkerRule {
+    type: 'url-format';
+    pattern: string;
+}
+
+export interface HTMLContainsRule extends BaseWorkerRule {
+    type: 'html-contains';
+    text: string;
+}
+
+export interface DOMValueRule extends BaseWorkerRule {
+    type: 'dom-value';
+    selector: string;
+    condition: RuleCondition;
+    value: string;
+}
+
+export interface TagAttributeRule extends BaseWorkerRule {
+    type: 'tag-attribute';
+    selector: string;
+    attribute: string;
+    condition: RuleCondition;
+    value: string;
+}
+
+export interface DataSourceTypeRule extends BaseWorkerRule {
+    type: 'data-source-type';
+    sourceType: DataSourceType;
+}
+
+export type WorkerRule = URLFormatRule | HTMLContainsRule | DOMValueRule | TagAttributeRule | DataSourceTypeRule;
+
+export interface WorkerNodeData {
+  detectionRules: WorkerRule[];
+  detectionLogic: 'and' | 'or';
+  priority: number;
+}
+
+export interface CompletionNodeData {
+    reportEnabled: boolean;
+}
+
+
+// FIX: Added ReceptionNodeData to the NodeData union type.
+export type NodeData = StartNodeData | ClickNodeData | LoopNodeData | RepositoryNodeData | ReceptionNodeData | WorkerNodeData | DataExtractorNodeData | ProcessorNodeData | CompletionNodeData;
+
+export type CustomNodeProps<T = NodeData> = NodeProps<T> & {
+    title?: ReactNode;
+};
+
+export interface CustomNode extends Node<NodeData> {
+    data: NodeData;
+}

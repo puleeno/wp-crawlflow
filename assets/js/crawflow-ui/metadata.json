@@ -1,0 +1,5 @@
+{
+  "name": "React Flow Crawler Configurator",
+  "description": "A visual, node-based UI for creating and managing web crawler configurations. Build complex crawling logic by connecting different action nodes on a single, intuitive canvas.",
+  "requestFramePermissions": []
+}

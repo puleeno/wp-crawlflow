@@ -90,7 +90,13 @@ class WP_CrawlFlow {
         register_deactivation_hook(CRAWLFLOW_PLUGIN_FILE, [$this, 'deactivate']);
 
         // Admin scripts and styles
-        add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 5);
+        
+        // Register React Flow CSS early to ensure it's available
+        add_action('admin_init', [$this, 'registerReactFlowCSS'], 1);
+        
+        // Load React Flow CSS early in head to prevent FOUC
+        add_action('admin_head', [$this, 'preloadReactFlowCSS'], 1);
 
         // Load text domain
         add_action('plugins_loaded', [$this, 'loadTextDomain']);
@@ -149,6 +155,111 @@ class WP_CrawlFlow {
     }
 
     /**
+     * Register React Flow CSS early
+     */
+    public function registerReactFlowCSS() {
+        // Check if we're on the React Flow editor page
+        $subScreen = sanitize_text_field($_GET['sub'] ?? '');
+        $editor = sanitize_text_field($_GET['editor'] ?? '');
+        
+        if ($subScreen === 'compose' && $editor === 'flow') {
+            // Register CSS early so it's available when enqueued
+            wp_register_style(
+                'reactflow-style',
+                'https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css',
+                [],
+                '11.11.4',
+                'all'
+            );
+        }
+    }
+    
+    /**
+     * Load React Flow CSS early in head to prevent FOUC
+     */
+    public function preloadReactFlowCSS() {
+        // Check if we're on the React Flow editor page
+        $subScreen = sanitize_text_field($_GET['sub'] ?? '');
+        $editor = sanitize_text_field($_GET['editor'] ?? '');
+        
+        if ($subScreen === 'compose' && $editor === 'flow') {
+            // Load React Flow CSS directly in head for immediate rendering
+            // This prevents Flash of Unstyled Content (FOUC)
+            echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css?ver=11.11.4" media="all">' . "\n";
+            
+            // Add inline style to hide content until CSS loads
+            echo '<style id="crawlflow-react-flow-critical">
+                #crawlflow-react-flow-root {
+                    visibility: hidden;
+                    opacity: 0;
+                    transition: opacity 0.2s ease, visibility 0.2s ease;
+                }
+                #crawlflow-react-flow-root.react-flow-loaded {
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                }
+            </style>' . "\n";
+            
+            // Script to mark CSS as loaded - wait for DOM ready
+            echo '<script>
+                (function() {
+                    function showReactFlow() {
+                        var root = document.getElementById("crawlflow-react-flow-root");
+                        if (root) {
+                            root.classList.add("react-flow-loaded");
+                        }
+                    }
+                    
+                    // Check if CSS is already loaded
+                    function checkCSSLoaded() {
+                        var link = document.querySelector("link[href*=\'reactflow@11.11.4\']");
+                        if (link) {
+                            // Check if stylesheet is loaded
+                            try {
+                                if (link.sheet && link.sheet.cssRules && link.sheet.cssRules.length > 0) {
+                                    showReactFlow();
+                                    return true;
+                                }
+                            } catch (e) {
+                                // Cross-origin stylesheet, check differently
+                                if (link.sheet || link.styleSheet) {
+                                    showReactFlow();
+                                    return true;
+                                }
+                            }
+                            
+                            // Wait for onload
+                            link.onload = function() {
+                                showReactFlow();
+                            };
+                            
+                            // Fallback timeout
+                            setTimeout(function() {
+                                showReactFlow();
+                            }, 500);
+                        } else {
+                            // No link found, show anyway after delay
+                            setTimeout(function() {
+                                showReactFlow();
+                            }, 200);
+                        }
+                        return false;
+                    }
+                    
+                    // Wait for DOM ready
+                    if (document.readyState === "loading") {
+                        document.addEventListener("DOMContentLoaded", function() {
+                            setTimeout(checkCSSLoaded, 100);
+                        });
+                    } else {
+                        setTimeout(checkCSSLoaded, 100);
+                    }
+                })();
+            </script>' . "\n";
+        }
+    }
+    
+    /**
      * Enqueue admin assets
      */
     public function enqueueAdminAssets($hook) {
@@ -159,7 +270,120 @@ class WP_CrawlFlow {
                 [],
                 CRAWLFLOW_VERSION
             );
+            
+            // Check if we're on the React Flow editor page
+            $subScreen = sanitize_text_field($_GET['sub'] ?? '');
+            $editor = sanitize_text_field($_GET['editor'] ?? '');
+            
+            if ($subScreen === 'compose' && $editor === 'flow') {
+                $this->enqueueReactFlowAssets();
+            }
         }
+    }
+    
+    /**
+     * Enqueue React Flow assets
+     */
+    private function enqueueReactFlowAssets() {
+        $buildDir = CRAWLFLOW_PLUGIN_DIR . 'assets/js/crawflow-ui/dist';
+        $buildUrl = CRAWLFLOW_PLUGIN_URL . 'assets/js/crawflow-ui/dist';
+        
+        // Check if manifest exists
+        $manifestPath = $buildDir . '/.vite/manifest.json';
+        
+        if (file_exists($manifestPath)) {
+            $manifest = json_decode(file_get_contents($manifestPath), true);
+            
+            // Enqueue main entry
+            if (isset($manifest['index.html'])) {
+                $entry = $manifest['index.html'];
+                
+                // Enqueue CSS
+                if (isset($entry['css'])) {
+                    foreach ($entry['css'] as $css) {
+                        wp_enqueue_style(
+                            'crawlflow-react-flow',
+                            $buildUrl . '/' . $css,
+                            [],
+                            CRAWLFLOW_VERSION
+                        );
+                    }
+                }
+                
+                // Enqueue JS
+                if (isset($entry['file'])) {
+                    wp_enqueue_script(
+                        'crawlflow-react-flow',
+                        $buildUrl . '/' . $entry['file'],
+                        [], // No dependencies - React Flow is self-contained
+                        CRAWLFLOW_VERSION,
+                        true
+                    );
+                }
+            }
+        } else {
+            // Fallback: Try to find JS file directly
+            $jsFiles = glob($buildDir . '/crawflow-ui.*.js');
+            if (!empty($jsFiles)) {
+                $jsFile = basename($jsFiles[0]);
+                wp_enqueue_script(
+                    'crawlflow-react-flow',
+                    $buildUrl . '/' . $jsFile,
+                    [],
+                    CRAWLFLOW_VERSION,
+                    true
+                );
+            } else {
+                // Fallback: Load from CDN for development
+                wp_add_inline_script('jquery', 'console.warn("CrawlFlow: Built assets not found. Please run npm run build in assets/js/crawflow-ui");');
+            }
+        }
+        
+        // Enqueue React Flow CSS (already registered in admin_init)
+        // This is a fallback in case preload in admin_head didn't work
+        if (!wp_style_is('reactflow-style', 'enqueued')) {
+            wp_enqueue_style('reactflow-style');
+        }
+        
+        // Force CSS to load in head, not footer
+        wp_style_add_data('reactflow-style', 'group', 0);
+        
+        // Add inline style to ensure React Flow styles are not overridden
+        wp_add_inline_style(
+            'reactflow-style',
+            '
+            /* Ensure React Flow styles work within WordPress admin */
+            #crawlflow-react-flow-root .react-flow {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+            }
+            #crawlflow-react-flow-root .react-flow__node {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+            }
+            '
+        );
+        
+        // Always load Tailwind CSS via CDN for React Flow UI
+        // This ensures all Tailwind classes work properly
+        wp_add_inline_script(
+            'crawlflow-react-flow',
+            'document.addEventListener("DOMContentLoaded", function() {
+                if (typeof tailwindcss === "undefined") {
+                    var script = document.createElement("script");
+                    script.src = "https://cdn.tailwindcss.com";
+                    script.onload = function() {
+                        // Configure Tailwind to only apply to React Flow container
+                        if (typeof tailwind !== "undefined" && tailwind.config) {
+                            tailwind.config = {
+                                content: ["#crawlflow-react-flow-root"],
+                                important: "#crawlflow-react-flow-root"
+                            };
+                        }
+                    };
+                    document.head.appendChild(script);
+                }
+            });',
+            'after'
+        );
     }
 
     /**

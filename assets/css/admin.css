@@ -280,6 +280,21 @@
     color: white;
 }
 
+.status-badge.status-draft {
+    background: #8c8f94;
+    color: white;
+}
+
+.status-badge.status-completed {
+    background: #00a32a;
+    color: white;
+}
+
+.status-badge.status-unknown {
+    background: #8c8f94;
+    color: white;
+}
+
 .crawlflow-logs-controls {
     background: #fff;
     border: 1px solid #ccd0d4;
@@ -688,5 +703,612 @@
         margin-left: 0;
         margin-right: 10px;
         margin-bottom: 10px;
+    }
+}
+
+/* CrawlFlow React Flow Editor Styles */
+.crawlflow-react-flow-wrapper {
+    margin: 0;
+    padding: 0;
+    background: #f0f0f1;
+    min-height: calc(100vh - 32px);
+}
+
+.crawlflow-react-flow-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    margin: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.crawlflow-react-flow-header h1 {
+    margin: 0;
+    padding: 0;
+    font-size: 23px;
+    font-weight: 400;
+    color: #1d2327;
+}
+
+.crawlflow-react-flow-header .button {
+    margin-left: 10px;
+}
+
+#crawlflow-react-flow-root {
+    width: 100%;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+    margin: 0;
+    padding: 20px 30px;
+    background: #f0f0f1;
+}
+
+/* Override WordPress admin styles for React Flow */
+.crawlflow-react-flow-wrapper .wrap {
+    margin: 0;
+    padding: 0;
+    background: #f0f0f1;
+}
+
+/* Ensure React Flow takes full width and has proper styling */
+.crawlflow-react-flow-wrapper #crawlflow-react-flow-root > div {
+    width: 100% !important;
+    height: 100% !important;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Isolate React Flow app from WordPress admin styles */
+#crawlflow-react-flow-root * {
+    box-sizing: border-box;
+}
+
+/* Ensure Tailwind CSS works properly */
+#crawlflow-react-flow-root .bg-slate-100 {
+    background-color: #f1f5f9 !important;
+}
+
+#crawlflow-react-flow-root .bg-white {
+    background-color: #ffffff !important;
+}
+
+/* Fix button styles */
+#crawlflow-react-flow-root button {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+/* Fix input styles */
+#crawlflow-react-flow-root input,
+#crawlflow-react-flow-root textarea,
+#crawlflow-react-flow-root select {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+/* Override WordPress admin font for React Flow area */
+#crawlflow-react-flow-root {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+}
+
+/* Hide WordPress admin footer on React Flow page */
+.crawlflow-react-flow-wrapper #wpfooter {
+    display: none;
+}
+
+/* Ensure proper spacing */
+.crawlflow-react-flow-wrapper #wpbody-content {
+    padding-bottom: 0;
+}
+
+/* Additional styling improvements */
+.crawlflow-react-flow-wrapper #wpbody {
+    margin-left: 160px;
+}
+
+@media screen and (max-width: 782px) {
+    .crawlflow-react-flow-wrapper #wpbody {
+        margin-left: 0;
+    }
+}
+
+/* Ensure React Flow canvas has proper background */
+#crawlflow-react-flow-root .react-flow {
+    background: #f8f9fa;
+}
+
+/* Style the data source buttons better */
+#crawlflow-react-flow-root .data-source-button {
+    transition: all 0.2s ease;
+}
+
+#crawlflow-react-flow-root .data-source-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Improve sidebar styling */
+#crawlflow-react-flow-root aside {
+    box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+}
+
+/* Better node styling with crisp text rendering */
+#crawlflow-react-flow-root .react-flow__node {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-smooth: always;
+}
+
+/* Ensure all text in React Flow is crisp */
+#crawlflow-react-flow-root {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-smooth: always;
+}
+
+#crawlflow-react-flow-root * {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent text blur from transforms */
+#crawlflow-react-flow-root .react-flow__node,
+#crawlflow-react-flow-root .react-flow__edge-text,
+#crawlflow-react-flow-root .react-flow__edge-label {
+    will-change: auto;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+/* Ensure React Flow viewport renders text clearly */
+#crawlflow-react-flow-root .react-flow__viewport {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove backdrop blur from nodes */
+#crawlflow-react-flow-root .backdrop-blur-sm,
+#crawlflow-react-flow-root [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Improve controls */
+#crawlflow-react-flow-root .react-flow__controls {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#crawlflow-react-flow-root .react-flow__controls-button {
+    border-bottom: 1px solid #eee;
+}
+
+#crawlflow-react-flow-root .react-flow__controls-button:hover {
+    background: #f5f5f5;
+}
+
+/* Modern Dashboard Styles - RankMath Inspired */
+.crawlflow-dashboard-wrap {
+    margin: 0;
+    padding: 0;
+}
+
+.crawlflow-dashboard-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.crawlflow-dashboard-title {
+    margin: 0;
+    padding: 0;
+    font-size: 23px;
+    font-weight: 400;
+    color: #1d2327;
+    line-height: 1.4;
+}
+
+/* Tabs Navigation */
+.crawlflow-tabs-nav {
+    display: flex;
+    border-bottom: 1px solid #c3c4c7;
+    margin: 0 0 20px 0;
+    background: #fff;
+    padding: 0;
+}
+
+.crawlflow-tab {
+    display: inline-block;
+    padding: 12px 20px;
+    margin: 0;
+    text-decoration: none;
+    color: #50575e;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    background: transparent;
+}
+
+.crawlflow-tab:hover {
+    color: #2271b1;
+    background: #f6f7f7;
+}
+
+.crawlflow-tab.active {
+    color: #2271b1;
+    border-bottom-color: #2271b1;
+    background: transparent;
+}
+
+/* Tab Content */
+.crawlflow-tab-content {
+    background: #fff;
+    padding: 0;
+}
+
+/* System Status Tab */
+.crawlflow-system-status-tab {
+    padding: 0;
+}
+
+.crawlflow-system-info-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.crawlflow-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.crawlflow-section-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.crawlflow-copy-system-info {
+    font-size: 13px;
+    padding: 6px 12px;
+    height: auto;
+}
+
+/* Collapsible Sections */
+.crawlflow-collapsible-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.crawlflow-collapsible-section {
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.crawlflow-collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #f6f7f7;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    user-select: none;
+}
+
+.crawlflow-collapsible-header:hover {
+    background: #f0f0f1;
+}
+
+.crawlflow-section-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.crawlflow-section-arrow {
+    font-size: 12px;
+    color: #50575e;
+    transition: transform 0.2s ease;
+}
+
+.crawlflow-collapsible-content {
+    padding: 15px 20px;
+    background: #fff;
+    border-top: 1px solid #c3c4c7;
+}
+
+.crawlflow-info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.crawlflow-info-table tr {
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.crawlflow-info-table tr:last-child {
+    border-bottom: none;
+}
+
+.crawlflow-info-table td {
+    padding: 10px 0;
+    vertical-align: top;
+}
+
+.crawlflow-info-key {
+    font-weight: 600;
+    color: #1d2327;
+    width: 40%;
+    padding-right: 20px;
+}
+
+.crawlflow-info-value {
+    color: #50575e;
+    word-break: break-word;
+}
+
+/* Improved Cards */
+.crawlflow-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s ease;
+}
+
+.crawlflow-card:hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.crawlflow-card h3 {
+    margin: 0 0 15px 0;
+    color: #1d2327;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 1px solid #f0f0f1;
+    padding-bottom: 10px;
+}
+
+/* Improved System Status */
+.crawlflow-system-status {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.crawlflow-system-status h2 {
+    margin: 0 0 20px 0;
+    color: #1d2327;
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid #f0f0f1;
+    padding-bottom: 10px;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f6f7f7;
+    border-radius: 4px;
+    border: 1px solid #e5e5e5;
+}
+
+.status-label {
+    font-weight: 500;
+    color: #50575e;
+    font-size: 14px;
+}
+
+.status-value {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.status-value.status-connected,
+.status-value.status-ok {
+    color: #00a32a;
+}
+
+.status-value.status-error {
+    color: #d63638;
+}
+
+.status-value.status-warning {
+    color: #dba617;
+}
+
+.status-value.status-unknown {
+    color: #50575e;
+}
+
+/* Empty State for System Status */
+.crawlflow-system-status .status-item .status-value {
+    color: #50575e;
+}
+
+.crawlflow-system-status .status-item .status-value:empty::before {
+    content: "No status information available";
+    color: #8c8f94;
+    font-style: italic;
+}
+
+/* Empty state message styling */
+.crawlflow-empty-status .status-value.crawlflow-empty-message {
+    color: #8c8f94;
+    font-style: italic;
+    font-weight: normal;
+}
+
+.crawlflow-empty-message {
+    color: #8c8f94;
+    font-style: italic;
+    padding: 15px;
+    text-align: center;
+    background: #f6f7f7;
+    border-radius: 4px;
+    border: 1px dashed #c3c4c7;
+}
+
+/* Recent Projects Section */
+.crawlflow-recent-projects {
+    margin-top: 20px;
+}
+
+.crawlflow-recent-projects h2 {
+    margin: 0 0 20px 0;
+    color: #1d2327;
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid #f0f0f1;
+    padding-bottom: 10px;
+}
+
+/* Settings Section Improvements */
+.crawlflow-settings-section {
+    margin-top: 20px;
+}
+
+.crawlflow-settings-section h2 {
+    margin: 0 0 20px 0;
+    color: #1d2327;
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid #f0f0f1;
+    padding-bottom: 10px;
+}
+
+/* Migration Section */
+.crawlflow-migration-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.crawlflow-migration-section h2 {
+    margin: 0 0 20px 0;
+    color: #1d2327;
+    font-size: 18px;
+    font-weight: 600;
+    border-bottom: 1px solid #f0f0f1;
+    padding-bottom: 10px;
+}
+
+.crawlflow-migration-info {
+    background: #f6f7f7;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.crawlflow-migration-info h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.crawlflow-migration-info p {
+    margin: 0;
+    color: #50575e;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.crawlflow-migration-info code {
+    background: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #d63638;
+}
+
+/* Table improvements */
+.crawlflow-recent-projects table,
+.crawlflow-settings-section table {
+    margin-top: 0;
+}
+
+/* Better spacing for overview cards */
+.crawlflow-overview-cards {
+    margin-bottom: 30px;
+}
+
+/* Projects list link styling */
+.crawlflow-recent-projects a,
+.crawlflow-projects-controls a {
+    text-decoration: none;
+}
+
+.crawlflow-recent-projects a:hover,
+.crawlflow-projects-controls a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .crawlflow-tabs-nav {
+        flex-wrap: wrap;
+    }
+    
+    .crawlflow-tab {
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+    }
+    
+    .crawlflow-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .crawlflow-copy-system-info {
+        width: 100%;
+    }
+    
+    .status-grid {
+        grid-template-columns: 1fr;
     }
 }
