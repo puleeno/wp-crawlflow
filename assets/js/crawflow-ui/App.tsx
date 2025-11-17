@@ -1,8 +1,6 @@
-
-
 // FIX: The content for this file was missing. This is a complete implementation of the main App component.
 // FIX: Import `useState`, `useCallback`, `useMemo`, and `ChangeEvent` from React to fix missing name errors.
-import React, { useState, useCallback, useMemo, ChangeEvent, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, ChangeEvent, useEffect, MouseEvent, useRef } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -18,24 +16,30 @@ import ReactFlow, {
   OnSelectionChangeParams,
   XYPosition,
   NodeDragHandler,
+  NodeChange,
+  ReactFlowInstance,
+  applyNodeChanges,
+  NodeDimensionChange,
 } from 'reactflow';
 
 import Sidebar from './components/Sidebar';
 import SettingsPanel from './components/SettingsPanel';
 import InspectorPanel from './components/InspectorPanel';
+import ContextMenu from './components/ContextMenu';
 import StartNode from './components/nodes/StartNode';
 import ClickNode from './components/nodes/ClickNode';
 import WorkerNode from './components/nodes/WorkerNode';
 import LoopNode from './components/nodes/LoopNode';
 import RepositoryNode from './components/nodes/RepositoryNode';
 import ReceptionNode from './components/nodes/ReceptionRuleNode';
-import DataExtractorNode from './components/nodes/DataMappingNode';
+import HTMLDataExtractorNode, { CSVExtractorNode, JSONExtractorNode, XMLExtractorNode, MySQLExtractorNode } from './components/nodes/DataMappingNode';
 import ProcessorNode from './components/nodes/ProcessorNode';
 import CompletionNode from './components/nodes/CompletionNode';
+import ShapeNode from './components/nodes/ShapeNode';
 import { Bars3Icon, Cog6ToothIcon } from './components/icons';
 
 
-import { NodeData, ProjectSettings, DataExtractorNodeData, ExtractionRule } from './types';
+import { NodeData, ProjectSettings, HTMLDataExtractorNodeData, ShapeNodeData, ShapeType } from './types';
 
 const REPOSITORY_NODE_ID = 'repository-node';
 const COMPLETION_NODE_ID = 'completion-node';
@@ -56,6 +60,8 @@ const initialNodes: Node[] = [];
 let id = 1;
 const getId = () => `${id++}`;
 
+const EXTRACTOR_NODE_TYPES = ['html-data-extractor', 'csv-extractor', 'json-extractor', 'xml-extractor', 'mysql-extractor'];
+
 interface InspectorConfig {
     htmlContent: string;
     pickingState: {
@@ -63,6 +69,60 @@ interface InspectorConfig {
         ruleId: string;
     } | null;
 }
+
+interface MenuConfig {
+    top: number;
+    left: number;
+}
+
+type MouseMode = 'select' | 'pan';
+
+const defaultShapeData: Record<ShapeType, Omit<ShapeNodeData, 'width' | 'height'>> = {
+  rectangle: {
+    shapeType: 'rectangle',
+    label: 'My Group',
+    backgroundColor: '#f3f4f6', // gray-100
+    borderColor: '#9ca3af', // gray-400
+    textColor: '#1f2937', // gray-800
+  },
+  circle: {
+    shapeType: 'circle',
+    label: 'Note',
+    backgroundColor: '#fefce8', // yellow-50
+    borderColor: '#facc15', // yellow-400
+    textColor: '#422006', // yellow-900
+  },
+  ellipse: {
+    shapeType: 'ellipse',
+    label: 'Sub-process',
+    backgroundColor: '#f0fdf4', // green-50
+    borderColor: '#4ade80', // green-400
+    textColor: '#14532d', // green-900
+  },
+  frame: {
+    shapeType: 'frame',
+    label: 'Process A',
+    backgroundColor: 'transparent',
+    borderColor: '#6b7280', // gray-500
+    textColor: '#374151', // gray-700
+  },
+  package: {
+    shapeType: 'package',
+    label: 'My Package',
+    backgroundColor: '#f9fafb', // gray-50
+    borderColor: '#9ca3af', // gray-400
+    textColor: '#1f2937', // gray-800
+  },
+};
+
+const defaultShapeSizes: Record<ShapeType, { width: number; height: number }> = {
+  rectangle: { width: 500, height: 400 },
+  circle: { width: 300, height: 300 },
+  ellipse: { width: 400, height: 200 },
+  frame: { width: 600, height: 400 },
+  package: { width: 500, height: 400 },
+};
+
 
 const App: React.FC = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -84,6 +144,15 @@ const App: React.FC = () => {
   const [inspectorConfig, setInspectorConfig] = useState<InspectorConfig | null>(null);
   const [highlightedSelector, setHighlightedSelector] = useState<string | null>(null);
 
+  // State for Context Menu
+  const [menu, setMenu] = useState<MenuConfig | null>(null);
+
+  // State for mouse mode
+  const [mouseMode, setMouseMode] = useState<MouseMode>('select');
+
+  // Ref for React Flow instance and wrapper
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   // Effect to clean up the entire workflow when no start nodes exist
   useEffect(() => {
@@ -99,18 +168,8 @@ const App: React.FC = () => {
     }
   }, [nodes, setNodes, setEdges]);
   
-  // Effect to clean up completion node when no processors exist
-  useEffect(() => {
-    const hasProcessorNode = nodes.some(n => n.type === 'processor');
-    const hasCompletionNode = nodes.some(n => n.id === COMPLETION_NODE_ID);
-
-    if (!hasProcessorNode && hasCompletionNode) {
-      setNodes((nds) => nds.filter((node) => node.id !== COMPLETION_NODE_ID));
-    }
-  }, [nodes, setNodes]);
   
-  
-  // Effect to recenter repository and completion nodes
+  // Effect to recenter repository node
   useEffect(() => {
     const startNodes = nodes.filter(n => n.type === 'start');
     const repoNode = nodes.find(n => n.id === REPOSITORY_NODE_ID);
@@ -127,27 +186,114 @@ const App: React.FC = () => {
             );
         }
     }
-    
+  }, [nodes, setNodes]);
+
+  // Effect to manage the Completion node and its connections
+  useEffect(() => {
     const processorNodes = nodes.filter(n => n.type === 'processor');
     const completionNode = nodes.find(n => n.id === COMPLETION_NODE_ID);
 
-    if (processorNodes.length > 0 && completionNode) {
-        const newAvgX = processorNodes.reduce((sum, node) => sum + node.position.x, 0) / processorNodes.length;
-        const newMaxY = Math.max(...processorNodes.map(n => n.position.y));
-        const newY = newMaxY + NODE_V_SPACING;
+    // Case 1: No processors exist. Remove completion node if it exists.
+    if (processorNodes.length === 0) {
+        if (completionNode) {
+            setNodes(nds => nds.filter(n => n.id !== COMPLETION_NODE_ID));
+            setEdges(eds => eds.filter(e => e.target !== COMPLETION_NODE_ID));
+        }
+        return;
+    }
 
-        if (completionNode.position.x !== newAvgX || completionNode.position.y !== newY) {
-            setNodes(nds => 
-                nds.map(n => 
+    // Case 2: Processors exist, but completion node doesn't. Add it.
+    if (processorNodes.length > 0 && !completionNode) {
+        const avgX = processorNodes.reduce((sum, n) => sum + n.position.x, 0) / processorNodes.length;
+        const maxY = Math.max(...processorNodes.map(n => n.position.y));
+        const newCompletionNode: Node = {
+            id: COMPLETION_NODE_ID,
+            type: 'completion',
+            position: { x: avgX, y: maxY + NODE_V_SPACING + 50 },
+            data: {},
+            deletable: false,
+            draggable: false,
+        };
+        setNodes(nds => [...nds, newCompletionNode]);
+        return; // Edges will be handled in the next render cycle
+    }
+    
+    // Case 3: Both processors and completion node exist. Manage positions and connections.
+    if (processorNodes.length > 0 && completionNode) {
+        // Identify "last" processors (those not connected to another processor)
+        const processorsThatAreSourcesForOtherProcessors = new Set<string>();
+        for (const edge of edges) {
+            const sourceNode = nodes.find(n => n.id === edge.source);
+            const targetNode = nodes.find(n => n.id === edge.target);
+            if (sourceNode?.type === 'processor' && targetNode?.type === 'processor') {
+                processorsThatAreSourcesForOtherProcessors.add(sourceNode.id);
+            }
+        }
+
+        const lastProcessorIds = processorNodes
+            .filter(p => !processorsThatAreSourcesForOtherProcessors.has(p.id))
+            .map(p => p.id);
+        
+        const lastProcessorNodes = nodes.filter(n => lastProcessorIds.includes(n.id));
+
+        // Update position of completion node based on the "last" processors for a cleaner layout
+        if (lastProcessorNodes.length > 0) {
+            const avgX = lastProcessorNodes.reduce((sum, n) => sum + n.position.x, 0) / lastProcessorNodes.length;
+            const maxY = Math.max(...lastProcessorNodes.map(n => n.position.y));
+            const newY = maxY + NODE_V_SPACING + 50;
+
+            if (completionNode.position.x !== avgX || completionNode.position.y !== newY) {
+                setNodes(nds => nds.map(n => 
                     n.id === COMPLETION_NODE_ID 
-                    ? { ...n, position: { x: newAvgX, y: newY } } 
+                    ? { ...n, position: { x: avgX, y: newY } }
                     : n
-                )
-            );
+                ));
+            }
+        }
+
+        // Synchronize edges to the completion node
+        const currentCompletionEdges = edges.filter(e => e.target === COMPLETION_NODE_ID);
+        const edgesToCreate = lastProcessorIds.filter(id => !currentCompletionEdges.some(e => e.source === id));
+        const edgesToRemove = currentCompletionEdges.filter(e => !lastProcessorIds.includes(e.source as string));
+
+        if (edgesToCreate.length > 0 || edgesToRemove.length > 0) {
+            setEdges(eds => {
+                const filteredEdges = eds.filter(e => !edgesToRemove.some(er => er.id === e.id));
+                const newEdges = edgesToCreate.map(sourceId => ({
+                    id: `e-${sourceId}-${COMPLETION_NODE_ID}`,
+                    source: sourceId,
+                    target: COMPLETION_NODE_ID,
+                    type: 'smoothstep',
+                }));
+                return [...filteredEdges, ...newEdges];
+            });
         }
     }
-  }, [nodes, setNodes]);
+  }, [nodes, edges, setNodes, setEdges]);
+  
+  // Effect for keyboard shortcuts to switch mouse mode
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore key events if an input, textarea, or select is focused
+      const activeEl = document.activeElement;
+      if (activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)) {
+        return;
+      }
+      
+      if (event.key.toLowerCase() === 'h') {
+        event.preventDefault();
+        setMouseMode('pan');
+      } else if (event.key.toLowerCase() === 'v') {
+        event.preventDefault();
+        setMouseMode('select');
+      }
+    };
 
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const onConnect = useCallback((params: Edge | Connection) => {
     const sourceNode = nodes.find(n => n.id === params.source);
@@ -155,11 +301,6 @@ const App: React.FC = () => {
 
     if (sourceNode?.type === 'repository' && targetNode?.type !== 'worker') {
       console.warn("Connection prevented: Raw Items Repository can only connect to a Worker node.");
-      return;
-    }
-
-    if (targetNode?.type === 'completion') {
-      console.warn("Connection prevented: Connections to the Completion node are managed automatically.");
       return;
     }
 
@@ -174,6 +315,37 @@ const App: React.FC = () => {
         setSettingsOpen(true);
     }
   }, []);
+
+  const onNodesChangeHandler = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => {
+      const changedNodes = applyNodeChanges(changes, nds);
+
+      return changedNodes.map((node) => {
+        const dimensionChange = changes.find(
+          (change): change is NodeDimensionChange =>
+            change.type === 'dimensions' &&
+            change.id === node.id &&
+            !!change.dimensions
+        );
+
+        if (dimensionChange) {
+          if (node.type === 'shape') {
+            // Sync the new dimensions back to the node's data object for persistence
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                width: dimensionChange.dimensions.width,
+                height: dimensionChange.dimensions.height,
+              },
+            };
+          }
+        }
+        return node;
+      });
+    });
+  }, [setNodes]);
+
 
   const addNode = (type: string, data: NodeData, sourceNode: Node | null = null) => {
     // Start Node Logic
@@ -255,21 +427,21 @@ const App: React.FC = () => {
       return;
     }
 
-    // Worker Input Nodes (DataExtractor)
-    if (type === 'data-extractor' && sourceNode?.type === 'worker') {
-        const hasDataExtractorInput = edges.some(edge => {
+    // Worker Input Nodes (All Extractor Types)
+    if (EXTRACTOR_NODE_TYPES.includes(type) && sourceNode?.type === 'worker') {
+        const hasExtractorInput = edges.some(edge => {
             if (edge.target !== sourceNode.id) return false;
             const sourceNodeFromEdge = nodes.find(n => n.id === edge.source);
-            return sourceNodeFromEdge?.type === 'data-extractor';
+            return sourceNodeFromEdge && EXTRACTOR_NODE_TYPES.includes(sourceNodeFromEdge.type as string);
         });
 
-        if (hasDataExtractorInput) {
+        if (hasExtractorInput) {
             alert("This Worker node can only have one Data Extractor input.");
             return;
         }
 
         const worker = sourceNode;
-        const workerInputNodes = edges.filter(e => e.target === worker.id && nodes.find(n => n.id === e.source)?.type === 'data-extractor').length;
+        const workerInputNodes = edges.filter(e => e.target === worker.id && nodes.find(n => n.id === e.source && EXTRACTOR_NODE_TYPES.includes(n.type as string))).length;
         const newNodeId = getId();
         
         const position : XYPosition = {
@@ -294,79 +466,53 @@ const App: React.FC = () => {
         return;
     }
 
-    // Processor Node Logic (auto-handles Completion node)
-    if (type === 'processor') {
-        const newProcessorId = getId();
-        let position: XYPosition;
-        if (sourceNode) {
-            const childEdgesCount = edges.filter(e => e.source === sourceNode.id).length;
-            position = {
-                x: sourceNode.position.x + (childEdgesCount * (NODE_H_SPACING / 2)),
-                y: sourceNode.position.y + NODE_V_SPACING
-            };
-        } else {
-            position = { x: 400, y: 1000 }; // Fallback
-        }
+    // Standard logic for other action nodes (Click, Loop, Processor)
+    let finalSourceNode = sourceNode;
 
-        const newProcessorNode: Node = {
-            id: newProcessorId,
-            type: 'processor',
-            position,
-            data,
-        };
-
-        const nodesToAdd: Node[] = [newProcessorNode];
-        let edgesToAdd: Edge[] = [];
-
-        if (sourceNode) {
-            edgesToAdd.push({ id: `e-${sourceNode.id}-${newProcessorId}`, source: sourceNode.id, target: newProcessorId, animated: true });
-        }
-
-        const completionNodeExists = nodes.some(n => n.id === COMPLETION_NODE_ID);
-
-        if (!completionNodeExists) {
-            const otherProcessors = nodes.filter(n => n.type === 'processor');
-            const allProcessors = [...otherProcessors, newProcessorNode];
-            const avgX = allProcessors.reduce((sum, node) => sum + node.position.x, 0) / allProcessors.length;
-            const maxY = Math.max(...allProcessors.map(n => n.position.y));
-
-            const newCompletionNode: Node = {
-                id: COMPLETION_NODE_ID,
-                type: 'completion',
-                position: { x: avgX, y: maxY + NODE_V_SPACING },
-                data: { reportEnabled: true },
-                deletable: false,
-                draggable: false,
-            };
-            nodesToAdd.push(newCompletionNode);
-            
-            const processorEdges = allProcessors.map(p => ({
-                id: `e-${p.id}-${COMPLETION_NODE_ID}`,
-                source: p.id,
-                target: COMPLETION_NODE_ID,
-                animated: true,
-            }));
-            edgesToAdd = [...edgesToAdd, ...processorEdges];
-        } else {
-            edgesToAdd.push({ id: `e-${newProcessorId}-${COMPLETION_NODE_ID}`, source: newProcessorId, target: COMPLETION_NODE_ID, animated: true });
-        }
-
-        setNodes(nds => nds.concat(nodesToAdd));
-        setEdges(eds => eds.concat(edgesToAdd));
-
-        return;
+    if (type === 'processor' && sourceNode?.type === 'worker') {
+      // If adding a processor from a worker, find the end of the existing chain
+      let lastProcessorInChainId: string | null = null;
+      
+      const firstProcessorEdge = edges.find(e => 
+          e.source === sourceNode.id && nodes.find(n => n.id === e.target)?.type === 'processor'
+      );
+      
+      if (firstProcessorEdge) {
+          lastProcessorInChainId = firstProcessorEdge.target;
+          let isLast = false;
+          while (!isLast) {
+              const nextEdge = edges.find(e => 
+                  e.source === lastProcessorInChainId && nodes.find(n => n.id === e.target)?.type === 'processor'
+              );
+              if (nextEdge) {
+                  lastProcessorInChainId = nextEdge.target;
+              } else {
+                  isLast = true;
+              }
+          }
+      }
+      
+      if (lastProcessorInChainId) {
+          finalSourceNode = nodes.find(n => n.id === lastProcessorInChainId) || sourceNode;
+      }
     }
 
-
-    // Standard logic for other action nodes (Click, Loop)
     const newNodeId = getId();
     let position: XYPosition;
-    if (sourceNode) {
-      const childEdgesCount = edges.filter(e => e.source === sourceNode.id).length;
-      position = { 
-        x: sourceNode.position.x + (childEdgesCount * (NODE_H_SPACING / 2)),
-        y: sourceNode.position.y + NODE_V_SPACING
-      };
+    if (finalSourceNode) {
+      if(type === 'processor') {
+          // Stack processors vertically for a clear chain
+          position = {
+              x: finalSourceNode.position.x,
+              y: finalSourceNode.position.y + NODE_V_SPACING
+          };
+      } else {
+          const childEdgesCount = edges.filter(e => e.source === finalSourceNode!.id).length;
+          position = { 
+            x: finalSourceNode.position.x + (childEdgesCount * (NODE_H_SPACING / 2)),
+            y: finalSourceNode.position.y + NODE_V_SPACING
+          };
+      }
     } else {
       position = { // Fallback position
         x: Math.random() * 250 + 50,
@@ -383,10 +529,10 @@ const App: React.FC = () => {
 
     setNodes((nds) => nds.concat(newNode));
 
-    if (sourceNode) {
+    if (finalSourceNode) {
       const newEdge: Edge = {
-        id: `e-${sourceNode.id}-${newNodeId}`,
-        source: sourceNode.id,
+        id: `e-${finalSourceNode.id}-${newNodeId}`,
+        source: finalSourceNode.id,
         target: newNodeId,
         animated: true,
       };
@@ -433,89 +579,6 @@ const App: React.FC = () => {
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
   }, [projectSettings, nodes, edges]);
-
-  // WordPress integration: Save to WordPress
-  const saveToWordPress = useCallback(async () => {
-    const config = {
-      projectSettings,
-      nodes,
-      edges,
-    };
-    
-    // Check if we have WordPress config
-    if (typeof window.crawlflowConfig === 'undefined') {
-      console.warn('WordPress config not found, using export instead');
-      exportConfiguration();
-      return;
-    }
-    
-    const { ajaxUrl, nonce, projectId } = window.crawlflowConfig;
-    
-    try {
-      const configJson = JSON.stringify(config);
-      
-      // Validate JSON before sending
-      try {
-        JSON.parse(configJson);
-      } catch (e) {
-        console.error('Invalid JSON before sending:', e);
-        alert('Error: Invalid configuration data. Please check your project settings.');
-        return;
-      }
-      
-      const formData = new FormData();
-      formData.append('action', 'crawlflow_save_flow_config');
-      formData.append('nonce', nonce);
-      formData.append('project_id', projectId || '0');
-      formData.append('config', configJson);
-      
-      const response = await fetch(ajaxUrl, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        alert('Project saved successfully!');
-        // Update project ID if it's a new project
-        if (result.data?.project_id && !projectId) {
-          window.crawlflowConfig.projectId = result.data.project_id;
-          // Update URL without reload
-          const url = new URL(window.location.href);
-          url.searchParams.set('project_id', result.data.project_id);
-          window.history.pushState({}, '', url);
-        }
-      } else {
-        const errorMsg = result.data?.message || result.data?.debug_info?.first_chars || 'Unknown error';
-        console.error('Save error:', result);
-        alert('Failed to save project: ' + errorMsg);
-      }
-    } catch (error) {
-      console.error('Error saving to WordPress:', error);
-      alert('Error saving project: ' + (error instanceof Error ? error.message : 'Please try again.'));
-    }
-  }, [projectSettings, nodes, edges, exportConfiguration]);
-  
-  // Load from WordPress on mount
-  useEffect(() => {
-    if (typeof window.crawlflowConfig !== 'undefined' && window.crawlflowConfig.projectConfig) {
-      const config = window.crawlflowConfig.projectConfig;
-      if (config.projectSettings) {
-        setProjectSettings(config.projectSettings);
-      }
-      if (config.nodes) {
-        setNodes(config.nodes);
-      }
-      if (config.edges) {
-        setEdges(config.edges);
-      }
-    }
-  }, []);
 
   const importConfiguration = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -581,15 +644,21 @@ const App: React.FC = () => {
     loop: (props) => <LoopNode {...props} />,
     repository: (props) => <RepositoryNode {...props} />,
     reception: (props) => <ReceptionNode {...props} />,
-    'data-extractor': (props) => <DataExtractorNode {...props} />,
+    'html-data-extractor': (props) => <HTMLDataExtractorNode {...props} />,
+    'csv-extractor': (props) => <CSVExtractorNode {...props} />,
+    'json-extractor': (props) => <JSONExtractorNode {...props} />,
+    'xml-extractor': (props) => <XMLExtractorNode {...props} />,
+    'mysql-extractor': (props) => <MySQLExtractorNode {...props} />,
     processor: (props) => <ProcessorNode {...props} />,
     completion: (props) => <CompletionNode {...props} />,
+    shape: (props) => <ShapeNode {...props} />,
   }), []);
 
-  const handleCloseSettings = () => {
+  // FIX: Wrapped handleCloseSettings in useCallback for referential stability. This prevents unnecessary re-renders in child components and allows it to be used safely in other useCallback dependency arrays.
+  const handleCloseSettings = useCallback(() => {
     setSettingsOpen(false);
     setSelectedNode(null);
-  };
+  }, []);
 
   const handleClosePanels = () => {
     setSidebarOpen(false);
@@ -627,8 +696,8 @@ const App: React.FC = () => {
       const { nodeId, ruleId } = inspectorConfig.pickingState;
       const targetNode = nodes.find(n => n.id === nodeId);
 
-      if (targetNode && targetNode.type === 'data-extractor') {
-          const nodeData = targetNode.data as DataExtractorNodeData;
+      if (targetNode && targetNode.type === 'html-data-extractor') {
+          const nodeData = targetNode.data as HTMLDataExtractorNodeData;
           const updatedRules = nodeData.customRules.map(rule =>
               rule.id === ruleId ? { ...rule, selector } : rule
           );
@@ -637,7 +706,124 @@ const App: React.FC = () => {
 
       handleStopPicking();
   }, [inspectorConfig, nodes, updateNodeData, handleStopPicking]);
+
+  // Context Menu Handlers
+  const onNodeContextMenu = useCallback((event: MouseEvent, node: Node) => {
+    event.preventDefault();
+    event.stopPropagation(); // Prevent the event from bubbling up to the pane
+
+    const isNodeSelected = nodes.find(n => n.id === node.id)?.selected;
+
+    // If the right-clicked node is not already part of the selection,
+    // clear the previous selection and select only the clicked node.
+    if (!isNodeSelected) {
+      setNodes(nds => nds.map(n => ({
+        ...n,
+        selected: n.id === node.id,
+      })));
+    }
+    
+    // Show the context menu. Actions will operate on all selected nodes.
+    setMenu({
+      top: event.clientY,
+      left: event.clientX,
+    });
+  }, [nodes, setNodes]);
+
+  const onPaneContextMenu = useCallback((event: MouseEvent) => {
+      event.preventDefault();
+      setMenu(null);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+      setMenu(null);
+  }, []);
   
+  const onMoveStart = useCallback(() => {
+      setMenu(null);
+  }, []);
+  
+  const handleDeleteSelectedNodes = useCallback(() => {
+      const deletableNodeIds = nodes.filter(n => n.selected && n.deletable !== false).map(n => n.id);
+      
+      if (deletableNodeIds.length > 0) {
+          setEdges(eds => eds.filter(e => !deletableNodeIds.includes(e.source) && !deletableNodeIds.includes(e.target)));
+          setNodes(nds => nds.filter(n => !deletableNodeIds.includes(n.id)));
+      }
+      setMenu(null);
+  }, [nodes, setNodes, setEdges]);
+  
+  const handleDuplicateSelectedNodes = useCallback(() => {
+      const nodesToDuplicate = nodes.filter(n => n.selected && n.deletable !== false);
+      if (nodesToDuplicate.length === 0) {
+          setMenu(null);
+          return;
+      }
+
+      const newNodes: Node[] = [];
+      const oldIdToNewIdMap = new Map<string, string>();
+
+      nodesToDuplicate.forEach(node => {
+          const newNodeId = getId();
+          oldIdToNewIdMap.set(node.id, newNodeId);
+          newNodes.push({
+              ...node,
+              id: newNodeId,
+              position: { x: node.position.x + 20, y: node.position.y + 20 },
+              selected: true,
+          });
+      });
+
+      const newEdges: Edge[] = [];
+      const duplicatedIds = new Set(nodesToDuplicate.map(n => n.id));
+
+      edges.forEach(edge => {
+          if (duplicatedIds.has(edge.source) && duplicatedIds.has(edge.target)) {
+              const newSourceId = oldIdToNewIdMap.get(edge.source)!;
+              const newTargetId = oldIdToNewIdMap.get(edge.target)!;
+              newEdges.push({
+                  ...edge,
+                  id: `e-${newSourceId}-${newTargetId}-${getId()}`,
+                  source: newSourceId,
+                  target: newTargetId,
+              });
+          }
+      });
+      
+      setNodes(nds => 
+          nds.map(n => ({ ...n, selected: false }))
+             .concat(newNodes)
+      );
+      setEdges(eds => eds.concat(newEdges));
+      setMenu(null);
+  }, [nodes, edges, setNodes, setEdges]);
+  
+  const addShapeNode = useCallback((shapeType: ShapeType) => {
+    if (!rfInstance || !reactFlowWrapper.current) return;
+
+    const position = rfInstance.project({
+        x: reactFlowWrapper.current.clientWidth / 2,
+        y: reactFlowWrapper.current.clientHeight / 2,
+    });
+
+    const { width, height } = defaultShapeSizes[shapeType];
+    const data: ShapeNodeData = { ...defaultShapeData[shapeType], width, height };
+
+    const newNode: Node<ShapeNodeData> = {
+        id: getId(),
+        type: 'shape',
+        position: {
+            x: position.x - width / 2,
+            y: position.y - height / 2,
+        },
+        data,
+        width,
+        height,
+        zIndex: -1,
+    };
+    setNodes((nds) => nds.concat(newNode));
+    handleCloseSettings();
+}, [rfInstance, setNodes, handleCloseSettings]);
 
   return (
     <div className="flex flex-col h-screen font-sans bg-slate-100 overflow-hidden">
@@ -656,24 +842,42 @@ const App: React.FC = () => {
                     onClose={() => setSidebarOpen(false)}
                     nodes={nodes}
                     edges={edges}
+                    mouseMode={mouseMode}
+                    onSetMouseMode={setMouseMode}
                 />
-                <main className="flex-1 h-full relative">
+                <main className="flex-1 h-full relative" ref={reactFlowWrapper}>
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
-                    onNodesChange={onNodesChange}
+                    onNodesChange={onNodesChangeHandler}
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     nodeTypes={nodeTypes}
                     onSelectionChange={onSelectionChange}
                     onNodeDragStop={onNodeDragStop}
+                    onInit={setRfInstance}
                     fitView
                     className="bg-slate-100"
+                    selectionOnDrag={mouseMode === 'select'}
+                    panOnDrag={mouseMode === 'pan'}
+                    onNodeContextMenu={onNodeContextMenu}
+                    onPaneContextMenu={onPaneContextMenu}
+                    onPaneClick={onPaneClick}
+                    onMoveStart={onMoveStart}
                 >
                     <Controls />
                     <MiniMap nodeStrokeWidth={3} zoomable pannable />
                     <Background gap={16} size={1} />
                 </ReactFlow>
+                 {menu && (
+                    <ContextMenu
+                        top={menu.top}
+                        left={menu.left}
+                        onClose={() => setMenu(null)}
+                        onDelete={handleDeleteSelectedNodes}
+                        onDuplicate={handleDuplicateSelectedNodes}
+                    />
+                )}
                 {/* Mobile Toggle Buttons */}
                 <div className="absolute top-4 left-4 z-10 md:hidden">
                     <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white rounded-full shadow-lg text-gray-700 hover:bg-gray-100">
@@ -696,7 +900,6 @@ const App: React.FC = () => {
                   onUpdateProjectSettings={updateProjectSettings}
                   onExport={exportConfiguration}
                   onImport={importConfiguration}
-                  onSaveToWordPress={saveToWordPress}
                   isOpen={isSettingsOpen}
                   onShowInspector={showInspector}
                   onHideInspector={hideInspector}
@@ -705,6 +908,7 @@ const App: React.FC = () => {
                   pickingRuleId={inspectorConfig?.pickingState?.ruleId ?? null}
                   onInspectSelector={setHighlightedSelector}
                   highlightedSelector={highlightedSelector}
+                  onAddShapeNode={addShapeNode}
                 />
             </ReactFlowProvider>
         </div>

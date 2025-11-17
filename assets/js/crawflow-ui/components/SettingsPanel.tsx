@@ -2,8 +2,8 @@
 // FIX: Corrected the import statement to include useState, useRef, ChangeEvent, and useEffect. The original line had a syntax error.
 import React, { useState, useRef, ChangeEvent, useEffect, useMemo } from 'react';
 import { Node } from 'reactflow';
-import { XMarkIcon, Cog6ToothIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, TrashIcon, DocumentMagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, CursorArrowRaysIcon } from './icons';
-import { NodeData, StartNodeData, ClickNodeData, ExtractionRule, DataSourceType, FileInputMethod, MySQLConnection, ProjectSettings, LoopNodeData, WorkerNodeData, DataExtractorNodeData, PresetType, ProcessorNodeData, CompletionNodeData, WorkerRule, WorkerRuleType, URLFormatRule, HTMLContainsRule, DOMValueRule, TagAttributeRule, DataSourceTypeRule, ExtractFrom, URLSourceSettings, APISourceSettings, APIKeyAuth, BearerTokenAuth, BasicAuth, XMLSourceSettings, JSONSourceSettings, PagePagination, OffsetLimitPagination, NextURLPagination, RuleCondition, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings } from '../types';
+import { XMarkIcon, Cog6ToothIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, TrashIcon, DocumentMagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, CursorArrowRaysIcon, SquareIcon, CircleIcon, FrameIcon, FolderIcon, EllipseIcon } from './icons';
+import { NodeData, StartNodeData, ClickNodeData, ExtractionRule, DataSourceType, FileInputMethod, MySQLConnection, ProjectSettings, LoopNodeData, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, WorkerRule, WorkerRuleType, URLFormatRule, HTMLContainsRule, DOMValueRule, TagAttributeRule, DataSourceTypeRule, ExtractFrom, URLSourceSettings, APISourceSettings, APIKeyAuth, BearerTokenAuth, BasicAuth, XMLSourceSettings, JSONSourceSettings, PagePagination, OffsetLimitPagination, NextURLPagination, RuleCondition, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings, CSVExtractorNodeData, ColumnMapping, JSONExtractorNodeData, PathMapping, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData, ShapeType } from '../types';
 import { PRESETS, PROCESSORS } from '../presets';
 
 
@@ -16,7 +16,6 @@ interface SettingsPanelProps {
   onUpdateProjectSettings: (update: Partial<ProjectSettings>) => void;
   onExport: () => void;
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onSaveToWordPress?: () => void;
   isOpen: boolean;
   // Inspector-related props
   onShowInspector: (htmlContent: string) => void;
@@ -26,6 +25,7 @@ interface SettingsPanelProps {
   pickingRuleId: string | null;
   onInspectSelector: (selector: string | null) => void;
   highlightedSelector: string | null;
+  onAddShapeNode: (shapeType: ShapeType) => void;
 }
 
 const commonInputClasses = "w-full p-2 bg-white text-gray-900 border border-slate-300 rounded-md shadow-sm placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-gray-500";
@@ -96,6 +96,53 @@ const TagInput: React.FC<{ label: string; tags: string[]; onChange: (tags: strin
         </div>
     );
 };
+
+
+const DiagramElementsPanel: React.FC<{ onAddShapeNode: (shapeType: ShapeType) => void }> = ({ onAddShapeNode }) => {
+    return (
+        <CollapsibleSection title="Diagram Elements" defaultOpen>
+            <p className="text-sm text-gray-600 mb-4">Click an element to add it to the canvas.</p>
+            <div className="grid grid-cols-3 gap-3">
+                 <button
+                    onClick={() => onAddShapeNode('rectangle')}
+                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <SquareIcon />
+                    <span className="text-sm font-semibold">Rectangle</span>
+                </button>
+                 <button
+                    onClick={() => onAddShapeNode('circle')}
+                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <CircleIcon />
+                    <span className="text-sm font-semibold">Circle</span>
+                </button>
+                 <button
+                    onClick={() => onAddShapeNode('ellipse')}
+                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <EllipseIcon />
+                    <span className="text-sm font-semibold">Ellipse</span>
+                </button>
+                 <button
+                    onClick={() => onAddShapeNode('frame')}
+                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <FrameIcon />
+                    <span className="text-sm font-semibold">Frame</span>
+                </button>
+                <button
+                    onClick={() => onAddShapeNode('package')}
+                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <FolderIcon />
+                    <span className="text-sm font-semibold">Package</span>
+                </button>
+            </div>
+        </CollapsibleSection>
+    );
+};
+
 
 // --- Start Node Settings ---
 // FIX: 'useRef' and 'ChangeEvent' were not defined. They are now imported from React.
@@ -479,12 +526,14 @@ const LoopNodeSettings: React.FC<{ node: Node<LoopNodeData>; onUpdate: (data: Lo
 };
 
 // FIX: 'useEffect' was not defined. It is now imported from React.
-const DataExtractorSettings: React.FC<{
-    node: Node<DataExtractorNodeData>;
-    onUpdate: (data: DataExtractorNodeData) => void;
-    props: SettingsPanelProps;
+const HTMLDataExtractorSettings: React.FC<{
+    node: Node<HTMLDataExtractorNodeData>;
+    onUpdate: (data: HTMLDataExtractorNodeData) => void;
+    props: Omit<SettingsPanelProps, 'onAddNode'>;
 }> = ({ node, onUpdate, props }) => {
     const { data } = node;
+    const [inspectorInputMethod, setInspectorInputMethod] = useState<'url' | 'paste'>('url');
+    const [pastedHtml, setPastedHtml] = useState(data.inspectorHtmlContent || '');
 
     const handleRuleChange = (ruleId: string, field: keyof ExtractionRule, value: any) => {
         const newRules = data.customRules.map(r => r.id === ruleId ? { ...r, [field]: value } : r);
@@ -500,49 +549,36 @@ const DataExtractorSettings: React.FC<{
         onUpdate({ ...data, customRules: data.customRules.filter(r => r.id !== ruleId) });
     };
 
-    const togglePreset = (presetKey: PresetType) => {
+    const togglePreset = (presetKey: string) => {
         const currentPresets = data.presets || [];
-        const preset = PRESETS[presetKey];
+        const preset = PRESETS[presetKey]?.html;
         if (!preset) return;
 
-        const isCurrentlySelected = currentPresets.includes(presetKey);
+        const isCurrentlySelected = currentPresets.includes(presetKey as any);
         
-        // Combine current custom rules and all rules from currently selected presets
-        let combinedRules = [...(data.customRules || [])];
+        let newRules = [...(data.customRules || [])];
 
         if (isCurrentlySelected) {
             // Deselecting: remove this preset's rules
             const presetRuleIds = new Set(preset.rules.map(r => r.id));
-            combinedRules = combinedRules.filter(r => !presetRuleIds.has(r.id));
-            const newPresets = currentPresets.filter(p => p !== presetKey);
-            onUpdate({ ...data, presets: newPresets, customRules: combinedRules });
+            newRules = newRules.filter(r => !presetRuleIds.has(r.id));
+            const newPresets = currentPresets.filter(p => p !== (presetKey as any));
+            onUpdate({ ...data, presets: newPresets, customRules: newRules });
         } else {
-            // Selecting: add this preset's rules (if not already present)
-            const existingRuleIds = new Set(combinedRules.map(r => r.id));
+            // Selecting: add this preset's rules (if not already present by ID)
+            const existingRuleIds = new Set(newRules.map(r => r.id));
             const rulesToAdd = preset.rules.filter(r => !existingRuleIds.has(r.id));
-            combinedRules = [...combinedRules, ...rulesToAdd];
-            const newPresets = [...currentPresets, presetKey];
-            onUpdate({ ...data, presets: newPresets, customRules: combinedRules });
+            newRules = [...newRules, ...rulesToAdd];
+            const newPresets = [...currentPresets, presetKey as any];
+            onUpdate({ ...data, presets: newPresets, customRules: newRules });
         }
     };
-    
-    // This derived state will now correctly combine custom rules and rules from all selected presets.
-    const allRules = useMemo(() => {
-        const customRules = data.customRules || [];
-        const presetRules: ExtractionRule[] = (data.presets || [])
-            .flatMap(presetKey => PRESETS[presetKey]?.rules || []);
-        
-        // We only need to display the customRules, as they now contain the preset rules.
-        // We just need to identify them.
-        return customRules;
-    }, [data.customRules, data.presets]);
-
 
     // Memoized set of preset rule IDs for efficient lookup during render
     const presetRuleIds = useMemo(() => {
         const ids = new Set<string>();
         (data.presets || []).forEach(presetKey => {
-            PRESETS[presetKey]?.rules.forEach(rule => {
+            PRESETS[presetKey]?.html?.rules.forEach(rule => {
                 ids.add(rule.id);
             });
         });
@@ -556,32 +592,32 @@ const DataExtractorSettings: React.FC<{
         }
         onUpdate({ ...data, inspectorLoading: true, inspectorError: undefined, inspectorHtmlContent: undefined });
         try {
-            // NOTE: In a real app, this would be a backend call to avoid CORS issues.
-            // For this environment, we'll simulate a fetch here.
-            const sampleHtml = `
-                <html>
-                    <head><title>Sample Page</title></head>
-                    <body>
-                        <h1>Main Title</h1>
-                        <p class="description">This is a sample description for the inspector.</p>
-                        <div class="product">
-                            <h2>Product A</h2>
-                            <span>$19.99</span>
-                        </div>
-                        <div class="product">
-                            <h2>Product B</h2>
-                            <span>$29.99</span>
-                        </div>
-                    </body>
-                </html>
-            `;
-            onUpdate({ ...data, inspectorLoading: false, inspectorHtmlContent: sampleHtml });
-            props.onShowInspector(sampleHtml);
+            // Use a CORS proxy to bypass browser security restrictions for development.
+            // In a production environment, this request should be routed through a dedicated backend.
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(data.inspectorUrl)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const htmlContent = await response.text();
+            
+            onUpdate({ ...data, inspectorLoading: false, inspectorHtmlContent: htmlContent });
+            props.onShowInspector(htmlContent);
 
         } catch (error) {
-            const errorMessage = 'Failed to fetch HTML. This might be due to CORS policy. Please check the URL or try another.';
+            console.error("Failed to fetch HTML:", error);
+            const errorMessage = 'Failed to fetch HTML. The URL may be invalid, the site may be down, or it might be blocking requests. Please try the "Paste HTML" option instead.';
             onUpdate({ ...data, inspectorLoading: false, inspectorError: errorMessage });
         }
+    };
+
+    const handleLoadPastedHtml = () => {
+        if (!pastedHtml) {
+            onUpdate({ ...data, inspectorError: 'Please paste HTML content to load.' });
+            return;
+        }
+        onUpdate({ ...data, inspectorLoading: false, inspectorHtmlContent: pastedHtml, inspectorError: undefined });
+        props.onShowInspector(pastedHtml);
     };
     
     useEffect(() => {
@@ -591,38 +627,73 @@ const DataExtractorSettings: React.FC<{
         }
     }, []);
 
+    const availablePresets = useMemo(() => {
+        return Object.entries(PRESETS).filter(([_, preset]) => !!preset.html);
+    }, []);
+
     return (
         <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Data Extractor Settings</h3>
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">HTML Data Extractor Settings</h3>
             
             <CollapsibleSection title="Inspector Tool" defaultOpen>
                 <div className="space-y-2">
-                    <p className="text-xs text-gray-600 mb-2">Enter a URL to load its HTML into a preview panel. You can then visually select elements to generate CSS selectors.</p>
-                    <div className="flex gap-2">
-                        <input
-                            type="url"
-                            placeholder="https://example.com/product/123"
-                            value={data.inspectorUrl || ''}
-                            onChange={(e) => onUpdate({ ...data, inspectorUrl: e.target.value })}
-                            className={commonInputClasses}
-                        />
-                        <button onClick={handleFetchHtml} disabled={data.inspectorLoading} className={`${smallButtonClasses} bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300`}>
-                            {data.inspectorLoading ? 'Loading...' : 'Load'}
+                    <p className="text-xs text-gray-600 mb-2">
+                        Load HTML to visually select elements. Fetching from a URL may fail due to browser security (CORS). If that happens, use the Paste HTML option.
+                    </p>
+                    <div className="flex bg-slate-100 rounded-lg p-1">
+                        <button
+                            onClick={() => setInspectorInputMethod('url')}
+                            className={`flex-1 p-2 text-sm font-semibold rounded-md transition-colors ${inspectorInputMethod === 'url' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/60'}`}
+                        >
+                            Fetch from URL
+                        </button>
+                        <button
+                            onClick={() => setInspectorInputMethod('paste')}
+                            className={`flex-1 p-2 text-sm font-semibold rounded-md transition-colors ${inspectorInputMethod === 'paste' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/60'}`}
+                        >
+                            Paste HTML
                         </button>
                     </div>
-                     {data.inspectorError && <p className="text-sm text-red-600">{data.inspectorError}</p>}
+
+                    {inspectorInputMethod === 'url' ? (
+                        <div className="flex gap-2 pt-2">
+                            <input
+                                type="url"
+                                placeholder="https://example.com/product/123"
+                                value={data.inspectorUrl || ''}
+                                onChange={(e) => onUpdate({ ...data, inspectorUrl: e.target.value })}
+                                className={commonInputClasses}
+                            />
+                            <button onClick={handleFetchHtml} disabled={data.inspectorLoading} className={`${smallButtonClasses} bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300`}>
+                                {data.inspectorLoading ? 'Loading...' : 'Fetch'}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="pt-2">
+                            <textarea
+                                placeholder="Paste the full HTML source code here"
+                                value={pastedHtml}
+                                onChange={(e) => setPastedHtml(e.target.value)}
+                                className={`${commonInputClasses} h-32 font-mono text-sm`}
+                            />
+                            <button onClick={handleLoadPastedHtml} className={`${commonButtonClasses} bg-blue-600 hover:bg-blue-700 mt-2`}>
+                                Load HTML
+                            </button>
+                        </div>
+                    )}
+                     {data.inspectorError && <p className="text-sm text-red-600 mt-2">{data.inspectorError}</p>}
                 </div>
             </CollapsibleSection>
 
             <CollapsibleSection title="Extraction Presets">
                 <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(PRESETS).map(([key, preset]) => (
+                    {availablePresets.map(([key, preset]) => (
                         <div key={key} className="flex items-center gap-2">
                             <input
                                 type="checkbox"
                                 id={`preset-${key}`}
-                                checked={(data.presets || []).includes(key as PresetType)}
-                                onChange={() => togglePreset(key as PresetType)}
+                                checked={(data.presets || []).includes(key as any)}
+                                onChange={() => togglePreset(key)}
                                 className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                             />
                             <label htmlFor={`preset-${key}`} className="text-sm text-gray-700">{preset.name}</label>
@@ -633,7 +704,7 @@ const DataExtractorSettings: React.FC<{
 
             <CollapsibleSection title="Custom Extraction Rules" defaultOpen>
                  <div className="space-y-3">
-                    {allRules.map((rule) => {
+                    {data.customRules.map((rule) => {
                         const isPresetRule = presetRuleIds.has(rule.id);
                         return (
                             <div key={rule.id} className={`p-3 border rounded-lg space-y-2 relative ${isPresetRule ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
@@ -704,6 +775,303 @@ const DataExtractorSettings: React.FC<{
         </div>
     );
 };
+
+// --- NEW EXTRACTOR SETTINGS ---
+
+const CSVExtractorSettings: React.FC<{ node: Node<CSVExtractorNodeData>; onUpdate: (data: CSVExtractorNodeData) => void }> = ({ node, onUpdate }) => {
+    const { data } = node;
+
+    const handleMappingChange = (id: string, key: keyof ColumnMapping, value: any) => {
+        const newMappings = data.mappings.map(m => m.id === id ? { ...m, [key]: value } : m);
+        onUpdate({ ...data, mappings: newMappings });
+    };
+    const addMapping = () => {
+        const newMapping: ColumnMapping = { id: `${Date.now()}`, source: String(data.mappings.length), fieldName: `field_${data.mappings.length + 1}` };
+        onUpdate({ ...data, mappings: [...data.mappings, newMapping] });
+    };
+    const removeMapping = (id: string) => {
+        onUpdate({ ...data, mappings: data.mappings.filter(m => m.id !== id) });
+    };
+    
+    const togglePreset = (presetKey: string) => {
+        const currentPresets = data.presets || [];
+        const preset = PRESETS[presetKey]?.csv;
+        if (!preset) return;
+
+        const isCurrentlySelected = currentPresets.includes(presetKey);
+        let newMappings = [...data.mappings];
+
+        if (isCurrentlySelected) {
+            const presetMappingIds = new Set(preset.mappings.map(m => m.id));
+            newMappings = newMappings.filter(m => !presetMappingIds.has(m.id));
+            const newPresets = currentPresets.filter(p => p !== presetKey);
+            onUpdate({ ...data, presets: newPresets, mappings: newMappings });
+        } else {
+            const existingMappingIds = new Set(newMappings.map(m => m.id));
+            const mappingsToAdd = preset.mappings.filter(m => !existingMappingIds.has(m.id));
+            newMappings = [...newMappings, ...mappingsToAdd];
+            const newPresets = [...currentPresets, presetKey];
+            onUpdate({ ...data, presets: newPresets, mappings: newMappings });
+        }
+    };
+    
+    const presetMappingIds = useMemo(() => {
+        const ids = new Set<string>();
+        (data.presets || []).forEach(presetKey => {
+            PRESETS[presetKey]?.csv?.mappings.forEach(mapping => {
+                ids.add(mapping.id);
+            });
+        });
+        return ids;
+    }, [data.presets]);
+
+    const availablePresets = useMemo(() => {
+        return Object.entries(PRESETS).filter(([_, preset]) => !!preset.csv);
+    }, []);
+
+    return (
+        <div className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">CSV Extractor Settings</h3>
+            <div className="flex items-center gap-2">
+                <input
+                    type="checkbox"
+                    id="hasHeader"
+                    checked={data.hasHeader}
+                    onChange={(e) => onUpdate({ ...data, hasHeader: e.target.checked })}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="hasHeader" className="text-sm text-gray-700">First row is header</label>
+            </div>
+            
+            <CollapsibleSection title="Extraction Presets">
+                <div className="grid grid-cols-2 gap-2">
+                    {availablePresets.map(([key, preset]) => (
+                        <div key={key} className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id={`preset-${key}`}
+                                checked={(data.presets || []).includes(key)}
+                                onChange={() => togglePreset(key)}
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor={`preset-${key}`} className="text-sm text-gray-700">{preset.name}</label>
+                        </div>
+                    ))}
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Column Mappings" defaultOpen>
+                <div className="space-y-2">
+                    {data.mappings.map(m => {
+                        const isPresetMapping = presetMappingIds.has(m.id);
+                        return (
+                            <div key={m.id} className={`flex items-center gap-2 p-2 border rounded-md relative ${isPresetMapping ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+                                {isPresetMapping && <span className="absolute top-1 right-2 text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-0.5 rounded-full">Preset</span>}
+                                <input type={data.hasHeader ? 'text' : 'number'} placeholder={data.hasHeader ? "Header Name" : "Column Index"} value={m.source} onChange={e => handleMappingChange(m.id, 'source', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
+                                <span>-&gt;</span>
+                                <input type="text" placeholder="Field Name" value={m.fieldName} onChange={e => handleMappingChange(m.id, 'fieldName', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping}/>
+                                {!isPresetMapping && <button onClick={() => removeMapping(m.id)} className="text-gray-400 hover:text-red-500"><TrashIcon /></button>}
+                            </div>
+                        );
+                    })}
+                </div>
+                <button onClick={addMapping} className={`${commonButtonClasses} bg-teal-600 hover:bg-teal-700 mt-3`}>Add Mapping</button>
+            </CollapsibleSection>
+        </div>
+    );
+};
+
+const PathBasedExtractorSettings: React.FC<{
+    node: Node<JSONExtractorNodeData | XMLExtractorNodeData>;
+    onUpdate: (data: JSONExtractorNodeData | XMLExtractorNodeData) => void;
+    title: string;
+    pathPlaceholder: string;
+    presetKey: 'json' | 'xml';
+}> = ({ node, onUpdate, title, pathPlaceholder, presetKey }) => {
+    const { data } = node;
+    
+    const handleMappingChange = (id: string, key: keyof PathMapping, value: any) => {
+        const newMappings = data.mappings.map(m => m.id === id ? { ...m, [key]: value } : m);
+        onUpdate({ ...data, mappings: newMappings });
+    };
+    const addMapping = () => {
+        const newMapping: PathMapping = { id: `${Date.now()}`, path: '', fieldName: `field_${data.mappings.length + 1}` };
+        onUpdate({ ...data, mappings: [...data.mappings, newMapping] });
+    };
+    const removeMapping = (id: string) => {
+        onUpdate({ ...data, mappings: data.mappings.filter(m => m.id !== id) });
+    };
+
+    const togglePreset = (key: string) => {
+        const currentPresets = data.presets || [];
+        const preset = PRESETS[key]?.[presetKey];
+        if (!preset) return;
+
+        const isCurrentlySelected = currentPresets.includes(key);
+        let newMappings = [...data.mappings];
+
+        if (isCurrentlySelected) {
+            const presetMappingIds = new Set(preset.mappings.map(m => m.id));
+            newMappings = newMappings.filter(m => !presetMappingIds.has(m.id));
+            const newPresets = currentPresets.filter(p => p !== key);
+            onUpdate({ ...data, presets: newPresets, mappings: newMappings });
+        } else {
+            const existingMappingIds = new Set(newMappings.map(m => m.id));
+            const mappingsToAdd = preset.mappings.filter(m => !existingMappingIds.has(m.id));
+            newMappings = [...newMappings, ...mappingsToAdd];
+            const newPresets = [...currentPresets, key];
+            onUpdate({ ...data, presets: newPresets, mappings: newMappings });
+        }
+    };
+    
+    const presetMappingIds = useMemo(() => {
+        const ids = new Set<string>();
+        (data.presets || []).forEach(key => {
+            PRESETS[key]?.[presetKey]?.mappings.forEach(mapping => {
+                ids.add(mapping.id);
+            });
+        });
+        return ids;
+    }, [data.presets, presetKey]);
+
+    const availablePresets = useMemo(() => {
+        return Object.entries(PRESETS).filter(([_, preset]) => !!preset[presetKey]);
+    }, [presetKey]);
+    
+    return (
+        <div className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">{title}</h3>
+
+            <CollapsibleSection title="Extraction Presets">
+                <div className="grid grid-cols-2 gap-2">
+                    {availablePresets.map(([key, preset]) => (
+                        <div key={key} className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id={`preset-${key}`}
+                                checked={(data.presets || []).includes(key)}
+                                onChange={() => togglePreset(key)}
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor={`preset-${key}`} className="text-sm text-gray-700">{preset.name}</label>
+                        </div>
+                    ))}
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Path Mappings" defaultOpen>
+                <div className="space-y-2">
+                    {data.mappings.map(m => {
+                         const isPresetMapping = presetMappingIds.has(m.id);
+                         return (
+                            <div key={m.id} className={`flex items-center gap-2 p-2 border rounded-md relative ${isPresetMapping ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+                                {isPresetMapping && <span className="absolute top-1 right-2 text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-0.5 rounded-full">Preset</span>}
+                                <input type="text" placeholder={pathPlaceholder} value={m.path} onChange={e => handleMappingChange(m.id, 'path', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
+                                <span>-&gt;</span>
+                                <input type="text" placeholder="Field Name" value={m.fieldName} onChange={e => handleMappingChange(m.id, 'fieldName', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
+                                {!isPresetMapping && <button onClick={() => removeMapping(m.id)} className="text-gray-400 hover:text-red-500"><TrashIcon /></button>}
+                            </div>
+                         );
+                    })}
+                </div>
+                <button onClick={addMapping} className={`${commonButtonClasses} bg-teal-600 hover:bg-teal-700 mt-3`}>Add Mapping</button>
+            </CollapsibleSection>
+        </div>
+    );
+};
+
+const MySQLExtractorSettings: React.FC<{ node: Node<MySQLExtractorNodeData>; onUpdate: (data: MySQLExtractorNodeData) => void }> = ({ node, onUpdate }) => {
+    const { data } = node;
+
+    const handleMappingChange = (id: string, key: keyof ColumnMapping, value: any) => {
+        const newMappings = data.mappings.map(m => m.id === id ? { ...m, [key]: value } : m);
+        onUpdate({ ...data, mappings: newMappings });
+    };
+    const addMapping = () => {
+        const newMapping: ColumnMapping = { id: `${Date.now()}`, source: `column_${data.mappings.length + 1}`, fieldName: `field_${data.mappings.length + 1}` };
+        onUpdate({ ...data, mappings: [...data.mappings, newMapping] });
+    };
+    const removeMapping = (id: string) => {
+        onUpdate({ ...data, mappings: data.mappings.filter(m => m.id !== id) });
+    };
+
+    const togglePreset = (presetKey: string) => {
+        const currentPresets = data.presets || [];
+        const preset = PRESETS[presetKey]?.mysql;
+        if (!preset) return;
+
+        const isCurrentlySelected = currentPresets.includes(presetKey);
+        let newMappings = [...data.mappings];
+
+        if (isCurrentlySelected) {
+            const presetMappingIds = new Set(preset.mappings.map(m => m.id));
+            newMappings = newMappings.filter(m => !presetMappingIds.has(m.id));
+            const newPresets = currentPresets.filter(p => p !== presetKey);
+            onUpdate({ ...data, presets: newPresets, mappings: newMappings });
+        } else {
+            const existingMappingIds = new Set(newMappings.map(m => m.id));
+            const mappingsToAdd = preset.mappings.filter(m => !existingMappingIds.has(m.id));
+            newMappings = [...newMappings, ...mappingsToAdd];
+            const newPresets = [...currentPresets, presetKey];
+            onUpdate({ ...data, presets: newPresets, mappings: newMappings });
+        }
+    };
+    
+    const presetMappingIds = useMemo(() => {
+        const ids = new Set<string>();
+        (data.presets || []).forEach(presetKey => {
+            PRESETS[presetKey]?.mysql?.mappings.forEach(mapping => {
+                ids.add(mapping.id);
+            });
+        });
+        return ids;
+    }, [data.presets]);
+
+    const availablePresets = useMemo(() => {
+        return Object.entries(PRESETS).filter(([_, preset]) => !!preset.mysql);
+    }, []);
+    
+    return (
+         <div className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">MySQL Extractor Settings</h3>
+            
+            <CollapsibleSection title="Extraction Presets">
+                <div className="grid grid-cols-2 gap-2">
+                    {availablePresets.map(([key, preset]) => (
+                        <div key={key} className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id={`preset-${key}`}
+                                checked={(data.presets || []).includes(key)}
+                                onChange={() => togglePreset(key)}
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor={`preset-${key}`} className="text-sm text-gray-700">{preset.name}</label>
+                        </div>
+                    ))}
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Column Mappings" defaultOpen>
+                <div className="space-y-2">
+                    {data.mappings.map(m => {
+                        const isPresetMapping = presetMappingIds.has(m.id);
+                        return (
+                            <div key={m.id} className={`flex items-center gap-2 p-2 border rounded-md relative ${isPresetMapping ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+                                {isPresetMapping && <span className="absolute top-1 right-2 text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-0.5 rounded-full">Preset</span>}
+                                <input type="text" placeholder="Column Name" value={m.source} onChange={e => handleMappingChange(m.id, 'source', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
+                                <span>-&gt;</span>
+                                <input type="text" placeholder="Field Name" value={m.fieldName} onChange={e => handleMappingChange(m.id, 'fieldName', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
+                                {!isPresetMapping && <button onClick={() => removeMapping(m.id)} className="text-gray-400 hover:text-red-500"><TrashIcon /></button>}
+                            </div>
+                        );
+                    })}
+                </div>
+                <button onClick={addMapping} className={`${commonButtonClasses} bg-teal-600 hover:bg-teal-700 mt-3`}>Add Mapping</button>
+            </CollapsibleSection>
+        </div>
+    );
+}
 
 // --- Processor Settings Forms ---
 
@@ -1047,6 +1415,62 @@ const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data
     );
 };
 
+const ShapeNodeSettings: React.FC<{ node: Node<ShapeNodeData>; onUpdate: (data: ShapeNodeData) => void }> = ({ node, onUpdate }) => {
+    const { data } = node;
+
+    const handleUpdate = <K extends keyof ShapeNodeData>(key: K, value: ShapeNodeData[K]) => {
+        onUpdate({ ...data, [key]: value });
+    };
+
+    return (
+        <div className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Shape Settings</h3>
+            <div>
+                <label htmlFor="shapeLabel" className={commonLabelClasses}>Label</label>
+                <input
+                    id="shapeLabel"
+                    type="text"
+                    value={data.label}
+                    onChange={e => handleUpdate('label', e.target.value)}
+                    className={commonInputClasses}
+                />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="backgroundColor" className={commonLabelClasses}>Background</label>
+                    <input
+                        id="backgroundColor"
+                        type="color"
+                        value={data.backgroundColor}
+                        onChange={e => handleUpdate('backgroundColor', e.target.value)}
+                        className="w-full h-10 p-1 bg-white border border-slate-300 rounded-md cursor-pointer"
+                    />
+                </div>
+                 <div>
+                    <label htmlFor="textColor" className={commonLabelClasses}>Text Color</label>
+                    <input
+                        id="textColor"
+                        type="color"
+                        value={data.textColor}
+                        onChange={e => handleUpdate('textColor', e.target.value)}
+                        className="w-full h-10 p-1 bg-white border border-slate-300 rounded-md cursor-pointer"
+                    />
+                </div>
+            </div>
+             <div>
+                <label htmlFor="borderColor" className={commonLabelClasses}>Border Color</label>
+                <input
+                    id="borderColor"
+                    type="color"
+                    value={data.borderColor}
+                    onChange={e => handleUpdate('borderColor', e.target.value)}
+                    className="w-full h-10 p-1 bg-white border border-slate-300 rounded-md cursor-pointer"
+                />
+            </div>
+        </div>
+    );
+};
+
 
 // FIX: 'useRef' was not defined. It is now imported from React.
 const ProjectSettingsPanel: React.FC<{
@@ -1054,10 +1478,8 @@ const ProjectSettingsPanel: React.FC<{
   onUpdate: (update: Partial<ProjectSettings>) => void;
   onExport: () => void;
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onSaveToWordPress?: () => void;
-}> = ({ settings, onUpdate, onExport, onImport, onSaveToWordPress }) => {
+}> = ({ settings, onUpdate, onExport, onImport }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isWordPress = typeof window.crawlflowConfig !== 'undefined';
 
   return (
     <div className="space-y-4">
@@ -1088,37 +1510,17 @@ const ProjectSettingsPanel: React.FC<{
 
       <div className="border-t pt-4 space-y-3">
         <h4 className="font-semibold text-gray-700">Configuration</h4>
-        {isWordPress && onSaveToWordPress ? (
-          <div className="space-y-2">
-            <button onClick={onSaveToWordPress} className={`${commonButtonClasses} bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2`}>
-              <ArrowDownTrayIcon />
-              <span>Save to WordPress</span>
+        <div className="flex gap-2">
+            <input type="file" ref={fileInputRef} onChange={onImport} className="hidden" accept=".json" />
+            <button onClick={() => fileInputRef.current?.click()} className={`${commonButtonClasses} bg-gray-600 hover:bg-gray-700 w-1/2 flex items-center justify-center gap-2`}>
+                <ArrowUpTrayIcon />
+                <span>Import</span>
             </button>
-            <div className="flex gap-2">
-                <input type="file" ref={fileInputRef} onChange={onImport} className="hidden" accept=".json" />
-                <button onClick={() => fileInputRef.current?.click()} className={`${commonButtonClasses} bg-gray-600 hover:bg-gray-700 w-1/2 flex items-center justify-center gap-2`}>
-                    <ArrowUpTrayIcon />
-                    <span>Import</span>
-                </button>
-                 <button onClick={onExport} className={`${commonButtonClasses} bg-blue-600 hover:bg-blue-700 w-1/2 flex items-center justify-center gap-2`}>
-                    <ArrowDownTrayIcon />
-                    <span>Export</span>
-                </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-              <input type="file" ref={fileInputRef} onChange={onImport} className="hidden" accept=".json" />
-              <button onClick={() => fileInputRef.current?.click()} className={`${commonButtonClasses} bg-gray-600 hover:bg-gray-700 w-1/2 flex items-center justify-center gap-2`}>
-                  <ArrowUpTrayIcon />
-                  <span>Import</span>
-              </button>
-               <button onClick={onExport} className={`${commonButtonClasses} bg-blue-600 hover:bg-blue-700 w-1/2 flex items-center justify-center gap-2`}>
-                  <ArrowDownTrayIcon />
-                  <span>Export</span>
-              </button>
-          </div>
-        )}
+             <button onClick={onExport} className={`${commonButtonClasses} bg-blue-600 hover:bg-blue-700 w-1/2 flex items-center justify-center gap-2`}>
+                <ArrowDownTrayIcon />
+                <span>Export</span>
+            </button>
+        </div>
       </div>
     </div>
   );
@@ -1127,7 +1529,7 @@ const ProjectSettingsPanel: React.FC<{
 
 // Main Panel Component
 const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
-  const { node, onUpdateNode, onDeleteNode, onClose, isOpen, projectSettings, onUpdateProjectSettings, onExport, onImport, onSaveToWordPress } = props;
+  const { node, onUpdateNode, onDeleteNode, onClose, isOpen, projectSettings, onUpdateProjectSettings, onExport, onImport, onAddShapeNode } = props;
 
   const renderNodeSettings = () => {
     if (!node) return null;
@@ -1139,17 +1541,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
         return <ClickNodeSettings node={node as Node<ClickNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
       case 'loop':
         return <LoopNodeSettings node={node as Node<LoopNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'data-extractor':
-         return <DataExtractorSettings node={node as Node<DataExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} props={props} />;
+      case 'html-data-extractor':
+         return <HTMLDataExtractorSettings node={node as Node<HTMLDataExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} props={props} />;
+      case 'csv-extractor':
+         return <CSVExtractorSettings node={node as Node<CSVExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
+      case 'json-extractor':
+         return <PathBasedExtractorSettings node={node as Node<JSONExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} title="JSON Extractor Settings" pathPlaceholder="JSONPath (e.g., $.products[*].name)" presetKey="json" />;
+      case 'xml-extractor':
+         return <PathBasedExtractorSettings node={node as Node<XMLExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} title="XML Extractor Settings" pathPlaceholder="XPath (e.g., //item/title)" presetKey="xml" />;
+      case 'mysql-extractor':
+        return <MySQLExtractorSettings node={node as Node<MySQLExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
       case 'processor':
         return <ProcessorSettings node={node as Node<ProcessorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
       case 'worker':
         return <WorkerNodeSettings node={node as Node<WorkerNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      // Repository and Completion nodes are simple and might not need settings.
+      case 'shape':
+        return <ShapeNodeSettings node={node as Node<ShapeNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
       case 'repository':
         return <p className="text-sm text-gray-600 p-4 text-center">This is the Raw Items Repository. It collects items from all data sources. No configuration needed.</p>;
-      case 'completion':
-        return <p className="text-sm text-gray-600 p-4 text-center">This is the Completion node. All processors feed into this final step. No configuration needed.</p>;
       default:
         return <p className="text-sm text-gray-600 p-4 text-center">Settings for this node type are not available.</p>;
     }
@@ -1164,7 +1573,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
         </button>
       </div>
       <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-        {node ? renderNodeSettings() : <ProjectSettingsPanel settings={projectSettings} onUpdate={onUpdateProjectSettings} onExport={onExport} onImport={onImport} onSaveToWordPress={onSaveToWordPress} />}
+        <DiagramElementsPanel onAddShapeNode={onAddShapeNode} />
+        <div className="mt-4">
+            {node ? renderNodeSettings() : <ProjectSettingsPanel settings={projectSettings} onUpdate={onUpdateProjectSettings} onExport={onExport} onImport={onImport} />}
+        </div>
       </div>
       {node && node.deletable !== false && (
         <div className="mt-auto pt-4 border-t">

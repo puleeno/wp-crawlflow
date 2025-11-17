@@ -1,9 +1,8 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Mount vào WordPress container - đợi DOM ready và CSS load để tránh FOUC
+// WordPress integration: Wait for CSS and mount to WordPress container
 function waitForCSS(callback: () => void, maxWait = 3000) {
   const startTime = Date.now();
   
@@ -41,6 +40,7 @@ function waitForCSS(callback: () => void, maxWait = 3000) {
 }
 
 function initReactApp() {
+  // WordPress container or fallback to root
   const rootElement = document.getElementById('crawlflow-react-flow-root') || document.getElementById('root');
   if (!rootElement) {
     console.warn("CrawlFlow: Root element not found. Expected #crawlflow-react-flow-root or #root");
@@ -65,10 +65,10 @@ function initReactApp() {
   });
 }
 
-// Đợi DOM ready
+// Wait for DOM ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initReactApp);
 } else {
-  // DOM đã sẵn sàng
+  // DOM already ready
   initReactApp();
 }

@@ -156,7 +156,7 @@ export type RuleCondition = 'exists' | 'not-exists' | 'contains' | 'not-contains
 
 export type PresetType = 'woocommerce-product' | 'blog-post' | 'seo-metadata' | 'open-graph';
 
-export interface DataExtractorNodeData {
+export interface HTMLDataExtractorNodeData {
     presets: PresetType[];
     customRules: ExtractionRule[];
     // Inspector related fields
@@ -165,6 +165,41 @@ export interface DataExtractorNodeData {
     inspectorLoading?: boolean;
     inspectorError?: string;
 }
+
+// --- NEW EXTRACTOR TYPES ---
+export interface ColumnMapping {
+    id: string;
+    source: string; // Column Index for CSV, Column Name for MySQL
+    fieldName: string;
+}
+
+export interface CSVExtractorNodeData {
+    presets: string[];
+    mappings: ColumnMapping[];
+    hasHeader: boolean;
+}
+
+export interface PathMapping {
+    id: string;
+    path: string; // JSONPath or XPath
+    fieldName: string;
+}
+
+export interface JSONExtractorNodeData {
+    presets: string[];
+    mappings: PathMapping[];
+}
+
+export interface XMLExtractorNodeData {
+    presets: string[];
+    mappings: PathMapping[];
+}
+
+export interface MySQLExtractorNodeData {
+    presets: string[];
+    mappings: ColumnMapping[];
+}
+
 
 // --- PROCESSOR SETTINGS ---
 export interface SaveToDbSettings {
@@ -251,13 +286,43 @@ export interface WorkerNodeData {
   priority: number;
 }
 
+// FIX: Added CompletionNodeData interface to fix import error.
 export interface CompletionNodeData {
-    reportEnabled: boolean;
+    // This node marks the end of a flow, no specific data is needed.
+}
+
+// --- DIAGRAM SHAPE NODES ---
+export type ShapeType = 'rectangle' | 'circle' | 'ellipse' | 'frame' | 'package';
+
+export interface ShapeNodeData {
+  shapeType: ShapeType;
+  label: string;
+  width: number;
+  height: number;
+  backgroundColor: string;
+  borderColor: string;
+  textColor: string;
 }
 
 
 // FIX: Added ReceptionNodeData to the NodeData union type.
-export type NodeData = StartNodeData | ClickNodeData | LoopNodeData | RepositoryNodeData | ReceptionNodeData | WorkerNodeData | DataExtractorNodeData | ProcessorNodeData | CompletionNodeData;
+// FIX: Added CompletionNodeData to the NodeData union type to resolve import error.
+export type NodeData = 
+    | StartNodeData 
+    | ClickNodeData 
+    | LoopNodeData 
+    | RepositoryNodeData 
+    | ReceptionNodeData 
+    | WorkerNodeData 
+    | HTMLDataExtractorNodeData 
+    | CSVExtractorNodeData
+    | JSONExtractorNodeData
+    | XMLExtractorNodeData
+    | MySQLExtractorNodeData
+    | ProcessorNodeData
+    | CompletionNodeData
+    | ShapeNodeData;
+
 
 export type CustomNodeProps<T = NodeData> = NodeProps<T> & {
     title?: ReactNode;

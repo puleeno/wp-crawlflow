@@ -312,11 +312,14 @@ class WP_CrawlFlow {
                 
                 // Enqueue JS
                 if (isset($entry['file'])) {
+                    // Use file hash as version for cache busting
+                    $fileHash = pathinfo($entry['file'], PATHINFO_FILENAME);
+                    $fileHash = str_replace('crawflow-ui.', '', $fileHash);
                     wp_enqueue_script(
                         'crawlflow-react-flow',
                         $buildUrl . '/' . $entry['file'],
                         [], // No dependencies - React Flow is self-contained
-                        CRAWLFLOW_VERSION,
+                        $fileHash ?: CRAWLFLOW_VERSION,
                         true
                     );
                 }

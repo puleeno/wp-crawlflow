@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Node, Edge } from 'reactflow';
-import type { NodeData, ClickNodeData, LoopNodeData, StartNodeData, DataSourceType, WorkerNodeData, DataExtractorNodeData, ProcessorNodeData, CompletionNodeData } from '../types';
+import type { NodeData, ClickNodeData, LoopNodeData, StartNodeData, DataSourceType, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, CSVExtractorNodeData, JSONExtractorNodeData, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData } from '../types';
 import {
   CursorArrowRaysIcon,
   DocumentMagnifyingGlassIcon,
@@ -14,6 +14,7 @@ import {
   Cog6ToothIcon,
   XMarkIcon,
   FlagIcon,
+  HandIcon,
 } from './icons';
 import { PROCESSORS } from '../presets';
 
@@ -24,6 +25,8 @@ interface SidebarProps {
   onClose: () => void;
   nodes: Node[];
   edges: Edge[];
+  mouseMode: 'select' | 'pan';
+  onSetMouseMode: (mode: 'select' | 'pan') => void;
 }
 
 const dataSources: {
@@ -120,8 +123,9 @@ const dataSources: {
   },
 ];
 
+const EXTRACTOR_NODE_TYPES = ['html-data-extractor', 'csv-extractor', 'json-extractor', 'xml-extractor', 'mysql-extractor'];
 
-const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onClose, nodes, edges }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onClose, nodes, edges, mouseMode, onSetMouseMode }) => {
   
   const handleAddNode = (type: string, data: NodeData, sourceNode?: Node | null) => {
     onAddNode(type, data, sourceNode);
@@ -153,8 +157,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
     handleAddNode('loop', data, selectedNode);
   };
   
-  const addDataExtractorNode = () => {
-    const data: DataExtractorNodeData = {
+  const addHTMLDataExtractorNode = () => {
+    const data: HTMLDataExtractorNodeData = {
         presets: [],
         customRules: [{
             id: '1', 
@@ -166,8 +170,46 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
         inspectorUrl: '',
         inspectorHtmlContent: '',
     };
-    handleAddNode('data-extractor', data, selectedNode);
+    handleAddNode('html-data-extractor', data, selectedNode);
   };
+  
+  const addCSVDataExtractorNode = () => {
+    // FIX: Added missing 'presets' property to satisfy CSVExtractorNodeData type.
+    const data: CSVExtractorNodeData = {
+        presets: [],
+        mappings: [],
+        hasHeader: true,
+    };
+    handleAddNode('csv-extractor', data, selectedNode);
+  };
+
+  const addJSONDataExtractorNode = () => {
+    // FIX: Added missing 'presets' property to satisfy JSONExtractorNodeData type.
+    const data: JSONExtractorNodeData = {
+        presets: [],
+        mappings: [],
+    };
+    handleAddNode('json-extractor', data, selectedNode);
+  };
+
+  const addXMLExtractorNode = () => {
+    // FIX: Added missing 'presets' property to satisfy XMLExtractorNodeData type.
+    const data: XMLExtractorNodeData = {
+        presets: [],
+        mappings: [],
+    };
+    handleAddNode('xml-extractor', data, selectedNode);
+  };
+
+  const addMySQLExtractorNode = () => {
+    // FIX: Added missing 'presets' property to satisfy MySQLExtractorNodeData type.
+    const data: MySQLExtractorNodeData = {
+        presets: [],
+        mappings: [],
+    };
+    handleAddNode('mysql-extractor', data, selectedNode);
+  };
+
 
   const addProcessorNode = () => {
     const defaultProcessor = PROCESSORS[0];
@@ -229,7 +271,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
         const hasDataExtractorInput = edges.some(edge => {
             if (edge.target !== selectedNode.id) return false;
             const sourceNode = nodes.find(n => n.id === edge.source);
-            return sourceNode?.type === 'data-extractor';
+            return sourceNode && EXTRACTOR_NODE_TYPES.includes(sourceNode.type as string);
         });
 
         return (
@@ -239,21 +281,53 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
                     <p className="text-sm text-gray-600 mt-2 mb-4">
                         Connect a data extractor to define what data this worker should extract.
                     </p>
-                     <div className="flex flex-col gap-3">
+                     <div className="grid grid-cols-2 gap-3">
                         <button
-                          onClick={addDataExtractorNode}
+                          onClick={addHTMLDataExtractorNode}
                           disabled={hasDataExtractorInput}
-                          className="flex items-center gap-3 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
                           <TableCellsIcon />
-                          <span className="font-semibold">Add Data Extractor</span>
+                          <span className="text-sm font-semibold">HTML Extractor</span>
                         </button>
-                        {hasDataExtractorInput && (
-                            <p className="text-xs text-center text-gray-500 mt-2">
-                                A Worker can only have one Data Extractor input.
-                            </p>
-                        )}
+                         <button
+                          onClick={addCSVDataExtractorNode}
+                          disabled={hasDataExtractorInput}
+                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        >
+                          <DocumentTextIcon />
+                          <span className="text-sm font-semibold">CSV Extractor</span>
+                        </button>
+                        <button
+                          onClick={addJSONDataExtractorNode}
+                          disabled={hasDataExtractorInput}
+                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        >
+                          <DocumentTextIcon />
+                          <span className="text-sm font-semibold">JSON Extractor</span>
+                        </button>
+                        <button
+                          onClick={addXMLExtractorNode}
+                          disabled={hasDataExtractorInput}
+                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        >
+                          <DocumentTextIcon />
+                          <span className="text-sm font-semibold">XML Extractor</span>
+                        </button>
+                         <button
+                          onClick={addMySQLExtractorNode}
+                          disabled={hasDataExtractorInput}
+                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        >
+                          <DatabaseIcon />
+                          <span className="text-sm font-semibold">MySQL Extractor</span>
+                        </button>
                     </div>
+                     {hasDataExtractorInput && (
+                        <p className="text-xs text-center text-gray-500 mt-2">
+                            A Worker can only have one Data Extractor input.
+                        </p>
+                    )}
                 </div>
                 <div className="mt-6">
                     <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Next Action</h2>
@@ -263,7 +337,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
                     <div className="flex flex-col gap-3">
                         <button
                           onClick={addProcessorNode}
-                          className="flex items-center gap-3 p-3 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-all duration-200 shadow-md transform hover:scale-105"
+                          className="flex items-center gap-3 p-3 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
                           <Cog6ToothIcon />
                           <span className="font-semibold">Add Processor</span>
@@ -277,8 +351,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
     if (selectedNode.type === 'processor') {
         return (
              <div>
-                <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Processor Node</h2>
-                <p className="text-sm text-gray-600 mt-2 mb-4">This node processes the extracted data. It will automatically connect to the final Completion node.</p>
+                <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Next Action</h2>
+                <p className="text-sm text-gray-600 mt-2 mb-4">Add another processor to chain operations.</p>
+                <div className="flex flex-col gap-3">
+                    <button
+                      onClick={addProcessorNode}
+                      className="flex items-center gap-3 p-3 bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-all duration-200 shadow-md transform hover:scale-105"
+                    >
+                      <Cog6ToothIcon />
+                      <span className="font-semibold">Add Processor</span>
+                    </button>
+                </div>
             </div>
         )
     }
@@ -329,8 +412,26 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
       <div className="flex flex-col gap-3 mt-4 flex-1 overflow-y-auto">
         {renderContent()}
       </div>
-      <div className="mt-auto pt-4 border-t text-center text-xs text-gray-500">
-        React Flow Crawler v1.0
+      <div className="mt-auto pt-4 border-t">
+         <div className="flex items-center justify-center gap-1 p-1 bg-slate-100 rounded-lg mb-2">
+            <button 
+                onClick={() => onSetMouseMode('select')}
+                className={`flex-1 p-2 rounded-md transition-colors flex justify-center ${mouseMode === 'select' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                title="Select/drag nodes (V)"
+            >
+                <CursorArrowRaysIcon />
+            </button>
+            <button
+                onClick={() => onSetMouseMode('pan')}
+                className={`flex-1 p-2 rounded-md transition-colors flex justify-center ${mouseMode === 'pan' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                title="Pan/move canvas (H)"
+            >
+                <HandIcon />
+            </button>
+        </div>
+        <div className="text-center text-xs text-gray-500">
+          React Flow Crawler v1.0
+        </div>
       </div>
     </aside>
   );
