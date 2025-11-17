@@ -43,3 +43,4 @@ wp-content/uploads/
 
 # Cache
 *.cache
+composer.lock
