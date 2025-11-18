@@ -1,6 +1,7 @@
 # WP-CRAWFLOW PLUGIN
-**Phiên bản:** 1.0
-**Ngày tạo:** 2025
+**Phiên bản:** 2.0
+**Ngày cập nhật:** 2025
+**Kiến trúc:** Flow-Based Architecture
 **Tác giả:** Development Team
 
 ---
@@ -21,13 +22,14 @@
 ## 🎯 TỔNG QUAN WP-CRAWFLOW
 
 ### Mục tiêu
-WP-CrawlFlow là WordPress plugin mạnh mẽ cho **data migration** và **web crawling** sử dụng Rake 2.0 framework, cung cấp:
+WP-CrawlFlow 2.0 là WordPress plugin mạnh mẽ cho **data migration** và **web crawling** sử dụng Flow-Based Architecture, cung cấp:
 
-- **Flow-based Architecture**: Kiến trúc dựa trên flow để xử lý dữ liệu
+- **Flow-Based Architecture**: Kiến trúc mới hoàn toàn dựa trên visual flow nodes để xử lý dữ liệu
+- **Visual Flow Composer**: React Flow-based editor để tạo và quản lý crawl workflows
+- **Node-Based System**: Hệ thống modular với các node types: Start, Click, Loop, Repository, Reception, Worker, Extractor, Processor, Completion
 - **Database Migration System**: Hệ thống migration tự động với version tracking
-- **Web Crawling Engine**: Engine crawl dữ liệu từ web
+- **Multiple Data Sources**: Hỗ trợ URL, API, MySQL, CSV, JSON, XML
 - **WordPress Integration**: Tích hợp hoàn hảo với WordPress admin và database
-- **Visual Flow Composer**: Giao diện visual để tạo flow xử lý dữ liệu
 
 ### Vai trò trong hệ thống
 ```

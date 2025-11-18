@@ -1,7 +1,10 @@
 # TÀI LIỆU THIẾT KẾ KỸ THUẬT CRAWFLOW PLUGIN
-**Phiên bản:** 1.0
-**Ngày tạo:** 2025
+**Phiên bản:** 2.0
+**Ngày cập nhật:** 2025
+**Kiến trúc:** Flow-Based Architecture
 **Tác giả:** Development Team
+
+> **LƯU Ý**: Tài liệu này mô tả kiến trúc Flow-Based mới. Để hiểu rõ về system concept, vui lòng xem [SYSTEM_CONCEPT.md](./SYSTEM_CONCEPT.md)
 
 ---
 
@@ -21,14 +24,23 @@
 ## 1. TỔNG QUAN CRAWFLOW PLUGIN
 
 ### 1.1 Mục tiêu
-CrawlFlow Plugin là WordPress plugin sử dụng Rake Framework, cung cấp:
-- Dashboard quản lý projects
-- Visual flow composer cho database schemas
-- Migration system tích hợp
-- Logging và analytics
-- WordPress admin integration
+CrawlFlow Plugin 2.0 là WordPress plugin sử dụng **Flow-Based Architecture**, cung cấp:
+- **Visual Flow Composer**: React Flow-based editor để tạo crawl workflows
+- **Node-Based System**: Modular system với các node types độc lập
+- **Dashboard**: Quản lý projects, flows, và analytics
+- **Migration System**: Tự động migrate database với version tracking
+- **Logging & Analytics**: Tracking và reporting system
+- **WordPress Integration**: Tích hợp hoàn hảo với WordPress admin
 
-### 1.2 Kiến trúc tổng thể
+### 1.2 Flow-Based Architecture
+CrawlFlow 2.0 sử dụng Flow-Based Architecture thay vì cấu trúc cũ (Tooth, Reception, Parser). Flow được định nghĩa bằng:
+- **Nodes**: Các building blocks (Start, Worker, Extractor, Processor, etc.)
+- **Edges**: Connections giữa nodes định nghĩa data flow
+- **Visual Editor**: Drag & drop interface để tạo flows
+
+> Xem chi tiết về Flow-Based Architecture tại [SYSTEM_CONCEPT.md](./SYSTEM_CONCEPT.md)
+
+### 1.3 Kiến trúc tổng thể
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CRAWFLOW PLUGIN                         │

@@ -190,31 +190,8 @@ class ProjectService
         global $wpdb;
         $table = $wpdb->prefix . 'rake_tooths';
 
-        // Only use columns that exist in the schema: id, name, description, config, status, created_at, updated_at
-        // Store additional fields (tooth_type, base_url, max_urls) in config JSON
-        $config = $projectData['config'] ?? [];
-        
-        // If config is a string (JSON), decode it first
-        if (is_string($config)) {
-            $decoded = json_decode($config, true);
-            $config = ($decoded !== null && json_last_error() === JSON_ERROR_NONE) ? $decoded : [];
-        }
-        
-        // Ensure config is an array
-        if (!is_array($config)) {
-            $config = [];
-        }
-        
-        // Merge additional fields into config if they exist
-        if (isset($projectData['tooth_type'])) {
-            $config['tooth_type'] = $projectData['tooth_type'];
-        }
-        if (isset($projectData['base_url'])) {
-            $config['base_url'] = $projectData['base_url'];
-        }
-        if (isset($projectData['max_urls'])) {
-            $config['max_urls'] = $projectData['max_urls'];
-        }
+        // Handle flow config (new Flow-Based Architecture)
+        $config = $this->prepareFlowConfig($projectData);
 
         $data = [
             'name' => sanitize_text_field($projectData['name'] ?? ''),
@@ -235,23 +212,38 @@ class ProjectService
     }
 
     /**
-     * Update existing project
+     * Prepare flow configuration from project data
      */
-    public function updateProject(int $projectId, array $projectData): bool
+    private function prepareFlowConfig(array $projectData): array
     {
-        global $wpdb;
-        $table = $wpdb->prefix . 'rake_tooths';
-
-        // Only use columns that exist in the schema: id, name, description, config, status, created_at, updated_at
-        // Store additional fields (tooth_type, base_url, max_urls) in config JSON
         $config = $projectData['config'] ?? [];
         
-        // If config is a string, decode it first
+        // If config is a string (JSON), decode it first
         if (is_string($config)) {
-            $config = json_decode($config, true) ?: [];
+            $decoded = json_decode($config, true);
+            $config = ($decoded !== null && json_last_error() === JSON_ERROR_NONE) ? $decoded : [];
         }
         
-        // Merge additional fields into config if they exist
+        // Ensure config is an array
+        if (!is_array($config)) {
+            $config = [];
+        }
+
+        // If project_data is provided (from React Flow UI), use it as flow config
+        if (isset($projectData['project_data'])) {
+            $projectDataJson = $projectData['project_data'];
+            if (is_string($projectDataJson)) {
+                $decoded = json_decode($projectDataJson, true);
+                if ($decoded !== null && json_last_error() === JSON_ERROR_NONE) {
+                    // This is the new flow-based config
+                    return $decoded;
+                }
+            } elseif (is_array($projectDataJson)) {
+                return $projectDataJson;
+            }
+        }
+
+        // Legacy support: Merge additional fields into config if they exist
         if (isset($projectData['tooth_type'])) {
             $config['tooth_type'] = $projectData['tooth_type'];
         }
@@ -261,6 +253,20 @@ class ProjectService
         if (isset($projectData['max_urls'])) {
             $config['max_urls'] = $projectData['max_urls'];
         }
+
+        return $config;
+    }
+
+    /**
+     * Update existing project
+     */
+    public function updateProject(int $projectId, array $projectData): bool
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_tooths';
+
+        // Handle flow config (new Flow-Based Architecture)
+        $config = $this->prepareFlowConfig($projectData);
 
         $data = [
             'name' => sanitize_text_field($projectData['name'] ?? ''),
@@ -277,6 +283,25 @@ class ProjectService
         );
 
         return $result !== false;
+    }
+
+    /**
+     * Get flow config from project
+     */
+    public function getFlowConfig(int $projectId): ?array
+    {
+        $project = $this->getProject($projectId);
+        if (!$project) {
+            return null;
+        }
+
+        $config = $project['config'] ?? '{}';
+        if (is_string($config)) {
+            $decoded = json_decode($config, true);
+            return ($decoded !== null && json_last_error() === JSON_ERROR_NONE) ? $decoded : null;
+        }
+
+        return is_array($config) ? $config : null;
     }
 
     /**

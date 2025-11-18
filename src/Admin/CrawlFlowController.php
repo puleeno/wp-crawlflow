@@ -67,6 +67,8 @@ class CrawlFlowController
         \add_action('wp_ajax_crawlflow_get_project_stats', [$this, 'handleGetProjectStats']);
         \add_action('wp_ajax_crawlflow_get_system_status', [$this, 'handleGetSystemStatus']);
         \add_action('wp_ajax_crawlflow_save_project', [$this, 'handleSaveProject']);
+        \add_action('wp_ajax_crawlflow_get_flow_config', [$this, 'handleGetFlowConfig']);
+        \add_action('wp_ajax_crawlflow_run_flow', [$this, 'handleRunFlow']);
         \add_action('wp_ajax_crawlflow_auto_save_project', [$this, 'handleAutoSaveProject']);
         \add_action('wp_ajax_crawlflow_delete_project', [$this, 'handleDeleteProject']);
         \add_action('wp_ajax_crawlflow_clear_logs', [$this, 'handleClearLogs']);
@@ -411,11 +413,24 @@ class CrawlFlowController
         $projectData = [
             'name' => sanitize_text_field($_POST['project_name'] ?? ''),
             'description' => sanitize_textarea_field($_POST['project_description'] ?? ''),
-            'tooth_type' => sanitize_text_field($_POST['tooth_type'] ?? ''),
-            'base_url' => esc_url_raw($_POST['base_url'] ?? ''),
-            'max_urls' => (int) ($_POST['max_urls'] ?? 1000),
             'status' => sanitize_text_field($_POST['status'] ?? 'draft'),
         ];
+
+        // Handle flow-based config from React Flow UI
+        if (isset($_POST['project_data'])) {
+            $projectData['project_data'] = $_POST['project_data'];
+        }
+
+        // Legacy support: Keep old fields for backward compatibility
+        if (isset($_POST['tooth_type'])) {
+            $projectData['tooth_type'] = sanitize_text_field($_POST['tooth_type']);
+        }
+        if (isset($_POST['base_url'])) {
+            $projectData['base_url'] = esc_url_raw($_POST['base_url']);
+        }
+        if (isset($_POST['max_urls'])) {
+            $projectData['max_urls'] = (int) $_POST['max_urls'];
+        }
 
         if (empty($projectData['name'])) {
             wp_send_json_error('Project name is required');
@@ -434,9 +449,62 @@ class CrawlFlowController
         }
 
         if ($success) {
-            wp_send_json_success(['message' => 'Project saved successfully']);
+            wp_send_json_success([
+                'message' => 'Project saved successfully',
+                'project_id' => $projectId ?: $result,
+            ]);
         } else {
             wp_send_json_error('Failed to save project');
+        }
+    }
+
+    /**
+     * Handle get flow config AJAX
+     */
+    public function handleGetFlowConfig(): void
+    {
+        if (!\wp_verify_nonce($_POST['nonce'] ?? '', 'crawlflow_admin_nonce')) {
+            wp_send_json_error('Security check failed');
+        }
+
+        $projectId = (int) ($_POST['project_id'] ?? 0);
+        if (!$projectId) {
+            wp_send_json_error('Project ID is required');
+        }
+
+        $flowConfig = $this->projectService->getFlowConfig($projectId);
+        if ($flowConfig === null) {
+            wp_send_json_error('Project not found or invalid config');
+        }
+
+        wp_send_json_success($flowConfig);
+    }
+
+    /**
+     * Handle run flow AJAX
+     */
+    public function handleRunFlow(): void
+    {
+        if (!\wp_verify_nonce($_POST['nonce'] ?? '', 'crawlflow_admin_nonce')) {
+            wp_send_json_error('Security check failed');
+        }
+
+        $projectId = (int) ($_POST['project_id'] ?? 0);
+        if (!$projectId) {
+            wp_send_json_error('Project ID is required');
+        }
+
+        try {
+            $flowRunner = new FlowRunnerService();
+            $result = $flowRunner->runFlow($projectId);
+
+            if ($result['success']) {
+                wp_send_json_success($result);
+            } else {
+                wp_send_json_error($result['error'] ?? 'Flow execution failed');
+            }
+        } catch (\Exception $e) {
+            wp_send_json_error('Flow execution error: ' . $e->getMessage());
         }
     }
 
