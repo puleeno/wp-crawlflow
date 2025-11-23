@@ -1,3 +1,4 @@
+
 // FIX: The content for this file was missing. This is a complete implementation of the main App component.
 // FIX: Import `useState`, `useCallback`, `useMemo`, and `ChangeEvent` from React to fix missing name errors.
 import React, { useState, useCallback, useMemo, ChangeEvent, useEffect, MouseEvent, useRef } from 'react';
@@ -31,7 +32,7 @@ import ClickNode from './components/nodes/ClickNode';
 import WorkerNode from './components/nodes/WorkerNode';
 import LoopNode from './components/nodes/LoopNode';
 import RepositoryNode from './components/nodes/RepositoryNode';
-import ReceptionNode from './components/nodes/ReceptionRuleNode';
+import FilterNode from './components/nodes/FilterNode';
 import HTMLDataExtractorNode, { CSVExtractorNode, JSONExtractorNode, XMLExtractorNode, MySQLExtractorNode } from './components/nodes/DataMappingNode';
 import ProcessorNode from './components/nodes/ProcessorNode';
 import CompletionNode from './components/nodes/CompletionNode';
@@ -119,7 +120,7 @@ const defaultShapeSizes: Record<ShapeType, { width: number; height: number }> = 
   rectangle: { width: 500, height: 400 },
   circle: { width: 300, height: 300 },
   ellipse: { width: 400, height: 200 },
-  frame: { width: 600, height: 400 },
+  frame: { width: 900, height: 700 },
   package: { width: 500, height: 400 },
 };
 
@@ -131,14 +132,16 @@ const App: React.FC = () => {
   const [projectSettings, setProjectSettings] = useState<ProjectSettings>({
     name: 'My Crawler Project',
     description: 'A new web crawler configuration.',
+    enabled: true,
     crawlDelay: 1000,
     userAgent: 'Crawler/1.0',
     concurrency: 5,
   });
   
-  // State for mobile UI
+  // State for UI panels
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [isSettingsOpen, setSettingsOpen] = useState(false);
+  // Initialize settings panel as open on desktop (>768px), closed on mobile
+  const [isSettingsOpen, setSettingsOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 768);
 
   // State for the Inspector Panel
   const [inspectorConfig, setInspectorConfig] = useState<InspectorConfig | null>(null);
@@ -153,6 +156,46 @@ const App: React.FC = () => {
   // Ref for React Flow instance and wrapper
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  // Load saved project data from WordPress on mount
+  useEffect(() => {
+    // Wait a bit to ensure window.crawlflowConfig is available
+    const loadConfig = () => {
+      const config = (window as any).crawlflowConfig;
+      if (config && config.projectConfig) {
+        const { projectSettings, nodes, edges } = config.projectConfig;
+        
+        // Load project settings if available
+        if (projectSettings) {
+          setProjectSettings((prev) => ({
+            ...prev,
+            ...projectSettings,
+          }));
+        }
+        
+        // Load nodes if available
+        if (nodes && Array.isArray(nodes) && nodes.length > 0) {
+          setNodes(nodes);
+        }
+        
+        // Load edges if available
+        if (edges && Array.isArray(edges)) {
+          setEdges(edges);
+        }
+      } else if (config && !config.projectConfig && config.projectId) {
+        // If project exists but no config, it's a new project - keep defaults
+        console.log('CrawlFlow: New project, using default configuration');
+      }
+    };
+    
+    // Try to load immediately
+    loadConfig();
+    
+    // Also try after a short delay in case script loads later
+    const timeout = setTimeout(loadConfig, 100);
+    
+    return () => clearTimeout(timeout);
+  }, []); // Only run once on mount
 
   // Effect to clean up the entire workflow when no start nodes exist
   useEffect(() => {
@@ -310,8 +353,8 @@ const App: React.FC = () => {
   const onSelectionChange = useCallback(({ nodes: selectedNodes }: OnSelectionChangeParams) => {
     const newSelectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
     setSelectedNode(newSelectedNode);
-    // On mobile, automatically open settings when a node is selected
-    if (newSelectedNode && window.innerWidth < 768) {
+    // Automatically open settings when a node is selected
+    if (newSelectedNode) {
         setSettingsOpen(true);
     }
   }, []);
@@ -320,27 +363,37 @@ const App: React.FC = () => {
     setNodes((nds) => {
       const changedNodes = applyNodeChanges(changes, nds);
 
+      // After applying the changes from React Flow, we map over the nodes
+      // to sync dimensions to our custom `data` object for persistence.
       return changedNodes.map((node) => {
+        // Find if there was a dimension change for this specific node.
         const dimensionChange = changes.find(
           (change): change is NodeDimensionChange =>
-            change.type === 'dimensions' &&
-            change.id === node.id &&
-            !!change.dimensions
+            change.type === 'dimensions' && change.id === node.id
         );
 
-        if (dimensionChange) {
-          if (node.type === 'shape') {
-            // Sync the new dimensions back to the node's data object for persistence
+        // The key to fixing the "ResizeObserver loop" error is to only sync
+        // our data object *after* the resize is complete. The `resizing` flag
+        // is true during the drag and false on the final event.
+        if (dimensionChange && !dimensionChange.resizing && node.type === 'shape') {
+          const data = node.data as ShapeNodeData;
+          
+          // `node.width` and `node.height` are the final dimensions after the resize.
+          const { width, height } = node;
+
+          // Only create a new node object if the dimensions in our data store are actually different.
+          if (width && height && (data.width !== width || data.height !== height)) {
             return {
               ...node,
               data: {
                 ...node.data,
-                width: dimensionChange.dimensions.width,
-                height: dimensionChange.dimensions.height,
+                width,
+                height,
               },
             };
           }
         }
+
         return node;
       });
     });
@@ -606,6 +659,75 @@ const App: React.FC = () => {
     }
   }, [setNodes, setEdges]);
 
+  const saveProject = useCallback(async () => {
+    if (!projectSettings.name?.trim()) {
+      alert('Project name is required');
+      return;
+    }
+
+    // Get WordPress AJAX URL and nonce from localized script
+    const config = (window as any).crawlflowConfig || {};
+    const ajaxUrl = config.ajaxUrl || '/wp-admin/admin-ajax.php';
+    const nonce = config.nonce || '';
+    const projectId = config.projectId || 0;
+
+    const formData = new FormData();
+    formData.append('action', 'crawlflow_save_project');
+    formData.append('nonce', nonce);
+    formData.append('project_name', projectSettings.name);
+    formData.append('project_description', projectSettings.description || '');
+    formData.append('status', 'draft');
+    
+    // Send flow configuration (nodes, edges, projectSettings)
+    formData.append('project_data', JSON.stringify({
+      projectSettings,
+      nodes,
+      edges,
+    }));
+
+    if (projectId) {
+      formData.append('project_id', projectId.toString());
+    }
+
+    try {
+      console.log('CrawlFlow: Saving project...', { projectId, projectName: projectSettings.name });
+      
+      const response = await fetch(ajaxUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('CrawlFlow: Save response:', result);
+
+      if (result.success) {
+        alert('Project saved successfully!');
+        // If new project was created, update the project ID
+        if (result.data?.project_id && !projectId) {
+          // Update URL or reload page with new project ID
+          const adminUrl = '/wp-admin/';
+          const newUrl = adminUrl + `admin.php?page=crawlflow-projects&sub=compose&editor=flow&project_id=${result.data.project_id}`;
+          window.history.replaceState({}, '', newUrl);
+          // Update window config with new project ID
+          if ((window as any).crawlflowConfig) {
+            (window as any).crawlflowConfig.projectId = result.data.project_id;
+          }
+        }
+      } else {
+        const errorMsg = result.data?.message || result.data || 'Unknown error';
+        console.error('CrawlFlow: Save failed:', errorMsg);
+        alert('Error saving project: ' + errorMsg);
+      }
+    } catch (error: any) {
+      console.error('CrawlFlow: Save error:', error);
+      alert('Error saving project: ' + (error.message || 'Network error. Please check console for details.'));
+    }
+  }, [projectSettings, nodes, edges]);
+
 
   const onNodeDragStop: NodeDragHandler = useCallback((event, node) => {
     const parentNode = nodes.find(n => 
@@ -643,7 +765,7 @@ const App: React.FC = () => {
     worker: (props) => <WorkerNode {...props} />,
     loop: (props) => <LoopNode {...props} />,
     repository: (props) => <RepositoryNode {...props} />,
-    reception: (props) => <ReceptionNode {...props} />,
+    reception: (props) => <FilterNode {...props} />,
     'html-data-extractor': (props) => <HTMLDataExtractorNode {...props} />,
     'csv-extractor': (props) => <CSVExtractorNode {...props} />,
     'json-extractor': (props) => <JSONExtractorNode {...props} />,
@@ -654,7 +776,7 @@ const App: React.FC = () => {
     shape: (props) => <ShapeNode {...props} />,
   }), []);
 
-  // FIX: Wrapped handleCloseSettings in useCallback for referential stability. This prevents unnecessary re-renders in child components and allows it to be used safely in other useCallback dependency arrays.
+  // FIX: Wrapped handleCloseSettings in useCallback for referential stability.
   const handleCloseSettings = useCallback(() => {
     setSettingsOpen(false);
     setSelectedNode(null);
@@ -790,10 +912,10 @@ const App: React.FC = () => {
           }
       });
       
-      setNodes(nds => 
-          nds.map(n => ({ ...n, selected: false }))
-             .concat(newNodes)
-      );
+      setNodes(nds => [
+          ...nds.map(n => ({ ...n, selected: false })),
+          ...newNodes
+      ]);
       setEdges(eds => eds.concat(newEdges));
       setMenu(null);
   }, [nodes, edges, setNodes, setEdges]);
@@ -801,21 +923,77 @@ const App: React.FC = () => {
   const addShapeNode = useCallback((shapeType: ShapeType) => {
     if (!rfInstance || !reactFlowWrapper.current) return;
 
-    const position = rfInstance.project({
+    // --- Helper function for collision detection ---
+    const isOverlapping = (rect1: {x: number, y: number, width: number, height: number}, rect2: {x: number, y: number, width: number, height: number}) => {
+        // Add a small buffer to avoid placing nodes directly touching each other
+        const buffer = 20; 
+        return (
+            rect1.x < rect2.x + rect2.width + buffer &&
+            rect1.x + rect1.width + buffer > rect2.x &&
+            rect1.y < rect2.y + rect2.height + buffer &&
+            rect1.y + rect1.height + buffer > rect2.y
+        );
+    };
+    
+    // --- Find a free position on the canvas ---
+    const findFreePosition = (initialPos: XYPosition, nodeWidth: number, nodeHeight: number) => {
+        let testPosition = { 
+            x: initialPos.x - nodeWidth / 2, 
+            y: initialPos.y - nodeHeight / 2 
+        };
+        
+        const shiftAmount = 40;
+        let attempt = 0;
+        const maxAttempts = 50; // Safety break
+
+        while (attempt < maxAttempts) {
+            const newNodeRect = { ...testPosition, width: nodeWidth, height: nodeHeight };
+            let overlapping = false;
+
+            for (const node of nodes) {
+                 const existingNodeRect = {
+                    x: node.position.x,
+                    y: node.position.y,
+                    width: node.width || 150, // Fallback width
+                    height: node.height || 50, // Fallback height
+                };
+
+                if (isOverlapping(newNodeRect, existingNodeRect)) {
+                    overlapping = true;
+                    break;
+                }
+            }
+
+            if (!overlapping) {
+                return testPosition; // Found a free spot
+            }
+            
+            // If overlapping, shift position down and slightly right for the next check
+            testPosition.y += shiftAmount;
+            testPosition.x += shiftAmount / 2;
+            attempt++;
+        }
+
+        // Fallback to the initial position if no free spot is found after max attempts
+        return { x: initialPos.x - nodeWidth / 2, y: initialPos.y - nodeHeight / 2 };
+    };
+
+    // --- Original logic to get initial position and node data ---
+    const initialCenterPosition = rfInstance.screenToFlowPosition({
         x: reactFlowWrapper.current.clientWidth / 2,
         y: reactFlowWrapper.current.clientHeight / 2,
     });
 
     const { width, height } = defaultShapeSizes[shapeType];
     const data: ShapeNodeData = { ...defaultShapeData[shapeType], width, height };
+    
+    // --- Use the new function to get the final position ---
+    const finalPosition = findFreePosition(initialCenterPosition, width, height);
 
     const newNode: Node<ShapeNodeData> = {
         id: getId(),
         type: 'shape',
-        position: {
-            x: position.x - width / 2,
-            y: position.y - height / 2,
-        },
+        position: finalPosition,
         data,
         width,
         height,
@@ -823,7 +1001,7 @@ const App: React.FC = () => {
     };
     setNodes((nds) => nds.concat(newNode));
     handleCloseSettings();
-}, [rfInstance, setNodes, handleCloseSettings]);
+}, [rfInstance, nodes, setNodes, handleCloseSettings]);
 
   return (
     <div className="flex flex-col h-screen font-sans bg-slate-100 overflow-hidden">
@@ -844,6 +1022,7 @@ const App: React.FC = () => {
                     edges={edges}
                     mouseMode={mouseMode}
                     onSetMouseMode={setMouseMode}
+                    onAddShapeNode={addShapeNode}
                 />
                 <main className="flex-1 h-full relative" ref={reactFlowWrapper}>
                 <ReactFlow
@@ -878,16 +1057,18 @@ const App: React.FC = () => {
                         onDuplicate={handleDuplicateSelectedNodes}
                     />
                 )}
-                {/* Mobile Toggle Buttons */}
+                {/* Toggle Buttons */}
                 <div className="absolute top-4 left-4 z-10 md:hidden">
                     <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white rounded-full shadow-lg text-gray-700 hover:bg-gray-100">
                         <Bars3Icon />
                     </button>
                 </div>
-                <div className="absolute top-4 right-4 z-10 md:hidden">
-                    <button onClick={() => setSettingsOpen(true)} className="p-2 bg-white rounded-full shadow-lg text-gray-700 hover:bg-gray-100">
-                        <Cog6ToothIcon />
-                    </button>
+                <div className="absolute top-4 right-4 z-10">
+                    {!isSettingsOpen && (
+                        <button onClick={() => setSettingsOpen(true)} className="p-2 bg-white rounded-full shadow-lg text-gray-700 hover:bg-gray-100">
+                            <Cog6ToothIcon />
+                        </button>
+                    )}
                 </div>
                 </main>
                 <SettingsPanel
@@ -899,6 +1080,7 @@ const App: React.FC = () => {
                   projectSettings={projectSettings}
                   onUpdateProjectSettings={updateProjectSettings}
                   onExport={exportConfiguration}
+                  onSave={saveProject}
                   onImport={importConfiguration}
                   isOpen={isSettingsOpen}
                   onShowInspector={showInspector}
@@ -908,7 +1090,6 @@ const App: React.FC = () => {
                   pickingRuleId={inspectorConfig?.pickingState?.ruleId ?? null}
                   onInspectSelector={setHighlightedSelector}
                   highlightedSelector={highlightedSelector}
-                  onAddShapeNode={addShapeNode}
                 />
             </ReactFlowProvider>
         </div>

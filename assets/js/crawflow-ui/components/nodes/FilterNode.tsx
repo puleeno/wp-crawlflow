@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import BaseNode from './BaseNode';
-// FIX: Corrected the type from 'ReceptionRuleNodeData' to 'ReceptionNodeData' to match the definition in '../../types'.
 import type { CustomNodeProps, ReceptionNodeData } from '../../types';
 import { FunnelIcon } from '../icons';
 
@@ -8,8 +7,8 @@ const FilterNode: React.FC<CustomNodeProps<ReceptionNodeData>> = ({ data, select
   const ruleCount = data.rules.length;
 
   return (
-    <BaseNode title="Filter & Validate" icon={<FunnelIcon />} selected={selected}>
-      <div className="p-2 text-center bg-gray-50 rounded-md">
+    <BaseNode title="Reception" icon={<FunnelIcon />} selected={selected} bgColorClass="bg-cyan-100">
+      <div className="p-2 text-center bg-white/50 rounded-md">
         <p className="text-sm font-semibold text-gray-800">
           {ruleCount} {ruleCount === 1 ? 'Rule' : 'Rules'} Applied
         </p>

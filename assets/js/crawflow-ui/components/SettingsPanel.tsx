@@ -1,9 +1,8 @@
-// FIX: The content for this file was missing. This is the implementation for the SettingsPanel component.
-// FIX: Corrected the import statement to include useState, useRef, ChangeEvent, and useEffect. The original line had a syntax error.
+
 import React, { useState, useRef, ChangeEvent, useEffect, useMemo } from 'react';
 import { Node } from 'reactflow';
-import { XMarkIcon, Cog6ToothIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, TrashIcon, DocumentMagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, CursorArrowRaysIcon, SquareIcon, CircleIcon, FrameIcon, FolderIcon, EllipseIcon } from './icons';
-import { NodeData, StartNodeData, ClickNodeData, ExtractionRule, DataSourceType, FileInputMethod, MySQLConnection, ProjectSettings, LoopNodeData, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, WorkerRule, WorkerRuleType, URLFormatRule, HTMLContainsRule, DOMValueRule, TagAttributeRule, DataSourceTypeRule, ExtractFrom, URLSourceSettings, APISourceSettings, APIKeyAuth, BearerTokenAuth, BasicAuth, XMLSourceSettings, JSONSourceSettings, PagePagination, OffsetLimitPagination, NextURLPagination, RuleCondition, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings, CSVExtractorNodeData, ColumnMapping, JSONExtractorNodeData, PathMapping, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData, ShapeType } from '../types';
+import { XMarkIcon, Cog6ToothIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, CursorArrowRaysIcon, CloudIcon } from './icons';
+import { NodeData, StartNodeData, ClickNodeData, ExtractionRule, FileInputMethod, MySQLConnection, ProjectSettings, LoopNodeData, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, WorkerRule, WorkerRuleType, URLFormatRule, HTMLContainsRule, DOMValueRule, TagAttributeRule, ExtractFrom, URLSourceSettings, APISourceSettings, APIKeyAuth, BearerTokenAuth, BasicAuth, XMLSourceSettings, JSONSourceSettings, PagePagination, OffsetLimitPagination, NextURLPagination, RuleCondition, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings, CSVExtractorNodeData, ColumnMapping, JSONExtractorNodeData, PathMapping, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData, DataSourceTypeRule } from '../types';
 import { PRESETS, PROCESSORS } from '../presets';
 
 
@@ -15,6 +14,7 @@ interface SettingsPanelProps {
   projectSettings: ProjectSettings;
   onUpdateProjectSettings: (update: Partial<ProjectSettings>) => void;
   onExport: () => void;
+  onSave: () => void;
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
   isOpen: boolean;
   // Inspector-related props
@@ -25,7 +25,6 @@ interface SettingsPanelProps {
   pickingRuleId: string | null;
   onInspectSelector: (selector: string | null) => void;
   highlightedSelector: string | null;
-  onAddShapeNode: (shapeType: ShapeType) => void;
 }
 
 const commonInputClasses = "w-full p-2 bg-white text-gray-900 border border-slate-300 rounded-md shadow-sm placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-gray-500";
@@ -34,7 +33,6 @@ const commonLabelClasses = "block text-sm font-medium text-gray-700 mb-1";
 const commonButtonClasses = "w-full p-2 rounded-md font-semibold text-white transition-colors";
 const smallButtonClasses = "px-2.5 py-1.5 text-sm rounded-md font-semibold text-white transition-colors";
 
-// FIX: 'useState' was not defined. It is now imported from React.
 const CollapsibleSection: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, children, defaultOpen = false }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -53,7 +51,6 @@ const CollapsibleSection: React.FC<{ title: string; children: React.ReactNode; d
 };
 
 
-// FIX: 'useState' was not defined. It is now imported from React.
 const TagInput: React.FC<{ label: string; tags: string[]; onChange: (tags: string[]) => void; placeholder: string }> = ({ label, tags, onChange, placeholder }) => {
     const [inputValue, setInputValue] = useState('');
 
@@ -98,54 +95,7 @@ const TagInput: React.FC<{ label: string; tags: string[]; onChange: (tags: strin
 };
 
 
-const DiagramElementsPanel: React.FC<{ onAddShapeNode: (shapeType: ShapeType) => void }> = ({ onAddShapeNode }) => {
-    return (
-        <CollapsibleSection title="Diagram Elements" defaultOpen>
-            <p className="text-sm text-gray-600 mb-4">Click an element to add it to the canvas.</p>
-            <div className="grid grid-cols-3 gap-3">
-                 <button
-                    onClick={() => onAddShapeNode('rectangle')}
-                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
-                >
-                    <SquareIcon />
-                    <span className="text-sm font-semibold">Rectangle</span>
-                </button>
-                 <button
-                    onClick={() => onAddShapeNode('circle')}
-                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
-                >
-                    <CircleIcon />
-                    <span className="text-sm font-semibold">Circle</span>
-                </button>
-                 <button
-                    onClick={() => onAddShapeNode('ellipse')}
-                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
-                >
-                    <EllipseIcon />
-                    <span className="text-sm font-semibold">Ellipse</span>
-                </button>
-                 <button
-                    onClick={() => onAddShapeNode('frame')}
-                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
-                >
-                    <FrameIcon />
-                    <span className="text-sm font-semibold">Frame</span>
-                </button>
-                <button
-                    onClick={() => onAddShapeNode('package')}
-                    className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
-                >
-                    <FolderIcon />
-                    <span className="text-sm font-semibold">Package</span>
-                </button>
-            </div>
-        </CollapsibleSection>
-    );
-};
-
-
 // --- Start Node Settings ---
-// FIX: 'useRef' and 'ChangeEvent' were not defined. They are now imported from React.
 const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: StartNodeData) => void }> = ({ node, onUpdate }) => {
     const { data } = node;
 
@@ -319,7 +269,6 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                         </select>
                         {settings.paginationType === 'page' && (
                             <div className="p-3 bg-slate-100 rounded-md space-y-3">
-                                {/* FIX: Replaced `{page}` with a string literal inside a JSX expression to prevent it from being parsed as a variable. */}
                                 <p className="text-xs text-gray-600">Use {'`{{page}}`'} tag in the API URL.</p>
                                 <label className={commonLabelClasses}>Parameter Name</label>
                                 <input type="text" value={(settings.paginationDetails as PagePagination).paramName || 'page'} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as PagePagination), paramName: e.target.value }})} className={commonInputClasses} />
@@ -329,7 +278,6 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                         )}
                          {settings.paginationType === 'offset-limit' && (
                             <div className="p-3 bg-slate-100 rounded-md space-y-3">
-                                {/* FIX: Replaced `{offset}` and `{limit}` with string literals inside JSX expressions to prevent them from being parsed as variables. */}
                                 <p className="text-xs text-gray-600">Use {'`{{offset}}`'} and {'`{{limit}}`'} tags in the API URL.</p>
                                 <label className={commonLabelClasses}>Offset Param Name</label>
                                 <input type="text" value={(settings.paginationDetails as OffsetLimitPagination).offsetParam || 'offset'} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), offsetParam: e.target.value }})} className={commonInputClasses} />
@@ -525,11 +473,10 @@ const LoopNodeSettings: React.FC<{ node: Node<LoopNodeData>; onUpdate: (data: Lo
     );
 };
 
-// FIX: 'useEffect' was not defined. It is now imported from React.
 const HTMLDataExtractorSettings: React.FC<{
     node: Node<HTMLDataExtractorNodeData>;
     onUpdate: (data: HTMLDataExtractorNodeData) => void;
-    props: Omit<SettingsPanelProps, 'onAddNode'>;
+    props: Omit<SettingsPanelProps, 'onAddNode' | 'onAddShapeNode'>;
 }> = ({ node, onUpdate, props }) => {
     const { data } = node;
     const [inspectorInputMethod, setInspectorInputMethod] = useState<'url' | 'paste'>('url');
@@ -1030,11 +977,11 @@ const MySQLExtractorSettings: React.FC<{ node: Node<MySQLExtractorNodeData>; onU
     const availablePresets = useMemo(() => {
         return Object.entries(PRESETS).filter(([_, preset]) => !!preset.mysql);
     }, []);
-    
+
     return (
-         <div className="space-y-4">
+        <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">MySQL Extractor Settings</h3>
-            
+
             <CollapsibleSection title="Extraction Presets">
                 <div className="grid grid-cols-2 gap-2">
                     {availablePresets.map(([key, preset]) => (
@@ -1071,526 +1018,422 @@ const MySQLExtractorSettings: React.FC<{ node: Node<MySQLExtractorNodeData>; onU
             </CollapsibleSection>
         </div>
     );
-}
-
-// --- Processor Settings Forms ---
-
-const SaveToDbSettingsForm: React.FC<{ settings: SaveToDbSettings; onUpdate: (update: Partial<SaveToDbSettings>) => void }> = ({ settings, onUpdate }) => (
-    <div className="space-y-3">
-        <h4 className="font-semibold text-gray-700">Database Connection</h4>
-        <div className="grid grid-cols-2 gap-3">
-            <div>
-                <label className={commonLabelClasses}>Host</label>
-                <input type="text" value={settings.host} onChange={e => onUpdate({ host: e.target.value })} className={commonInputClasses} />
-            </div>
-            <div>
-                <label className={commonLabelClasses}>Port</label>
-                <input type="text" value={settings.port} onChange={e => onUpdate({ port: e.target.value })} className={commonInputClasses} />
-            </div>
-            <div>
-                <label className={commonLabelClasses}>User</label>
-                <input type="text" value={settings.user} onChange={e => onUpdate({ user: e.target.value })} className={commonInputClasses} />
-            </div>
-            <div>
-                <label className={commonLabelClasses}>Password</label>
-                <input type="password" value={settings.password} onChange={e => onUpdate({ password: e.target.value })} className={commonInputClasses} />
-            </div>
-        </div>
-        <div>
-            <label className={commonLabelClasses}>Database</label>
-            <input type="text" value={settings.database} onChange={e => onUpdate({ database: e.target.value })} className={commonInputClasses} />
-        </div>
-        <div className="border-t pt-3 mt-3">
-            <h4 className="font-semibold text-gray-700">Table Settings</h4>
-            <div className="mt-2">
-                <label className={commonLabelClasses}>Table Name</label>
-                <input type="text" value={settings.tableName} onChange={e => onUpdate({ tableName: e.target.value })} className={commonInputClasses} />
-            </div>
-            <div className="mt-2">
-                <label className={commonLabelClasses}>On Conflict</label>
-                <select value={settings.conflictStrategy} onChange={e => onUpdate({ conflictStrategy: e.target.value as any })} className={commonInputClasses}>
-                    <option value="insert">Insert (Fail on duplicate)</option>
-                    <option value="upsert">Update or Insert (Upsert)</option>
-                    <option value="skip">Skip (Ignore duplicate)</option>
-                </select>
-            </div>
-        </div>
-    </div>
-);
-
-const SendToApiSettingsForm: React.FC<{ settings: SendToApiSettings; onUpdate: (update: Partial<SendToApiSettings>) => void }> = ({ settings, onUpdate }) => {
-    // A simplified version for now. A real implementation might reuse the API auth settings from StartNode.
-    return (
-        <div className="space-y-3">
-            <h4 className="font-semibold text-gray-700">API Endpoint</h4>
-            <div>
-                <label className={commonLabelClasses}>URL</label>
-                <input type="url" value={settings.endpointUrl} onChange={e => onUpdate({ endpointUrl: e.target.value })} className={commonInputClasses} />
-            </div>
-            <div>
-                <label className={commonLabelClasses}>HTTP Method</label>
-                <select value={settings.method} onChange={e => onUpdate({ method: e.target.value as any })} className={commonInputClasses}>
-                    <option value="POST">POST</option>
-                    <option value="PUT">PUT</option>
-                    <option value="PATCH">PATCH</option>
-                </select>
-            </div>
-            <p className="text-xs text-gray-500 italic">Authentication and custom header settings would be configured here.</p>
-        </div>
-    );
 };
 
-const GenerateCsvSettingsForm: React.FC<{ settings: GenerateCsvSettings; onUpdate: (update: Partial<GenerateCsvSettings>) => void }> = ({ settings, onUpdate }) => (
-    <div className="space-y-3">
-        <h4 className="font-semibold text-gray-700">CSV File Options</h4>
-        <div>
-            <label className={commonLabelClasses}>File Name</label>
-            <input type="text" value={settings.fileName} onChange={e => onUpdate({ fileName: e.target.value })} className={commonInputClasses} />
-            <p className="text-xs text-gray-500 mt-1">You can use placeholders like {'`{{date}}`'} or {'`{{time}}`'}.</p>
-        </div>
-        <div>
-            <label className={commonLabelClasses}>Delimiter</label>
-            <select value={settings.delimiter} onChange={e => onUpdate({ delimiter: e.target.value as any })} className={commonInputClasses}>
-                <option value=",">Comma (,)</option>
-                <option value=";">Semicolon (;)</option>
-                <option value="\t">Tab</option>
-            </select>
-        </div>
-        <div className="flex items-center gap-2">
-            <input
-                type="checkbox"
-                id="includeHeader"
-                checked={settings.includeHeader}
-                onChange={e => onUpdate({ includeHeader: e.target.checked })}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="includeHeader" className="text-sm text-gray-700">Include header row</label>
-        </div>
-    </div>
-);
 
-const SendEmailSettingsForm: React.FC<{ settings: SendEmailSettings; onUpdate: (update: Partial<SendEmailSettings>) => void }> = ({ settings, onUpdate }) => (
-    <div className="space-y-3">
-        <h4 className="font-semibold text-gray-700">Email Notification</h4>
-        <div>
-            <label className={commonLabelClasses}>Recipient(s)</label>
-            <input type="text" value={settings.recipients} onChange={e => onUpdate({ recipients: e.target.value })} className={commonInputClasses} placeholder="admin@example.com, user@test.com" />
-             <p className="text-xs text-gray-500 mt-1">Separate multiple emails with a comma.</p>
-        </div>
-        <div>
-            <label className={commonLabelClasses}>Subject</label>
-            <input type="text" value={settings.subject} onChange={e => onUpdate({ subject: e.target.value })} className={commonInputClasses} />
-             <p className="text-xs text-gray-500 mt-1">You can use placeholders like {'`{{title}}`'} from your extracted data.</p>
-        </div>
-        <div>
-            <label className={commonLabelClasses}>Body</label>
-            <textarea value={settings.body} onChange={e => onUpdate({ body: e.target.value })} className={`${commonInputClasses} h-32`} />
-             <p className="text-xs text-gray-500 mt-1">Placeholders are also supported here.</p>
-        </div>
-    </div>
-);
-
-
-const ProcessorSettings: React.FC<{ node: Node<ProcessorNodeData>; onUpdate: (data: ProcessorNodeData) => void }> = ({ node, onUpdate }) => {
+// --- Processor Node Settings ---
+const ProcessorNodeSettings: React.FC<{ node: Node<ProcessorNodeData>; onUpdate: (data: ProcessorNodeData) => void }> = ({ node, onUpdate }) => {
     const { data } = node;
 
-    const handleTypeChange = (newType: string) => {
-        const newProcessor = PROCESSORS.find(p => p.id === newType);
-        if (newProcessor) {
-            onUpdate({
-                processorType: newProcessor.id,
-                settings: newProcessor.defaultSettings
-            } as ProcessorNodeData);
+    const handleTypeChange = (type: ProcessorNodeData['processorType']) => {
+        const processor = PROCESSORS.find(p => p.id === type);
+        if (processor) {
+            // Fix: Cast strictly to avoid union mismatch issues
+            onUpdate({ 
+                processorType: type, 
+                settings: processor.defaultSettings 
+            } as unknown as ProcessorNodeData);
         }
     };
 
-    const handleSettingsUpdate = (update: any) => {
-        onUpdate({
-            ...data,
-            settings: {
-                ...data.settings,
-                ...update
-            }
-        });
-    };
-
-    const renderSettingsForm = () => {
-        switch (data.processorType) {
-            case 'save-to-database':
-                return <SaveToDbSettingsForm settings={data.settings} onUpdate={handleSettingsUpdate} />;
-            case 'send-to-api':
-                return <SendToApiSettingsForm settings={data.settings} onUpdate={handleSettingsUpdate} />;
-            case 'generate-csv-file':
-                return <GenerateCsvSettingsForm settings={data.settings} onUpdate={handleSettingsUpdate} />;
-            case 'send-email-notification':
-                return <SendEmailSettingsForm settings={data.settings} onUpdate={handleSettingsUpdate} />;
-            default:
-                return <p className="text-sm text-gray-500 text-center py-4">This processor type has no specific settings.</p>;
-        }
+    const handleSettingsChange = (key: string, value: any) => {
+        // FIX: Cast to ProcessorNodeData to resolve discriminated union type mismatch
+        onUpdate({ ...data, settings: { ...data.settings, [key]: value } } as ProcessorNodeData);
     };
 
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Processor Settings</h3>
             <div>
-                <label htmlFor="processorType" className={commonLabelClasses}>Processor Type</label>
-                <select
-                    id="processorType"
-                    value={data.processorType}
-                    onChange={(e) => handleTypeChange(e.target.value)}
-                    className={commonInputClasses}
-                >
+                <label className={commonLabelClasses}>Processor Type</label>
+                <select value={data.processorType} onChange={e => handleTypeChange(e.target.value as any)} className={commonInputClasses}>
                     {PROCESSORS.map(p => (
                         <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                 </select>
             </div>
-            <div className="border-t pt-4 mt-4">
-                {renderSettingsForm()}
-            </div>
-        </div>
-    );
-}
 
-const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data: WorkerNodeData) => void }> = ({ node, onUpdate }) => {
-    const { data } = node;
-
-    const handleUpdate = <K extends keyof WorkerNodeData>(key: K, value: WorkerNodeData[K]) => {
-        onUpdate({ ...data, [key]: value });
-    };
-
-    const handleRuleChange = (ruleId: string, update: Partial<WorkerRule>) => {
-        const newRules = data.detectionRules.map(r => 
-            r.id === ruleId ? { ...r, ...update } : r
-        );
-        handleUpdate('detectionRules', newRules);
-    };
-
-    const addRule = (type: WorkerRuleType) => {
-        if (!type) return;
-        const newRule: WorkerRule = {
-            id: `${Date.now()}`,
-            type,
-            ...(type === 'url-format' && { pattern: '' }),
-            ...(type === 'html-contains' && { text: '' }),
-            ...(type === 'dom-value' && { selector: '', condition: 'exists', value: '' }),
-            ...(type === 'tag-attribute' && { selector: '', attribute: '', condition: 'exists', value: '' }),
-            ...(type === 'data-source-type' && { sourceType: 'url' }),
-        } as WorkerRule;
-        handleUpdate('detectionRules', [...data.detectionRules, newRule]);
-    };
-
-    const removeRule = (ruleId: string) => {
-        handleUpdate('detectionRules', data.detectionRules.filter(r => r.id !== ruleId));
-    };
-
-    const renderRuleInputs = (rule: WorkerRule) => {
-        switch (rule.type) {
-            case 'url-format':
-                return (
-                    <input type="text" placeholder="URL Regex Pattern" value={(rule as URLFormatRule).pattern} onChange={e => handleRuleChange(rule.id, { pattern: e.target.value })} className={smallInputClasses} />
-                );
-            case 'html-contains':
-                return (
-                    <input type="text" placeholder="Text to find in HTML" value={(rule as HTMLContainsRule).text} onChange={e => handleRuleChange(rule.id, { text: e.target.value })} className={smallInputClasses} />
-                );
-            case 'dom-value': {
-                const domRule = rule as DOMValueRule;
-                return (
-                    <div className="grid grid-cols-2 gap-2">
-                        <input type="text" placeholder="CSS Selector" value={domRule.selector} onChange={e => handleRuleChange(rule.id, { selector: e.target.value })} className={smallInputClasses} />
-                        <select value={domRule.condition} onChange={e => handleRuleChange(rule.id, { condition: e.target.value as RuleCondition })} className={smallInputClasses}>
-                           <option value="exists">Exists</option>
-                           <option value="not-exists">Not Exists</option>
-                           <option value="contains">Contains</option>
-                           <option value="not-contains">Not Contains</option>
-                           <option value="matches-regex">Matches Regex</option>
-                        </select>
-                        {(domRule.condition !== 'exists' && domRule.condition !== 'not-exists') && (
-                            <input type="text" placeholder="Value / Regex" value={domRule.value} onChange={e => handleRuleChange(rule.id, { value: e.target.value })} className={`${smallInputClasses} col-span-2`} />
-                        )}
-                    </div>
-                );
-            }
-            case 'tag-attribute': {
-                 const attrRule = rule as TagAttributeRule;
-                return (
-                     <div className="space-y-2">
-                        <input type="text" placeholder="CSS Selector" value={attrRule.selector} onChange={e => handleRuleChange(rule.id, { selector: e.target.value })} className={smallInputClasses} />
-                        <div className="grid grid-cols-2 gap-2">
-                             <input type="text" placeholder="Attribute (e.g. href)" value={attrRule.attribute} onChange={e => handleRuleChange(rule.id, { attribute: e.target.value })} className={smallInputClasses} />
-                             <select value={attrRule.condition} onChange={e => handleRuleChange(rule.id, { condition: e.target.value as RuleCondition })} className={smallInputClasses}>
-                                <option value="exists">Exists</option>
-                                <option value="not-exists">Not Exists</option>
-                                <option value="contains">Contains</option>
-                                <option value="not-contains">Not Contains</option>
-                                <option value="matches-regex">Matches Regex</option>
-                            </select>
-                        </div>
-                        {(attrRule.condition !== 'exists' && attrRule.condition !== 'not-exists') && (
-                            <input type="text" placeholder="Value / Regex" value={attrRule.value} onChange={e => handleRuleChange(rule.id, { value: e.target.value })} className={smallInputClasses} />
-                        )}
-                    </div>
-                );
-            }
-            case 'data-source-type': {
-                 const srcRule = rule as DataSourceTypeRule;
-                 return (
-                    <select value={srcRule.sourceType} onChange={e => handleRuleChange(rule.id, { sourceType: e.target.value as DataSourceType })} className={smallInputClasses}>
-                        <option value="url">URL</option>
-                        <option value="api">API</option>
-                        <option value="xml">XML</option>
-                        <option value="csv">CSV</option>
-                        <option value="json">JSON</option>
-                        <option value="mysql">MySQL</option>
-                    </select>
-                 );
-            }
-            default:
-                return null;
-        }
-    };
-
-    return (
-        <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Worker Settings</h3>
-
-            <div>
-                <label className={commonLabelClasses}>Priority</label>
-                <input
-                    type="number"
-                    value={data.priority}
-                    onChange={e => handleUpdate('priority', parseInt(e.target.value, 10) || 1)}
-                    className={commonInputClasses}
-                    min="1"
-                />
-                <p className="text-xs text-gray-500 mt-1">Workers with higher priority run first.</p>
-            </div>
-
-            <CollapsibleSection title="Detection Rules" defaultOpen>
-                 <div>
-                    <label className={commonLabelClasses}>Detection Logic</label>
-                    <div className="flex bg-slate-100 rounded-lg p-1 mb-4">
-                        <button onClick={() => handleUpdate('detectionLogic', 'and')} className={`flex-1 p-2 text-sm font-semibold rounded-md transition-colors ${data.detectionLogic === 'and' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/60'}`}>Match All (AND)</button>
-                        <button onClick={() => handleUpdate('detectionLogic', 'or')} className={`flex-1 p-2 text-sm font-semibold rounded-md transition-colors ${data.detectionLogic === 'or' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/60'}`}>Match Any (OR)</button>
-                    </div>
-                </div>
-
+            <CollapsibleSection title="Configuration" defaultOpen>
                 <div className="space-y-3">
-                    {data.detectionRules.map(rule => (
-                        <div key={rule.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2 relative">
-                            <button onClick={() => removeRule(rule.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500"><TrashIcon /></button>
-                            <p className="text-xs font-semibold text-gray-600 capitalize">
-                                {rule.type.replace(/-/g, ' ')} Rule
-                            </p>
-                            {renderRuleInputs(rule)}
-                        </div>
-                    ))}
-                    {data.detectionRules.length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-4">No detection rules defined. This worker will not process any items.</p>
+                    {data.processorType === 'save-to-database' && (
+                        <>
+                            <select value={(data.settings as SaveToDbSettings).connectionType} onChange={e => handleSettingsChange('connectionType', e.target.value)} className={commonInputClasses}>
+                                <option value="mysql">MySQL</option>
+                                <option value="postgresql">PostgreSQL</option>
+                            </select>
+                            <input type="text" placeholder="Host" value={(data.settings as SaveToDbSettings).host || ''} onChange={e => handleSettingsChange('host', e.target.value)} className={commonInputClasses} />
+                            <input type="text" placeholder="User" value={(data.settings as SaveToDbSettings).user || ''} onChange={e => handleSettingsChange('user', e.target.value)} className={commonInputClasses} />
+                            <input type="password" placeholder="Password" value={(data.settings as SaveToDbSettings).password || ''} onChange={e => handleSettingsChange('password', e.target.value)} className={commonInputClasses} />
+                            <input type="text" placeholder="Database" value={(data.settings as SaveToDbSettings).database || ''} onChange={e => handleSettingsChange('database', e.target.value)} className={commonInputClasses} />
+                            <input type="text" placeholder="Table Name" value={(data.settings as SaveToDbSettings).tableName || ''} onChange={e => handleSettingsChange('tableName', e.target.value)} className={commonInputClasses} />
+                            <select value={(data.settings as SaveToDbSettings).conflictStrategy} onChange={e => handleSettingsChange('conflictStrategy', e.target.value)} className={commonInputClasses}>
+                                <option value="insert">Insert (Fail on Duplicate)</option>
+                                <option value="upsert">Upsert (Update on Duplicate)</option>
+                                <option value="skip">Skip on Duplicate</option>
+                            </select>
+                        </>
+                    )}
+                    {data.processorType === 'send-to-api' && (
+                        <>
+                            <input type="url" placeholder="Endpoint URL" value={(data.settings as SendToApiSettings).endpointUrl} onChange={e => handleSettingsChange('endpointUrl', e.target.value)} className={commonInputClasses} />
+                            <select value={(data.settings as SendToApiSettings).method} onChange={e => handleSettingsChange('method', e.target.value)} className={commonInputClasses}>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="PATCH">PATCH</option>
+                            </select>
+                        </>
+                    )}
+                    {data.processorType === 'generate-csv-file' && (
+                        <>
+                            <input type="text" placeholder="File Name Pattern" value={(data.settings as GenerateCsvSettings).fileName} onChange={e => handleSettingsChange('fileName', e.target.value)} className={commonInputClasses} />
+                            <select value={(data.settings as GenerateCsvSettings).delimiter} onChange={e => handleSettingsChange('delimiter', e.target.value)} className={commonInputClasses}>
+                                <option value=",">Comma (,)</option>
+                                <option value=";">Semicolon (;)</option>
+                                <option value="\t">Tab (\t)</option>
+                            </select>
+                             <div className="flex items-center gap-2 mt-2">
+                                <input
+                                    type="checkbox"
+                                    id="includeHeader"
+                                    checked={(data.settings as GenerateCsvSettings).includeHeader}
+                                    onChange={e => handleSettingsChange('includeHeader', e.target.checked)}
+                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <label htmlFor="includeHeader" className="text-sm text-gray-700">Include Header Row</label>
+                            </div>
+                        </>
+                    )}
+                     {data.processorType === 'send-email-notification' && (
+                        <>
+                             <input type="text" placeholder="Recipients (comma separated)" value={(data.settings as SendEmailSettings).recipients} onChange={e => handleSettingsChange('recipients', e.target.value)} className={commonInputClasses} />
+                             <input type="text" placeholder="Subject" value={(data.settings as SendEmailSettings).subject} onChange={e => handleSettingsChange('subject', e.target.value)} className={commonInputClasses} />
+                             <textarea placeholder="Body Template" value={(data.settings as SendEmailSettings).body} onChange={e => handleSettingsChange('body', e.target.value)} className={`${commonInputClasses} h-24`} />
+                        </>
                     )}
                 </div>
-                 
-                 <div className="mt-4">
-                    <label className={commonLabelClasses} htmlFor="new-rule-type-select">Add New Rule</label>
-                     <select 
-                        id="new-rule-type-select"
-                        className={commonInputClasses} 
-                        onChange={e => {
-                            addRule(e.target.value as WorkerRuleType);
-                            e.target.value = "";
-                        }} 
-                        value=""
-                    >
-                         <option value="" disabled>Select a rule type...</option>
-                         <option value="url-format">URL Format</option>
-                         <option value="html-contains">HTML Contains</option>
-                         <option value="dom-value">DOM Value</option>
-                         <option value="tag-attribute">Tag Attribute</option>
-                         <option value="data-source-type">Data Source Type</option>
-                    </select>
-                 </div>
             </CollapsibleSection>
         </div>
     );
 };
 
-const ShapeNodeSettings: React.FC<{ node: Node<ShapeNodeData>; onUpdate: (data: ShapeNodeData) => void }> = ({ node, onUpdate }) => {
+const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data: WorkerNodeData) => void }> = ({ node, onUpdate }) => {
     const { data } = node;
 
-    const handleUpdate = <K extends keyof ShapeNodeData>(key: K, value: ShapeNodeData[K]) => {
-        onUpdate({ ...data, [key]: value });
+    const addRule = () => {
+        const newRule: WorkerRule = { id: `${Date.now()}`, type: 'dom-value', selector: '', condition: 'exists', value: '' };
+        onUpdate({ ...data, detectionRules: [...data.detectionRules, newRule] });
+    };
+
+    const updateRule = (id: string, ruleUpdate: Partial<WorkerRule>) => {
+        const newRules = data.detectionRules.map(r => r.id === id ? { ...r, ...ruleUpdate } as WorkerRule : r);
+        onUpdate({ ...data, detectionRules: newRules });
+    };
+
+    const removeRule = (id: string) => {
+        onUpdate({ ...data, detectionRules: data.detectionRules.filter(r => r.id !== id) });
     };
 
     return (
         <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Shape Settings</h3>
-            <div>
-                <label htmlFor="shapeLabel" className={commonLabelClasses}>Label</label>
-                <input
-                    id="shapeLabel"
-                    type="text"
-                    value={data.label}
-                    onChange={e => handleUpdate('label', e.target.value)}
-                    className={commonInputClasses}
-                />
+             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Worker Settings</h3>
+             <div className="flex justify-between items-center">
+                 <label className={commonLabelClasses}>Priority</label>
+                 <input type="number" value={data.priority} onChange={e => onUpdate({ ...data, priority: parseInt(e.target.value) })} className={`${commonInputClasses} w-24`} />
+             </div>
+
+             <CollapsibleSection title="Detection Rules" defaultOpen>
+                <div className="space-y-4">
+                     <div className="flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded border border-slate-200">
+                        <span className="text-sm text-gray-700 font-medium">Match:</span>
+                        <select value={data.detectionLogic} onChange={e => onUpdate({ ...data, detectionLogic: e.target.value as 'and' | 'or' })} className={`${smallInputClasses} w-24 border-gray-300`}>
+                            <option value="and">ALL</option>
+                            <option value="or">ANY</option>
+                        </select>
+                        <span className="text-sm text-gray-700">of the following rules:</span>
+                    </div>
+
+                    {data.detectionRules.map((rule, index) => (
+                        <div key={rule.id} className="p-4 border border-slate-200 bg-white rounded-lg shadow-sm space-y-3 relative group transition-all hover:border-blue-300">
+                            
+                            <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Rule {index + 1}</span>
+                                <button 
+                                    onClick={() => removeRule(rule.id)} 
+                                    className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors"
+                                    title="Remove Rule"
+                                >
+                                    <TrashIcon />
+                                </button>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Rule Type</label>
+                                    <select value={rule.type} onChange={e => updateRule(rule.id, { type: e.target.value as WorkerRuleType })} className={commonInputClasses}>
+                                        <option value="url-format">URL Format</option>
+                                        <option value="html-contains">HTML Contains</option>
+                                        <option value="dom-value">DOM Element Value</option>
+                                        <option value="tag-attribute">Tag Attribute</option>
+                                        <option value="data-source-type">Data Source Type</option>
+                                    </select>
+                                </div>
+
+                                {rule.type === 'url-format' && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Regex Pattern</label>
+                                        <input type="text" placeholder="e.g., /products/.*" value={(rule as URLFormatRule).pattern} onChange={e => updateRule(rule.id, { pattern: e.target.value })} className={commonInputClasses} />
+                                    </div>
+                                )}
+                                {rule.type === 'html-contains' && (
+                                     <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Text Content</label>
+                                        <input type="text" placeholder="Text to match" value={(rule as HTMLContainsRule).text} onChange={e => updateRule(rule.id, { text: e.target.value })} className={commonInputClasses} />
+                                    </div>
+                                )}
+                                {rule.type === 'dom-value' && (
+                                    <>
+                                         <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">CSS Selector</label>
+                                            <input type="text" placeholder="e.g., .price" value={(rule as DOMValueRule).selector} onChange={e => updateRule(rule.id, { selector: e.target.value })} className={commonInputClasses} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                 <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
+                                                <select value={(rule as DOMValueRule).condition} onChange={e => updateRule(rule.id, { condition: e.target.value as RuleCondition })} className={commonInputClasses}>
+                                                    <option value="exists">Exists</option>
+                                                    <option value="not-exists">Not Exists</option>
+                                                    <option value="contains">Contains</option>
+                                                    <option value="not-contains">Not Contains</option>
+                                                    <option value="matches-regex">Matches Regex</option>
+                                                </select>
+                                            </div>
+                                            {['contains', 'not-contains', 'matches-regex'].includes((rule as DOMValueRule).condition) && (
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Value</label>
+                                                    <input type="text" placeholder="Value to check" value={(rule as DOMValueRule).value} onChange={e => updateRule(rule.id, { value: e.target.value })} className={commonInputClasses} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                                {rule.type === 'tag-attribute' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">CSS Selector</label>
+                                            <input type="text" placeholder="e.g., a.link" value={(rule as TagAttributeRule).selector} onChange={e => updateRule(rule.id, { selector: e.target.value })} className={commonInputClasses} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">Attribute</label>
+                                            <input type="text" placeholder="e.g., href" value={(rule as TagAttributeRule).attribute} onChange={e => updateRule(rule.id, { attribute: e.target.value })} className={commonInputClasses} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                 <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
+                                                <select value={(rule as TagAttributeRule).condition} onChange={e => updateRule(rule.id, { condition: e.target.value as RuleCondition })} className={commonInputClasses}>
+                                                    <option value="exists">Exists</option>
+                                                    <option value="not-exists">Not Exists</option>
+                                                    <option value="contains">Contains</option>
+                                                    <option value="not-contains">Not Contains</option>
+                                                    <option value="matches-regex">Matches Regex</option>
+                                                </select>
+                                            </div>
+                                            {['contains', 'not-contains', 'matches-regex'].includes((rule as TagAttributeRule).condition) && (
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Value</label>
+                                                    <input type="text" placeholder="Value to check" value={(rule as TagAttributeRule).value} onChange={e => updateRule(rule.id, { value: e.target.value })} className={commonInputClasses} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                                {rule.type === 'data-source-type' && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Source Type</label>
+                                        <select value={(rule as DataSourceTypeRule).sourceType || 'url'} onChange={e => updateRule(rule.id, { sourceType: e.target.value } as any)} className={commonInputClasses}>
+                                            <option value="url">URL</option>
+                                            <option value="api">API</option>
+                                            <option value="xml">XML</option>
+                                            <option value="csv">CSV</option>
+                                            <option value="json">JSON</option>
+                                            <option value="mysql">MySQL</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                    <button onClick={addRule} className={`${commonButtonClasses} bg-purple-600 hover:bg-purple-700 mt-4 py-3 shadow-sm`}>+ Add Detection Rule</button>
+                </div>
+             </CollapsibleSection>
+        </div>
+    )
+};
+
+const ShapeNodeSettings: React.FC<{ node: Node<ShapeNodeData>; onUpdate: (data: ShapeNodeData) => void }> = ({ node, onUpdate }) => {
+    const { data } = node;
+
+    return (
+        <div className="space-y-4">
+             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Shape Settings</h3>
+             <div>
+                <label className={commonLabelClasses}>Label</label>
+                <input type="text" value={data.label} onChange={e => onUpdate({ ...data, label: e.target.value })} className={commonInputClasses} />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label htmlFor="backgroundColor" className={commonLabelClasses}>Background</label>
-                    <input
-                        id="backgroundColor"
-                        type="color"
-                        value={data.backgroundColor}
-                        onChange={e => handleUpdate('backgroundColor', e.target.value)}
-                        className="w-full h-10 p-1 bg-white border border-slate-300 rounded-md cursor-pointer"
-                    />
+                    <label className={commonLabelClasses}>Background Color</label>
+                    <input type="color" value={data.backgroundColor} onChange={e => onUpdate({ ...data, backgroundColor: e.target.value })} className="w-full h-10 p-1 rounded-md cursor-pointer border border-gray-300" />
                 </div>
                  <div>
-                    <label htmlFor="textColor" className={commonLabelClasses}>Text Color</label>
-                    <input
-                        id="textColor"
-                        type="color"
-                        value={data.textColor}
-                        onChange={e => handleUpdate('textColor', e.target.value)}
-                        className="w-full h-10 p-1 bg-white border border-slate-300 rounded-md cursor-pointer"
-                    />
+                    <label className={commonLabelClasses}>Border Color</label>
+                    <input type="color" value={data.borderColor} onChange={e => onUpdate({ ...data, borderColor: e.target.value })} className="w-full h-10 p-1 rounded-md cursor-pointer border border-gray-300" />
                 </div>
-            </div>
-             <div>
-                <label htmlFor="borderColor" className={commonLabelClasses}>Border Color</label>
-                <input
-                    id="borderColor"
-                    type="color"
-                    value={data.borderColor}
-                    onChange={e => handleUpdate('borderColor', e.target.value)}
-                    className="w-full h-10 p-1 bg-white border border-slate-300 rounded-md cursor-pointer"
-                />
+                 <div>
+                    <label className={commonLabelClasses}>Text Color</label>
+                    <input type="color" value={data.textColor} onChange={e => onUpdate({ ...data, textColor: e.target.value })} className="w-full h-10 p-1 rounded-md cursor-pointer border border-gray-300" />
+                </div>
             </div>
         </div>
     );
 };
 
 
-// FIX: 'useRef' was not defined. It is now imported from React.
-const ProjectSettingsPanel: React.FC<{
-  settings: ProjectSettings;
-  onUpdate: (update: Partial<ProjectSettings>) => void;
-  onExport: () => void;
-  onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
-}> = ({ settings, onUpdate, onExport, onImport }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Cog6ToothIcon />
-          <h3 className="text-lg font-bold text-gray-800">Project Settings</h3>
-        </div>
-      <div>
-        <label htmlFor="projectName" className={commonLabelClasses}>Project Name</label>
-        <input id="projectName" type="text" value={settings.name} onChange={e => onUpdate({ name: e.target.value })} className={commonInputClasses} />
-      </div>
-      <div>
-        <label htmlFor="projectDesc" className={commonLabelClasses}>Description</label>
-        <textarea id="projectDesc" value={settings.description} onChange={e => onUpdate({ description: e.target.value })} className={`${commonInputClasses} h-24`} />
-      </div>
-      <div>
-        <label htmlFor="crawlDelay" className={commonLabelClasses}>Crawl Delay (ms)</label>
-        <input id="crawlDelay" type="number" value={settings.crawlDelay} onChange={e => onUpdate({ crawlDelay: parseInt(e.target.value) || 0 })} className={commonInputClasses} />
-      </div>
-      <div>
-        <label htmlFor="userAgent" className={commonLabelClasses}>User Agent</label>
-        <input id="userAgent" type="text" value={settings.userAgent} onChange={e => onUpdate({ userAgent: e.target.value })} className={commonInputClasses} />
-      </div>
-      <div>
-        <label htmlFor="concurrency" className={commonLabelClasses}>Concurrency</label>
-        <input id="concurrency" type="number" value={settings.concurrency} onChange={e => onUpdate({ concurrency: parseInt(e.target.value) || 1 })} className={commonInputClasses} />
-      </div>
-
-      <div className="border-t pt-4 space-y-3">
-        <h4 className="font-semibold text-gray-700">Configuration</h4>
-        <div className="flex gap-2">
-            <input type="file" ref={fileInputRef} onChange={onImport} className="hidden" accept=".json" />
-            <button onClick={() => fileInputRef.current?.click()} className={`${commonButtonClasses} bg-gray-600 hover:bg-gray-700 w-1/2 flex items-center justify-center gap-2`}>
-                <ArrowUpTrayIcon />
-                <span>Import</span>
-            </button>
-             <button onClick={onExport} className={`${commonButtonClasses} bg-blue-600 hover:bg-blue-700 w-1/2 flex items-center justify-center gap-2`}>
-                <ArrowDownTrayIcon />
-                <span>Export</span>
-            </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-// Main Panel Component
+// --- Main Settings Panel Component ---
 const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
-  const { node, onUpdateNode, onDeleteNode, onClose, isOpen, projectSettings, onUpdateProjectSettings, onExport, onImport, onAddShapeNode } = props;
+    const { node, onUpdateNode, onDeleteNode, onClose, projectSettings, onUpdateProjectSettings, onExport, onSave, onImport, isOpen } = props;
 
-  const renderNodeSettings = () => {
-    if (!node) return null;
+    const renderNodeSettings = () => {
+        if (!node) return null;
 
-    switch (node.type) {
-      case 'start':
-        return <StartNodeSettings node={node as Node<StartNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'click':
-        return <ClickNodeSettings node={node as Node<ClickNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'loop':
-        return <LoopNodeSettings node={node as Node<LoopNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'html-data-extractor':
-         return <HTMLDataExtractorSettings node={node as Node<HTMLDataExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} props={props} />;
-      case 'csv-extractor':
-         return <CSVExtractorSettings node={node as Node<CSVExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'json-extractor':
-         return <PathBasedExtractorSettings node={node as Node<JSONExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} title="JSON Extractor Settings" pathPlaceholder="JSONPath (e.g., $.products[*].name)" presetKey="json" />;
-      case 'xml-extractor':
-         return <PathBasedExtractorSettings node={node as Node<XMLExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} title="XML Extractor Settings" pathPlaceholder="XPath (e.g., //item/title)" presetKey="xml" />;
-      case 'mysql-extractor':
-        return <MySQLExtractorSettings node={node as Node<MySQLExtractorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'processor':
-        return <ProcessorSettings node={node as Node<ProcessorNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'worker':
-        return <WorkerNodeSettings node={node as Node<WorkerNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'shape':
-        return <ShapeNodeSettings node={node as Node<ShapeNodeData>} onUpdate={(data) => onUpdateNode(node.id, data)} />;
-      case 'repository':
-        return <p className="text-sm text-gray-600 p-4 text-center">This is the Raw Items Repository. It collects items from all data sources. No configuration needed.</p>;
-      default:
-        return <p className="text-sm text-gray-600 p-4 text-center">Settings for this node type are not available.</p>;
-    }
-  };
+        const handleUpdate = (data: NodeData) => onUpdateNode(node.id, data);
 
-  return (
-     <aside className={`fixed top-0 right-0 h-full w-96 bg-white p-4 border-l border-slate-200 shadow-lg z-40 flex flex-col gap-4 transform transition-transform duration-300 ease-in-out md:relative md:w-96 md:transform-none md:z-20 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-      <div className="flex justify-between items-center border-b pb-3">
-        <h2 className="text-xl font-bold text-gray-800">{node ? 'Node Settings' : 'Project Settings'}</h2>
-        <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-800">
-          <XMarkIcon />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-        <DiagramElementsPanel onAddShapeNode={onAddShapeNode} />
-        <div className="mt-4">
-            {node ? renderNodeSettings() : <ProjectSettingsPanel settings={projectSettings} onUpdate={onUpdateProjectSettings} onExport={onExport} onImport={onImport} />}
+        switch (node.type) {
+            case 'start':
+                return <StartNodeSettings node={node as Node<StartNodeData>} onUpdate={handleUpdate as (data: StartNodeData) => void} />;
+            case 'click':
+                return <ClickNodeSettings node={node as Node<ClickNodeData>} onUpdate={handleUpdate as (data: ClickNodeData) => void} />;
+            case 'loop':
+                return <LoopNodeSettings node={node as Node<LoopNodeData>} onUpdate={handleUpdate as (data: LoopNodeData) => void} />;
+            case 'worker':
+                return <WorkerNodeSettings node={node as Node<WorkerNodeData>} onUpdate={handleUpdate as (data: WorkerNodeData) => void} />;
+            case 'html-data-extractor':
+                return <HTMLDataExtractorSettings node={node as Node<HTMLDataExtractorNodeData>} onUpdate={handleUpdate as (data: HTMLDataExtractorNodeData) => void} props={props} />;
+            case 'csv-extractor':
+                return <CSVExtractorSettings node={node as Node<CSVExtractorNodeData>} onUpdate={handleUpdate as (data: CSVExtractorNodeData) => void} />;
+            case 'json-extractor':
+                return <PathBasedExtractorSettings node={node as Node<JSONExtractorNodeData>} onUpdate={handleUpdate as (data: JSONExtractorNodeData) => void} title="JSON Data Extractor" pathPlaceholder="JSON Path (e.g., $.items[0].name)" presetKey="json" />;
+            case 'xml-extractor':
+                return <PathBasedExtractorSettings node={node as Node<XMLExtractorNodeData>} onUpdate={handleUpdate as (data: XMLExtractorNodeData) => void} title="XML Data Extractor" pathPlaceholder="XPath (e.g., /root/item/name)" presetKey="xml" />;
+            case 'mysql-extractor':
+                return <MySQLExtractorSettings node={node as Node<MySQLExtractorNodeData>} onUpdate={handleUpdate as (data: MySQLExtractorNodeData) => void} />;
+            case 'processor':
+                return <ProcessorNodeSettings node={node as Node<ProcessorNodeData>} onUpdate={handleUpdate as (data: ProcessorNodeData) => void} />;
+            case 'shape':
+                return <ShapeNodeSettings node={node as Node<ShapeNodeData>} onUpdate={handleUpdate as (data: ShapeNodeData) => void} />;
+            case 'repository':
+                return <div className="text-gray-500 italic text-center p-4">This node holds the data. No specific settings available.</div>;
+            case 'reception':
+                return <div className="text-gray-500 italic text-center p-4">Configuration for Reception is handled via logic rules. (Coming Soon)</div>;
+            case 'completion':
+                return <div className="text-gray-500 italic text-center p-4">End of workflow. Reporting settings are global.</div>;
+            default:
+                return <div className="text-gray-500 italic text-center p-4">No settings available for this node type.</div>;
+        }
+    };
+
+    const renderProjectSettings = () => (
+        <div className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Project Settings</h3>
+            
+            <div className="flex items-center justify-between mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <div className="flex flex-col">
+                    <span className="text-sm font-bold text-gray-700">Enable Project</span>
+                    <span className="text-xs text-gray-500">{projectSettings.enabled ? 'Project is active' : 'Project is disabled'}</span>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => onUpdateProjectSettings({ enabled: !projectSettings.enabled })}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${projectSettings.enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                    role="switch"
+                    aria-checked={projectSettings.enabled}
+                >
+                    <span
+                        aria-hidden="true"
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${projectSettings.enabled ? 'translate-x-5' : 'translate-x-0'}`}
+                    />
+                </button>
+            </div>
+
+            <div>
+                <label className={commonLabelClasses}>Project Name</label>
+                <input type="text" value={projectSettings.name} onChange={e => onUpdateProjectSettings({ name: e.target.value })} className={commonInputClasses} />
+            </div>
+            <div>
+                <label className={commonLabelClasses}>Description</label>
+                <textarea value={projectSettings.description} onChange={e => onUpdateProjectSettings({ description: e.target.value })} className={`${commonInputClasses} h-24`} />
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className={commonLabelClasses}>Crawl Delay (ms)</label>
+                    <input type="number" value={projectSettings.crawlDelay} onChange={e => onUpdateProjectSettings({ crawlDelay: parseInt(e.target.value) })} className={commonInputClasses} />
+                </div>
+                 <div>
+                    <label className={commonLabelClasses}>Concurrency</label>
+                    <input type="number" value={projectSettings.concurrency} onChange={e => onUpdateProjectSettings({ concurrency: parseInt(e.target.value) })} className={commonInputClasses} />
+                </div>
+            </div>
+            <div>
+                <label className={commonLabelClasses}>User Agent</label>
+                <input type="text" value={projectSettings.userAgent} onChange={e => onUpdateProjectSettings({ userAgent: e.target.value })} className={commonInputClasses} />
+            </div>
+
+            <div className="pt-6 border-t mt-6">
+                <h4 className="font-semibold text-gray-700 mb-3">Actions</h4>
+                 <div className="flex gap-2">
+                    <button onClick={onExport} className={`${commonButtonClasses} bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2`}>
+                        <ArrowDownTrayIcon /> Export JSON
+                    </button>
+                     <label className={`${commonButtonClasses} bg-slate-600 hover:bg-slate-700 flex items-center justify-center gap-2 cursor-pointer`}>
+                        <ArrowUpTrayIcon /> Import JSON
+                        <input type="file" onChange={onImport} className="hidden" accept=".json" />
+                    </label>
+                </div>
+                <button
+                    onClick={onSave}
+                    className="w-full mt-3 p-3 rounded-md font-bold text-white bg-green-600 hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-md"
+                >
+                    <CloudIcon /> Save Project
+                </button>
+            </div>
         </div>
-      </div>
-      {node && node.deletable !== false && (
-        <div className="mt-auto pt-4 border-t">
-          <button
-            onClick={() => onDeleteNode(node.id)}
-            className={`${commonButtonClasses} bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2`}
-          >
-            <TrashIcon />
-            <span>Delete Node</span>
-          </button>
-        </div>
-      )}
-    </aside>
-  );
+    );
+
+    return (
+        <aside className={`fixed top-0 right-0 h-full w-80 bg-white p-6 border-l border-gray-200 shadow-xl z-40 overflow-y-auto transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">{node ? 'Node Settings' : 'Project Config'}</h2>
+                <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-800">
+                    <XMarkIcon />
+                </button>
+            </div>
+            
+            {node ? (
+                <>
+                    {renderNodeSettings()}
+                    {node.deletable !== false && (
+                         <div className="mt-8 pt-6 border-t">
+                            <button 
+                                onClick={() => onDeleteNode(node.id)}
+                                className="w-full p-2 bg-red-100 text-red-700 rounded-md font-semibold hover:bg-red-200 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <TrashIcon /> Delete Node
+                            </button>
+                        </div>
+                    )}
+                </>
+            ) : renderProjectSettings()}
+        </aside>
+    );
 };
 
 export default SettingsPanel;

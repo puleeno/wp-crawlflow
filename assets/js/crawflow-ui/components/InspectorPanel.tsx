@@ -30,7 +30,7 @@ const InspectorPanel: React.FC<InspectorPanelProps> = ({ htmlContent, isPicking,
         const base = iframe.contentDocument.createElement('base');
         base.href = document.location.href;
         iframe.contentDocument.head.appendChild(base);
-        setIframeBody(iframe.contentDocument.body);
+        setIframeBody(iframe.contentDocument.body as HTMLBodyElement);
       }
     };
 

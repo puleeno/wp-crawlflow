@@ -273,12 +273,6 @@ class CrawlFlowController
         
         ?>
         <div class="wrap crawlflow-react-flow-wrapper">
-            <div class="crawlflow-react-flow-header">
-                <h1><?php echo $projectId ? 'Edit Project' : 'Create New Project'; ?></h1>
-                <a href="<?php echo admin_url('admin.php?page=crawlflow-projects'); ?>" class="button">
-                    ← Back to Projects
-                </a>
-            </div>
             <div id="crawlflow-react-flow-root"></div>
         </div>
         

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Node, Edge } from 'reactflow';
-import type { NodeData, ClickNodeData, LoopNodeData, StartNodeData, DataSourceType, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, CSVExtractorNodeData, JSONExtractorNodeData, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData } from '../types';
+import type { NodeData, ClickNodeData, LoopNodeData, StartNodeData, DataSourceType, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, CSVExtractorNodeData, JSONExtractorNodeData, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData, ShapeType } from '../types';
 import {
   CursorArrowRaysIcon,
   DocumentMagnifyingGlassIcon,
@@ -15,6 +15,11 @@ import {
   XMarkIcon,
   FlagIcon,
   HandIcon,
+  SquareIcon,
+  CircleIcon,
+  EllipseIcon,
+  FrameIcon,
+  FolderIcon,
 } from './icons';
 import { PROCESSORS } from '../presets';
 
@@ -27,6 +32,7 @@ interface SidebarProps {
   edges: Edge[];
   mouseMode: 'select' | 'pan';
   onSetMouseMode: (mode: 'select' | 'pan') => void;
+  onAddShapeNode: (shapeType: ShapeType) => void;
 }
 
 const dataSources: {
@@ -125,7 +131,54 @@ const dataSources: {
 
 const EXTRACTOR_NODE_TYPES = ['html-data-extractor', 'csv-extractor', 'json-extractor', 'xml-extractor', 'mysql-extractor'];
 
-const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onClose, nodes, edges, mouseMode, onSetMouseMode }) => {
+const DiagramElementsPanel: React.FC<{ onAddShapeNode: (shapeType: ShapeType) => void }> = ({ onAddShapeNode }) => {
+    return (
+        <div className="mt-6">
+            <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Diagram Elements</h2>
+            <p className="text-sm text-gray-600 mt-2 mb-4">Click an element to add it to the canvas.</p>
+            <div className="grid grid-cols-2 gap-4">
+                 <button
+                    onClick={() => onAddShapeNode('rectangle')}
+                    className="flex flex-col items-center justify-center text-center gap-3 p-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <SquareIcon />
+                    <span className="font-semibold">Rectangle</span>
+                </button>
+                 <button
+                    onClick={() => onAddShapeNode('circle')}
+                    className="flex flex-col items-center justify-center text-center gap-3 p-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <CircleIcon />
+                    <span className="font-semibold">Circle</span>
+                </button>
+                 <button
+                    onClick={() => onAddShapeNode('ellipse')}
+                    className="flex flex-col items-center justify-center text-center gap-3 p-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <EllipseIcon />
+                    <span className="font-semibold">Ellipse</span>
+                </button>
+                 <button
+                    onClick={() => onAddShapeNode('frame')}
+                    className="flex flex-col items-center justify-center text-center gap-3 p-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <FrameIcon />
+                    <span className="font-semibold">Frame</span>
+                </button>
+                <button
+                    onClick={() => onAddShapeNode('package')}
+                    className="flex flex-col items-center justify-center text-center gap-3 p-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 shadow-md"
+                >
+                    <FolderIcon />
+                    <span className="font-semibold">Package</span>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
+const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onClose, nodes, edges, mouseMode, onSetMouseMode, onAddShapeNode }) => {
   
   const handleAddNode = (type: string, data: NodeData, sourceNode?: Node | null) => {
     onAddNode(type, data, sourceNode);
@@ -245,6 +298,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
                         ))}
                     </div>
                 </div>
+                <DiagramElementsPanel onAddShapeNode={onAddShapeNode} />
             </>
         )
     }
@@ -281,46 +335,46 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
                     <p className="text-sm text-gray-600 mt-2 mb-4">
                         Connect a data extractor to define what data this worker should extract.
                     </p>
-                     <div className="grid grid-cols-2 gap-3">
+                     <div className="grid grid-cols-3 gap-2">
                         <button
                           onClick={addHTMLDataExtractorNode}
                           disabled={hasDataExtractorInput}
-                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          className="flex flex-col items-center justify-center text-center gap-1 p-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
                           <TableCellsIcon />
-                          <span className="text-sm font-semibold">HTML Extractor</span>
+                          <span className="text-xs font-semibold">HTML Extractor</span>
                         </button>
                          <button
                           onClick={addCSVDataExtractorNode}
                           disabled={hasDataExtractorInput}
-                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          className="flex flex-col items-center justify-center text-center gap-1 p-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
                           <DocumentTextIcon />
-                          <span className="text-sm font-semibold">CSV Extractor</span>
+                          <span className="text-xs font-semibold">CSV Extractor</span>
                         </button>
                         <button
                           onClick={addJSONDataExtractorNode}
                           disabled={hasDataExtractorInput}
-                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          className="flex flex-col items-center justify-center text-center gap-1 p-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
                           <DocumentTextIcon />
-                          <span className="text-sm font-semibold">JSON Extractor</span>
+                          <span className="text-xs font-semibold">JSON Extractor</span>
                         </button>
                         <button
                           onClick={addXMLExtractorNode}
                           disabled={hasDataExtractorInput}
-                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          className="flex flex-col items-center justify-center text-center gap-1 p-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
                           <DocumentTextIcon />
-                          <span className="text-sm font-semibold">XML Extractor</span>
+                          <span className="text-xs font-semibold">XML Extractor</span>
                         </button>
                          <button
                           onClick={addMySQLExtractorNode}
                           disabled={hasDataExtractorInput}
-                          className="flex flex-col items-center justify-center text-center gap-2 p-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                          className="flex flex-col items-center justify-center text-center gap-1 p-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all duration-200 shadow-md transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                         >
                           <DatabaseIcon />
-                          <span className="text-sm font-semibold">MySQL Extractor</span>
+                          <span className="text-xs font-semibold">MySQL Extractor</span>
                         </button>
                     </div>
                      {hasDataExtractorInput && (
@@ -409,7 +463,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
             <XMarkIcon />
         </button>
       </div>
-      <div className="flex flex-col gap-3 mt-4 flex-1 overflow-y-auto">
+      <div className="flex flex-col gap-3 mt-4 flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 transition-colors">
         {renderContent()}
       </div>
       <div className="mt-auto pt-4 border-t">

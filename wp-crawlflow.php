@@ -90,7 +90,8 @@ class WP_CrawlFlow {
         register_deactivation_hook(CRAWLFLOW_PLUGIN_FILE, [$this, 'deactivate']);
 
         // Admin scripts and styles
-        add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 5);
+        // Use priority 20 to ensure WordPress core scripts (like wp-hooks) are loaded first
+        add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 20);
         
         // Register React Flow CSS early to ensure it's available
         add_action('admin_init', [$this, 'registerReactFlowCSS'], 1);
@@ -100,6 +101,10 @@ class WP_CrawlFlow {
 
         // Load text domain
         add_action('plugins_loaded', [$this, 'loadTextDomain']);
+        
+        // Fix for wp.hooks and wp.svgPainter undefined errors
+        // Ensure WordPress core objects exist before scripts try to use them
+        add_action('admin_head', [$this, 'fixWpObjectsUndefined'], 1);
     }
 
     /**
@@ -322,6 +327,18 @@ class WP_CrawlFlow {
                         $fileHash ?: CRAWLFLOW_VERSION,
                         true
                     );
+                    
+                    // Localize script with WordPress AJAX URL and nonce
+                    wp_localize_script(
+                        'crawlflow-react-flow',
+                        'crawlflowAdmin',
+                        [
+                            'ajaxUrl' => admin_url('admin-ajax.php'),
+                            'nonce' => wp_create_nonce('crawlflow_admin_nonce'),
+                            'adminUrl' => admin_url(),
+                            'projectId' => isset($_GET['project_id']) ? (int) $_GET['project_id'] : 0,
+                        ]
+                    );
                 }
             }
         } else {
@@ -398,6 +415,67 @@ class WP_CrawlFlow {
             false,
             dirname(CRAWLFLOW_PLUGIN_BASENAME) . '/languages'
         );
+    }
+    
+    /**
+     * Fix wp.hooks and wp.svgPainter undefined errors
+     * This ensures WordPress core objects exist before scripts try to use them
+     */
+    public function fixWpObjectsUndefined() {
+        // Only run in admin area
+        if (!is_admin()) {
+            return;
+        }
+        
+        // Add safety checks to ensure WordPress core objects exist before scripts run
+        // This fixes errors like "wp.hooks is undefined" and "wp.svgPainter is undefined"
+        ?>
+        <script>
+        (function() {
+            // Ensure wp object exists
+            if (typeof window.wp === 'undefined') {
+                window.wp = {};
+            }
+            
+            // Fix for wp.hooks - used by heartbeat.js
+            // If wp.hooks doesn't exist yet, create a minimal stub
+            // This will be replaced by the actual wp-hooks script when it loads
+            if (typeof window.wp.hooks === 'undefined') {
+                window.wp.hooks = {
+                    doAction: function() {
+                        // Stub function - will be replaced by actual wp-hooks
+                        if (console && console.warn) {
+                            console.warn('wp.hooks.doAction called before wp-hooks script loaded');
+                        }
+                    },
+                    addAction: function() {},
+                    removeAction: function() {},
+                    addFilter: function() {},
+                    removeFilter: function() {},
+                    applyFilters: function() {
+                        return arguments[1];
+                    }
+                };
+            }
+            
+            // Fix for wp.svgPainter - used by svg-painter.js
+            // If wp.svgPainter doesn't exist yet, create a minimal stub
+            // This will be replaced by the actual svg-painter script when it loads
+            if (typeof window.wp.svgPainter === 'undefined') {
+                window.wp.svgPainter = {
+                    init: function() {
+                        // Stub function - will be replaced by actual svg-painter
+                        // This prevents errors when svg-painter.js tries to call wp.svgPainter.init()
+                    },
+                    setColors: function() {},
+                    findElements: function() {},
+                    paint: function() {},
+                    paintElement: function() {}
+                };
+            }
+        })();
+        </script>
+        <?php
     }
 
     /**

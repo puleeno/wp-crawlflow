@@ -1,5 +1,7 @@
+
 // FIX: The content for this file was missing. These are the type definitions for the application.
-import type { Node, NodeProps, ReactNode } from 'reactflow';
+import type { Node, NodeProps } from 'reactflow';
+import type { ReactNode } from 'react';
 
 export type DataSourceType = 'url' | 'api' | 'xml' | 'csv' | 'json' | 'mysql';
 export type FileInputMethod = 'paste' | 'upload' | 'cloudUrl';
@@ -15,6 +17,7 @@ export interface MySQLConnection {
 export interface ProjectSettings {
   name: string;
   description: string;
+  enabled: boolean;
   crawlDelay: number;
   userAgent: string;
   concurrency: number;
