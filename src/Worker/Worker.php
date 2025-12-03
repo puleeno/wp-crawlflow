@@ -223,8 +223,8 @@ class Worker implements WorkerInterface
         $hasExtractor = !empty($this->parserConfig['rules']) || !empty($this->parserConfig['customRules']);
         
         if (!$hasExtractor) {
-            // No extractor - wrap raw item as RawDataItem
-            $dataItem = \Rake\Entities\RawDataItem::fromOrigin($rawItem);
+            // No extractor - wrap raw item as PureDataItem
+            $dataItem = \Rake\Entities\ParsedData\PureDataItem::fromRawItem($rawItem);
         } else {
             // Has extractor - extract data
             $extractedData = $this->extractData($rawItem);

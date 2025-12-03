@@ -64,14 +64,6 @@ class RakeAdapter
     }
 
     /**
-     * Get FeedItemBuilderManager from Rake
-     */
-    public function getFeedItemBuilderManager()
-    {
-        return $this->rake->make(\Rake\Manager\FeedItemBuilderManager::class);
-    }
-
-    /**
      * Get EventBus from Rake
      */
     public function getEventBus()
