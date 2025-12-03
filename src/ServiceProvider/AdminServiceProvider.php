@@ -3,13 +3,12 @@
 namespace CrawlFlow\ServiceProvider;
 
 use Rake\Rake;
-use Rake\ServiceProvider\AbstractServiceProvider;
 
 /**
  * Admin Service Provider
  * Registers admin-related services
  */
-class AdminServiceProvider extends AbstractServiceProvider
+class AdminServiceProvider extends CrawlFlowServiceProvider
 {
     /**
      * Register admin services

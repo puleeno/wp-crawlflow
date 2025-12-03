@@ -56,14 +56,6 @@ class RakeAdapter
     }
 
     /**
-     * Get ReceptionManager from Rake
-     */
-    public function getReceptionManager()
-    {
-        return $this->rake->make(\Rake\Manager\ReceptionManager::class);
-    }
-
-    /**
      * Get ParserManager from Rake
      */
     public function getParserManager()

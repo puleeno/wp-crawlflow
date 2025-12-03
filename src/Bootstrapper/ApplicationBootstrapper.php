@@ -20,6 +20,7 @@ class ApplicationBootstrapper
      */
     private array $providers = [
         \CrawlFlow\ServiceProvider\CoreServiceProvider::class,
+        \CrawlFlow\ServiceProvider\HttpServiceProvider::class,
         \CrawlFlow\ServiceProvider\AdminServiceProvider::class,
         \CrawlFlow\ServiceProvider\FlowServiceProvider::class,
         \CrawlFlow\ServiceProvider\CronServiceProvider::class,

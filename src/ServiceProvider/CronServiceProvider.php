@@ -3,13 +3,12 @@
 namespace CrawlFlow\ServiceProvider;
 
 use Rake\Rake;
-use Rake\ServiceProvider\AbstractServiceProvider;
 
 /**
  * Cron Service Provider
  * Registers cron-related services and schedules
  */
-class CronServiceProvider extends AbstractServiceProvider
+class CronServiceProvider extends CrawlFlowServiceProvider
 {
     /**
      * Register cron services

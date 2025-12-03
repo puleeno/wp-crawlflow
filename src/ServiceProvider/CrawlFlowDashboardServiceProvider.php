@@ -2,14 +2,13 @@
 
 namespace CrawlFlow\ServiceProvider;
 
-use Rake\ServiceProvider\AbstractServiceProvider;
 use Rake\Rake;
 
 /**
  * CrawlFlow Dashboard Service Provider
  * Registers dashboard-related services
  */
-class CrawlFlowDashboardServiceProvider extends AbstractServiceProvider
+class CrawlFlowDashboardServiceProvider extends CrawlFlowServiceProvider
 {
     /**
      * Register dashboard services
