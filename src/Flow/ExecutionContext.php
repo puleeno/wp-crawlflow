@@ -227,5 +227,21 @@ class ExecutionContext
             'logs' => $this->logs,
         ];
     }
+
+    /**
+     * Get all results (alias for backward compatibility)
+     */
+    public function getResults(): array
+    {
+        return $this->processedResults;
+    }
+
+    /**
+     * Check if execution has errors
+     */
+    public function hasErrors(): bool
+    {
+        return !empty($this->errors);
+    }
 }
 

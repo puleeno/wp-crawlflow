@@ -30,12 +30,28 @@ class FlowExecutor
 
     /**
      * Execute flow
+     * 
+     * @throws \RuntimeException If flow validation fails with critical errors
      */
     public function execute(FlowConfig $flow): ExecutionContext
     {
         // Validate flow
         $errors = $flow->validate();
         if (!empty($errors)) {
+            // Check for critical errors (missing start node)
+            $hasCriticalError = false;
+            foreach ($errors as $error) {
+                if (strpos($error, 'start node') !== false) {
+                    $hasCriticalError = true;
+                    break;
+                }
+            }
+
+            if ($hasCriticalError) {
+                throw new \RuntimeException('Flow validation failed: ' . implode(', ', $errors));
+            }
+
+            // Non-critical errors, continue but log them
             $context = new ExecutionContext($flow);
             foreach ($errors as $error) {
                 $context->addError($error);

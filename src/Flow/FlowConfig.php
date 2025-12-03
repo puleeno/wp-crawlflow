@@ -35,12 +35,23 @@ class FlowConfig
 
     /**
      * Create from array (typically from JSON)
+     * 
+     * @throws \InvalidArgumentException If required fields are missing
      */
     public static function fromArray(array $data): self
     {
+        // Validate required fields
+        if (!isset($data['nodes'])) {
+            throw new \InvalidArgumentException('Flow configuration must have nodes');
+        }
+
+        if (!is_array($data['nodes'])) {
+            throw new \InvalidArgumentException('Nodes must be an array');
+        }
+
         return new self(
             $data['projectSettings'] ?? [],
-            $data['nodes'] ?? [],
+            $data['nodes'],
             $data['edges'] ?? []
         );
     }

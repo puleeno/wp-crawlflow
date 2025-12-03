@@ -32,6 +32,11 @@ class CrawlFlowDashboardBootstrapper implements BootstrapperInterface
             return new \CrawlFlow\Admin\LogService();
         });
 
+        // Register CrawlFlowController as singleton
+        $app->singleton('CrawlFlow\Admin\CrawlFlowController', function ($app) {
+            return new \CrawlFlow\Admin\CrawlFlowController();
+        });
+
         // Register dashboard hooks
         $this->registerDashboardHooks($app);
     }

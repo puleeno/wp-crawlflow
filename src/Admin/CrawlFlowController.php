@@ -57,6 +57,11 @@ class CrawlFlowController
      */
     private function registerHooks(): void
     {
+        // Parse JSON requests VERY early (before WordPress processes the request)
+        // This ensures action parameter is available in $_POST for WordPress AJAX
+        // Priority 1 to run before everything else
+        \add_action('plugins_loaded', [$this, 'parseJsonRequest'], 1);
+
         // Admin menu
         \add_action('admin_menu', [$this, 'registerMenu']);
 
@@ -396,10 +401,51 @@ class CrawlFlowController
     }
 
     /**
+     * Parse JSON request body and merge into $_POST for compatibility
+     * Supports both JSON and form-data requests
+     * This must run VERY early (on 'plugins_loaded' hook with priority 1) 
+     * so WordPress AJAX can find the action parameter
+     */
+    public function parseJsonRequest(): void
+    {
+        // Only parse for AJAX requests (admin-ajax.php)
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        if (strpos($requestUri, 'admin-ajax.php') === false) {
+            return;
+        }
+
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        
+        // Check if request is JSON
+        if (strpos($contentType, 'application/json') !== false) {
+            $json = file_get_contents('php://input');
+            
+            if (!empty($json)) {
+                $data = json_decode($json, true);
+                
+                if (json_last_error() === JSON_ERROR_NONE && is_array($data)) {
+                    // Merge JSON data into $_POST for backward compatibility
+                    // This ensures WordPress AJAX hooks can find the action parameter
+                    $_POST = array_merge($_POST, $data);
+                    
+                    // Also set $_REQUEST for complete compatibility
+                    $_REQUEST = array_merge($_REQUEST, $data);
+                    
+                    // Debug log
+                    error_log('CrawlFlow: Parsed JSON request - action: ' . ($data['action'] ?? 'none'));
+                }
+            }
+        }
+    }
+
+    /**
      * Handle save project AJAX
      */
     public function handleSaveProject(): void
     {
+        // JSON is already parsed in parseJsonRequest() hook (runs on 'init')
+        // No need to parse again here
+
         if (!\wp_verify_nonce($_POST['nonce'] ?? '', 'crawlflow_admin_nonce')) {
             wp_send_json_error('Security check failed');
         }
@@ -411,8 +457,15 @@ class CrawlFlowController
         ];
 
         // Handle flow-based config from React Flow UI
+        // Support both JSON object and stringified JSON
         if (isset($_POST['project_data'])) {
-            $projectData['project_data'] = $_POST['project_data'];
+            if (is_array($_POST['project_data'])) {
+                $projectData['project_data'] = $_POST['project_data'];
+            } else {
+                // If it's a string, try to decode it
+                $decoded = json_decode($_POST['project_data'], true);
+                $projectData['project_data'] = ($decoded !== null) ? $decoded : $_POST['project_data'];
+            }
         }
 
         // Legacy support: Keep old fields for backward compatibility

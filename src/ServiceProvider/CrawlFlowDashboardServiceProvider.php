@@ -14,17 +14,17 @@ class CrawlFlowDashboardServiceProvider extends AbstractServiceProvider
     /**
      * Register dashboard services
      */
-    protected function registerServices(Rake $app): void
+    protected function registerServices(): void
     {
         // Register dashboard kernel
-        $app->singleton('CrawlFlow\Kernel\CrawlFlowDashboardKernel', function ($app) {
+        $this->app->singleton('CrawlFlow\Kernel\CrawlFlowDashboardKernel', function ($app) {
             return new \CrawlFlow\Kernel\CrawlFlowDashboardKernel();
         });
 
 
 
         // Register dashboard renderer
-        $app->singleton('CrawlFlow\Admin\DashboardRenderer', function ($app) {
+        $this->app->singleton('CrawlFlow\Admin\DashboardRenderer', function ($app) {
             return new \CrawlFlow\Admin\DashboardRenderer();
         });
     }
@@ -32,14 +32,14 @@ class CrawlFlowDashboardServiceProvider extends AbstractServiceProvider
     /**
      * Boot dashboard services
      */
-    protected function bootServices(Rake $app): void
+    protected function bootServices(): void
     {
         // Initialize dashboard kernel
-        $kernel = $app->make('CrawlFlow\Kernel\CrawlFlowDashboardKernel');
+        $kernel = $this->app->make('CrawlFlow\Kernel\CrawlFlowDashboardKernel');
         $kernel->initialize();
 
         // Register dashboard hooks
-        $this->registerDashboardHooks($app);
+        $this->registerDashboardHooks($this->app);
     }
 
     /**

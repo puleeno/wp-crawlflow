@@ -127,7 +127,20 @@ class ProjectService
             ARRAY_A
         );
 
+        // Ensure we always return array or null
+        if (is_object($result)) {
+            return (array) $result;
+        }
+
         return $result ?: null;
+    }
+
+    /**
+     * Get all projects
+     */
+    public function getAllProjects(): array
+    {
+        return $this->getProjects(1, 1000);
     }
 
     /**
@@ -184,9 +197,16 @@ class ProjectService
 
     /**
      * Create new project
+     * 
+     * @throws \InvalidArgumentException If project name is empty
      */
     public function createProject(array $projectData): int
     {
+        // Validate required fields
+        if (empty($projectData['name'])) {
+            throw new \InvalidArgumentException('Project name is required');
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . 'rake_tooths';
 
@@ -194,7 +214,7 @@ class ProjectService
         $config = $this->prepareFlowConfig($projectData);
 
         $data = [
-            'name' => sanitize_text_field($projectData['name'] ?? ''),
+            'name' => sanitize_text_field($projectData['name']),
             'description' => sanitize_textarea_field($projectData['description'] ?? ''),
             'status' => sanitize_text_field($projectData['status'] ?? 'draft'),
             'config' => json_encode($config),
@@ -205,7 +225,7 @@ class ProjectService
         $result = $wpdb->insert($table, $data);
 
         if ($result === false) {
-            return 0;
+            throw new \RuntimeException('Failed to create project in database');
         }
 
         return $wpdb->insert_id;

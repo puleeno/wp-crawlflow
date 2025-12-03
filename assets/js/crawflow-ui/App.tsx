@@ -671,22 +671,34 @@ const App: React.FC = () => {
     const nonce = config.nonce || '';
     const projectId = config.projectId || 0;
 
-    const formData = new FormData();
-    formData.append('action', 'crawlflow_save_project');
-    formData.append('nonce', nonce);
-    formData.append('project_name', projectSettings.name);
-    formData.append('project_description', projectSettings.description || '');
-    formData.append('status', 'draft');
-    
-    // Send flow configuration (nodes, edges, projectSettings)
-    formData.append('project_data', JSON.stringify({
-      projectSettings,
-      nodes,
-      edges,
-    }));
+    // Prepare JSON payload
+    const payload: {
+      action: string;
+      nonce: string;
+      project_name: string;
+      project_description: string;
+      status: string;
+      project_data: {
+        projectSettings: any;
+        nodes: any[];
+        edges: any[];
+      };
+      project_id?: number;
+    } = {
+      action: 'crawlflow_save_project',
+      nonce: nonce,
+      project_name: projectSettings.name,
+      project_description: projectSettings.description || '',
+      status: 'draft',
+      project_data: {
+        projectSettings,
+        nodes,
+        edges,
+      },
+    };
 
     if (projectId) {
-      formData.append('project_id', projectId.toString());
+      payload.project_id = projectId;
     }
 
     try {
@@ -694,7 +706,10 @@ const App: React.FC = () => {
       
       const response = await fetch(ajaxUrl, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

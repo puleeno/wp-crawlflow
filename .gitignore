@@ -1,18 +1,18 @@
-# Composer
+# Dependencies
 /vendor/
-composer.lock
+/node_modules/
 
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
+# Build
+/assets/js/crawflow-ui/dist/
+/assets/js/crawflow-ui/node_modules/
+
+# Logs
+*.log
+/logs/
 
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
 
@@ -20,27 +20,9 @@ yarn.lock
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-/crawlflow/
-
-# WordPress
-wp-config.php
-wp-content/uploads/
-
-# Testing
+# Tests
 /tests/coverage/
-.phpunit.result.cache
+/.phpunit.cache
 
-# Build
-/build/
-/dist/
-
-# Environment
-.env
-.env.local
-.env.production
-
-# Cache
-*.cache
-composer.lock
+# Temporary
+/tmp/

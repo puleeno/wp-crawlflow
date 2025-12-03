@@ -39,6 +39,11 @@ class WP_CrawlFlow {
     private static $instance = null;
 
     /**
+     * Application bootstrapper
+     */
+    private $bootstrapper = null;
+
+    /**
      * Get plugin instance (Singleton)
      */
     public static function getInstance() {
@@ -62,6 +67,9 @@ class WP_CrawlFlow {
         // Load composer autoloader
         $this->loadComposerAutoloader();
 
+        // Initialize Rake container
+        $this->initRake();
+
         // Initialize hooks
         $this->initHooks();
 
@@ -79,6 +87,21 @@ class WP_CrawlFlow {
         if (file_exists($autoloader)) {
             require_once $autoloader;
         }
+    }
+
+    /**
+     * Initialize Rake container and register service providers
+     * Uses ApplicationBootstrapper for centralized service provider management
+     * 
+     * @throws \Exception If Rake classes are not available or initialization fails
+     */
+    private function initRake(): void {
+        // Use ApplicationBootstrapper for clean service provider registration
+        $bootstrapper = new \CrawlFlow\Bootstrapper\ApplicationBootstrapper();
+        $bootstrapper->bootstrap();
+
+        // Store bootstrapper instance for later use
+        $this->bootstrapper = $bootstrapper;
     }
 
     /**
@@ -109,12 +132,14 @@ class WP_CrawlFlow {
 
     /**
      * Initialize admin functionality
+     * Controller is automatically booted by AdminServiceProvider
+     * 
+     * @throws \Exception If Rake is not initialized
      */
-    private function initAdmin() {
-        // Admin specific initialization
-        if (class_exists('CrawlFlow\Admin\CrawlFlowController')) {
-            new \CrawlFlow\Admin\CrawlFlowController();
-        }
+    private function initAdmin(): void {
+        // Controller is already initialized by AdminServiceProvider
+        // This method is kept for future admin-specific initialization
+        // that doesn't belong in service providers
     }
 
     /**
@@ -480,24 +505,23 @@ class WP_CrawlFlow {
 
     /**
      * Run Rake migrations
+     * 
+     * @throws \Exception If migration kernel initialization or execution fails
      */
-    private function runRakeMigrations() {
-        try {
-            // Khởi tạo kernel migration
-            $kernel = new \CrawlFlow\Kernel\CrawlFlowMigrationKernel();
-            $kernel->initializeMigration();
+    private function runRakeMigrations(): void {
+        // Khởi tạo kernel migration
+        $kernel = new \CrawlFlow\Kernel\CrawlFlowMigrationKernel();
+        $kernel->initializeMigration();
 
-            // Thực thi migration qua kernel
-            $result = $kernel->runMigrations();
+        // Thực thi migration qua kernel
+        $result = $kernel->runMigrations();
 
-            if ($result['success'] ?? false) {
-                    \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
-                } else {
-                    \Rake\Facade\Logger::error('CrawlFlow: Rake migrations failed');
-            }
-        } catch (\Exception $e) {
-            \Rake\Facade\Logger::error('CrawlFlow: Error running Rake migrations - ' . $e->getMessage());
+        if (!($result['success'] ?? false)) {
+            $errorMessage = $result['error'] ?? 'Unknown migration error';
+            throw new \RuntimeException('CrawlFlow: Rake migrations failed - ' . $errorMessage);
         }
+
+        \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
     }
 }
 

@@ -30,7 +30,21 @@ class NodeRegistry
      */
     public function getExecutor(string $nodeType): ?NodeExecutorInterface
     {
-        return $this->executors[$nodeType] ?? null;
+        // First try direct lookup
+        if (isset($this->executors[$nodeType])) {
+            return $this->executors[$nodeType];
+        }
+
+        // Try finding by supports() method
+        foreach ($this->executors as $executor) {
+            if ($executor->supports($nodeType)) {
+                // Cache it for next time
+                $this->executors[$nodeType] = $executor;
+                return $executor;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -46,7 +60,19 @@ class NodeRegistry
      */
     public function getAllExecutors(): array
     {
-        return array_unique($this->executors);
+        // Return unique executor instances (not by type)
+        $unique = [];
+        $seen = [];
+        
+        foreach ($this->executors as $executor) {
+            $hash = spl_object_hash($executor);
+            if (!isset($seen[$hash])) {
+                $unique[] = $executor;
+                $seen[$hash] = true;
+            }
+        }
+        
+        return $unique;
     }
 
     /**

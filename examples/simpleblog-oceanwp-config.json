@@ -1,0 +1,170 @@
+{
+  "projectSettings": {
+    "name": "SimpleBlog OceanWP Crawler",
+    "description": "Crawl posts from https://simpleblog.oceanwp.org/blog/",
+    "enabled": true,
+    "scheduleType": "interval",
+    "scheduleInterval": 60,
+    "crawlDelay": 2000,
+    "userAgent": "CrawlFlow/2.0",
+    "concurrency": 3
+  },
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "start",
+      "position": {"x": 0, "y": 0},
+      "data": {
+        "sourceType": "url",
+        "sourceValue": "https://simpleblog.oceanwp.org/blog/",
+        "urlSettings": {
+          "scope": "entire-website",
+          "excludeExtensions": ["jpg", "png", "gif", "pdf", "zip"],
+          "excludePatterns": [],
+          "whitelistPatterns": ["/blog/", "/\\d{4}/\\d{2}/"],
+          "domainPolicy": "same-domain-only"
+        }
+      }
+    },
+    {
+      "id": "repository",
+      "type": "repository",
+      "position": {"x": 0, "y": 200},
+      "data": {}
+    },
+    {
+      "id": "worker-blog-posts",
+      "type": "worker",
+      "position": {"x": 0, "y": 400},
+      "data": {
+        "detectionRules": [
+          {
+            "id": "1",
+            "type": "dom-value",
+            "selector": "article.post",
+            "condition": "exists"
+          },
+          {
+            "id": "2",
+            "type": "dom-value",
+            "selector": ".entry-title",
+            "condition": "exists"
+          }
+        ],
+        "detectionLogic": "and",
+        "priority": 1
+      }
+    },
+    {
+      "id": "extractor-post-data",
+      "type": "html-data-extractor",
+      "position": {"x": 0, "y": 600},
+      "data": {
+        "customRules": [
+          {
+            "id": "1",
+            "name": "title",
+            "extractFrom": "html-element",
+            "selector": ".entry-title",
+            "extract": "text"
+          },
+          {
+            "id": "2",
+            "name": "content",
+            "extractFrom": "html-element",
+            "selector": ".entry-content",
+            "extract": "html"
+          },
+          {
+            "id": "3",
+            "name": "excerpt",
+            "extractFrom": "html-element",
+            "selector": ".entry-excerpt",
+            "extract": "text"
+          },
+          {
+            "id": "4",
+            "name": "author",
+            "extractFrom": "html-element",
+            "selector": ".entry-author",
+            "extract": "text"
+          },
+          {
+            "id": "5",
+            "name": "date",
+            "extractFrom": "html-element",
+            "selector": ".entry-date",
+            "extract": "text"
+          },
+          {
+            "id": "6",
+            "name": "featured_image",
+            "extractFrom": "html-element",
+            "selector": ".entry-media img",
+            "extract": "attribute",
+            "attribute": "src"
+          },
+          {
+            "id": "7",
+            "name": "categories",
+            "extractFrom": "html-element",
+            "selector": ".entry-categories a",
+            "extract": "all-text"
+          }
+        ]
+      }
+    },
+    {
+      "id": "processor-save",
+      "type": "processor",
+      "position": {"x": 0, "y": 800},
+      "data": {
+        "processorType": "save-to-wordpress",
+        "settings": {
+          "postType": "post",
+          "postStatus": "draft",
+          "conflictStrategy": "skip",
+          "fieldMapping": {
+            "title": "post_title",
+            "content": "post_content",
+            "excerpt": "post_excerpt"
+          }
+        }
+      }
+    },
+    {
+      "id": "completion",
+      "type": "completion",
+      "position": {"x": 0, "y": 1000},
+      "data": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "start-1",
+      "target": "repository"
+    },
+    {
+      "id": "e2",
+      "source": "repository",
+      "target": "worker-blog-posts"
+    },
+    {
+      "id": "e3",
+      "source": "worker-blog-posts",
+      "target": "extractor-post-data"
+    },
+    {
+      "id": "e4",
+      "source": "extractor-post-data",
+      "target": "processor-save"
+    },
+    {
+      "id": "e5",
+      "source": "processor-save",
+      "target": "completion"
+    }
+  ]
+}
+

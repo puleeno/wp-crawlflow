@@ -39,8 +39,8 @@ class CrawlFlowDashboardKernel extends AbstractKernel
         parent::__construct();
         $this->dashboardService = new DashboardService();
         $this->controller = new \CrawlFlow\Admin\CrawlFlowController();
-        $this->detectCurrentScreen();
-        $this->loadScreenData();
+        // Delay screen detection until WordPress admin is fully loaded
+        // Screen detection will happen lazily when needed
     }
 
     /**
@@ -63,33 +63,43 @@ class CrawlFlowDashboardKernel extends AbstractKernel
 
     /**
      * Detect current WordPress admin screen
+     * Lazy initialization - only called when screen data is needed
+     * 
+     * @throws \RuntimeException If WordPress admin functions are not available
      */
     private function detectCurrentScreen(): void
     {
-        global $pagenow, $plugin_page, $typenow, $taxnow;
+        // get_current_screen() is a WordPress function, must be called from global namespace
+        if (!function_exists('\get_current_screen')) {
+            throw new \RuntimeException('WordPress function get_current_screen() is not available. Kernel initialized too early or not in admin context.');
+        }
 
-        // Get current screen from WordPress
-        $screen = get_current_screen();
+        // Get current screen from WordPress (use leading backslash for global namespace)
+        $screen = \get_current_screen();
 
         if ($screen) {
             $this->currentScreen = $screen->id;
         } else {
-            // Fallback detection
+            // If screen is not available, use request parameters
             if (isset($_GET['page'])) {
                 $this->currentScreen = sanitize_text_field($_GET['page']);
-            } elseif ($pagenow) {
-                $this->currentScreen = $pagenow;
             } else {
-                $this->currentScreen = 'dashboard';
+                global $pagenow;
+                $this->currentScreen = $pagenow ?: 'dashboard';
             }
         }
     }
 
     /**
      * Load data for current screen
+     * Lazy initialization - detects screen if not already detected
      */
     private function loadScreenData(): void
     {
+        // Detect screen if not already detected
+        if (empty($this->currentScreen)) {
+            $this->detectCurrentScreen();
+        }
         $this->screenData = $this->dashboardService->getScreenData($this->currentScreen);
     }
 

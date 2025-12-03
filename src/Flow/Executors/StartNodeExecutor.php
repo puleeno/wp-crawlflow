@@ -77,19 +77,16 @@ class StartNodeExecutor implements NodeExecutorInterface
         }
 
         try {
-            $httpClient = $this->rakeAdapter->getHttpClientManager();
-            $logger = $this->rakeAdapter->getLogger();
-
             $context->addLog("Fetching URL: {$sourceValue}", 'info');
 
-            // Use Rake's HttpClientManager to fetch the URL
-            $response = $httpClient->get($sourceValue);
-            
-            if (!$response || !$response->isSuccessful()) {
-                return NodeResult::error("Failed to fetch URL: {$sourceValue}");
-            }
+            // Use HttpDataSource to fetch URL
+            $httpSource = new \CrawlFlow\DataSources\HttpDataSource();
+            $response = $httpSource->fetch($sourceValue, [
+                'userAgent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'timeout' => 30,
+            ]);
 
-            $content = $response->getBody();
+            $content = $response['body'];
             $urls = $this->extractUrls($content, $urlSettings, $sourceValue);
 
             $resources = [];
