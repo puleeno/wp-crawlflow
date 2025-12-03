@@ -1,0 +1,282 @@
+# WP-CRAWLFLOW PLUGIN ARCHITECTURE
+
+## Project Structure
+
+This project consists of 3 layers working together:
+
+### Layer 1: wp-crawlflow (User Interface & WordPress Plugin)
+Location: `wp-content/plugins/wp-crawlflow/`
+
+**Purpose**: 
+- Provides user-friendly interface (React Flow UI)
+- WordPress plugin integration
+- Admin dashboard
+- AJAX handlers
+- **Binds user interactions to Rake framework**
+
+**Responsibility**:
+- Flow-Based UI (visual editor for end users)
+- WordPress-specific features (admin pages, AJAX, cron)
+- **Translates UI flow to Rake components**
+- **Acts as orchestrator, NOT executor**
+
+**Key Point**: This layer DOES NOT contain core crawling/processing logic. It only:
+1. Provides UI for users to design flows
+2. Saves flow configuration
+3. Binds to rake-wordpress-adapter
+4. Delegates execution to Rake framework
+
+### Layer 2: rake-wordpress-adapter (WordPress-Specific Adapters)
+Location: `vendor/puleeno/rake-wordpress-adapter/`
+
+**Purpose**:
+- WordPress-specific implementations of Rake contracts
+- Bridges WordPress environment with Rake framework
+- Provides WordPress database, cron, HTTP adapters
+
+**Components**:
+- `WordPressDatabaseAdapter` - Implements `DatabaseAdapterInterface` (Rake)
+- `WordPressDatabaseDriver` - Uses WordPress $wpdb
+- `WordPressProcessor` - WordPress-specific processing
+
+**Key Point**: This layer adapts Rake's generic interfaces to WordPress specifics.
+
+### Layer 3: rake (Core Framework - Business Logic)
+Location: `vendor/ramphor/rake/`
+
+**Purpose**:
+- **Contains ALL core crawling/processing logic**
+- Provides contracts (interfaces)
+- Manages execution flow
+- Platform-independent framework
+
+**Core Components**:
+- `Rake Container` - Dependency injection
+- `ReceptionInterface` - Item classification & routing
+- `ParserInterface` - Data extraction logic
+- `ProcessorInterface` - Data processing logic
+- `WorkerInterface` - Item processing units
+- Managers (DatabaseDriverManager, ProcessorManager, etc.)
+
+**Key Point**: This is where the REAL work happens. All business logic lives here.
+
+---
+
+## Architecture Flow
+
+```
+User Interaction (React Flow UI)
+    ↓
+wp-crawlflow Plugin (Orchestrator)
+    ↓ binds to
+rake-wordpress-adapter (WordPress Adapters)
+    ↓ implements contracts from
+rake Framework (Core Logic)
+    ↓ executes
+Actual Crawling/Processing
+```
+
+### Data Flow Example:
+
+```
+1. User creates flow in React UI
+   ↓
+2. wp-crawlflow saves to rake_tooths table
+   ↓
+3. Cron triggers execution
+   ↓
+4. wp-crawlflow loads config from rake_tooths
+   ↓
+5. Binds to rake-wordpress-adapter
+   ↓
+6. rake-wordpress-adapter creates adapters
+   ↓
+7. rake framework executes:
+   - Reception loads workers
+   - Workers check detection rules
+   - Parsers extract data
+   - Processors save data
+   ↓
+8. Results stored back via adapter
+   ↓
+9. wp-crawlflow shows results in UI
+```
+
+---
+
+## Rake Pattern Flow (Core Logic)
+
+This is the ACTUAL execution flow handled by `rake` framework:
+
+```
+1. Tooth (Project Config)
+   ↓
+2. DataSources (rake_data_sources)
+   - URL sources
+   - CSV files
+   - API endpoints
+   - MySQL connections
+   ↓
+3. Fetch & Store (rake_data_origins)
+   - Fetch all data
+   - Store as raw items
+   - All types unified: URL html, CSV rows, XML objects, MySQL rows
+   ↓
+4. Reception (ReceptionInterface)
+   - Load workers from config
+   - Get raw items from rake_data_origins
+   - Check detection rules for each item
+   - Assign item to appropriate worker by priority
+   ↓
+5. Worker (WorkerInterface)
+   - Receives assigned item
+   - Validates via detection rules
+   - Uses Parser to extract structured data
+   - Sends to Processor chain
+   ↓
+6. Parser (ParserInterface)
+   - Extracts structured data from raw
+   - Returns normalized data object
+   ↓
+7. Processor Chain (ProcessorInterface)
+   - Processes data sequentially
+   - Each processor can transform data
+   - Final processor saves result
+   ↓
+8. Finish Actions
+   - Log execution
+   - Update status
+   - Send notifications
+   - Clean up
+```
+
+---
+
+## Key Principles
+
+### 1. Separation of Concerns
+- **wp-crawlflow**: UI & WordPress integration ONLY
+- **rake-wordpress-adapter**: WordPress-specific implementations ONLY  
+- **rake**: Core business logic ONLY
+
+### 2. Dependency Direction
+```
+wp-crawlflow 
+    → depends on rake-wordpress-adapter
+        → depends on rake
+```
+
+Never the reverse!
+
+### 3. Logic Location
+❌ WRONG:
+```php
+// In wp-crawlflow
+class MyService {
+    public function crawl() {
+        // Crawl logic here ← WRONG!
+    }
+}
+```
+
+✅ CORRECT:
+```php
+// In wp-crawlflow
+class MyService {
+    public function crawl() {
+        // Just orchestrate
+        $rake = Rake::getInstance();
+        $reception = $rake->make(Reception::class);
+        $reception->processItems(); // ← Logic in Rake
+    }
+}
+```
+
+### 4. Adapters Bridge Layers
+```php
+// rake defines interface
+interface DatabaseAdapterInterface {
+    public function insert(string $table, array $data);
+}
+
+// rake-wordpress-adapter implements
+class WordPressDatabaseAdapter implements DatabaseAdapterInterface {
+    public function insert(string $table, array $data) {
+        global $wpdb;
+        return $wpdb->insert($table, $data);
+    }
+}
+
+// wp-crawlflow uses
+class ProjectService {
+    private WordPressDatabaseAdapter $adapter; // Uses adapter
+}
+```
+
+---
+
+## Testing Guidelines
+
+### Unit Tests
+Test individual components in isolation.
+
+### Integration Tests  
+Test layer integration:
+- wp-crawlflow → adapter
+- adapter → rake
+- Complete stack
+
+### Flow Tests
+Test complete execution flow:
+- Load config → Execute → Store results
+
+---
+
+## Common Patterns
+
+### Using Services
+```php
+// Get from Rake container
+$rake = Rake::getInstance();
+$service = $rake->make('ServiceName');
+
+// Service uses adapters
+// Adapters call Rake framework
+// Rake executes logic
+```
+
+### Implementing Components
+
+**In rake-wordpress-adapter**:
+```php
+// Implement Rake contracts
+class MyAdapter implements RakeInterface {
+    // WordPress-specific implementation
+}
+```
+
+**In wp-crawlflow**:
+```php
+// Just use adapters
+class MyService {
+    private MyAdapter $adapter;
+    
+    public function doSomething() {
+        $this->adapter->execute(); // Delegates to Rake
+    }
+}
+```
+
+---
+
+## Summary
+
+- **wp-crawlflow**: UI orchestrator
+- **rake-wordpress-adapter**: WordPress bridge  
+- **rake**: Core logic engine
+
+All crawling/processing logic lives in **rake framework**.
+wp-crawlflow just provides UI and binds to Rake.
+
+When debugging, look at **rake** source code for actual logic implementation.
+

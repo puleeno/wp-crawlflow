@@ -154,6 +154,49 @@ if (!function_exists('wp_mkdir_p')) {
     }
 }
 
+if (!function_exists('wp_insert_post')) {
+    function wp_insert_post($postarr, $wp_error = false) {
+        // Mock post creation
+        return rand(1, 9999);
+    }
+}
+
+if (!function_exists('wp_update_post')) {
+    function wp_update_post($postarr, $wp_error = false) {
+        return $postarr['ID'] ?? rand(1, 9999);
+    }
+}
+
+if (!function_exists('update_post_meta')) {
+    function update_post_meta($post_id, $meta_key, $meta_value, $prev_value = '') {
+        return true;
+    }
+}
+
+if (!function_exists('wp_set_post_categories')) {
+    function wp_set_post_categories($post_ID = 0, $post_categories = []) {
+        return true;
+    }
+}
+
+if (!function_exists('wp_set_post_tags')) {
+    function wp_set_post_tags($post_id = 0, $tags = '') {
+        return true;
+    }
+}
+
+if (!function_exists('set_post_thumbnail')) {
+    function set_post_thumbnail($post, $thumbnail_id) {
+        return true;
+    }
+}
+
+if (!function_exists('is_wp_error')) {
+    function is_wp_error($thing) {
+        return false;
+    }
+}
+
 // Define WordPress database constants
 if (!defined('DB_HOST')) {
     define('DB_HOST', 'localhost');
