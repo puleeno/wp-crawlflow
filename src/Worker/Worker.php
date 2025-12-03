@@ -219,13 +219,24 @@ class Worker implements WorkerInterface
      */
     public function process(array $rawItem): array
     {
-        // Step 1: Parse/Extract data
-        $extractedData = $this->extractData($rawItem);
+        // Check if worker has data extractor configured
+        $hasExtractor = !empty($this->parserConfig['rules']) || !empty($this->parserConfig['customRules']);
+        
+        if (!$hasExtractor) {
+            // No extractor - wrap raw item as RawDataItem
+            $dataItem = \Rake\Entities\RawDataItem::fromOrigin($rawItem);
+        } else {
+            // Has extractor - extract data
+            $extractedData = $this->extractData($rawItem);
+            
+            // Convert to ExtractedDataItem
+            $dataItem = new \Rake\Entities\ParsedData\ExtractedDataItem($extractedData);
+        }
 
-        // Step 2: Process through chain
-        $processedData = $this->processChain($extractedData);
+        // Process through chain
+        $result = $this->processChain($dataItem);
 
-        return $processedData;
+        return $result;
     }
 
     /**
@@ -254,52 +265,72 @@ class Worker implements WorkerInterface
     }
 
     /**
-     * Process extracted data through processor chain
+     * Process data item through processor chain
+     * 
+     * @param \Rake\Contracts\Entities\ParsedDataItemInterface $dataItem
+     * @return array
      */
-    private function processChain(array $extractedData): array
+    private function processChain(\Rake\Contracts\Entities\ParsedDataItemInterface $dataItem): array
     {
-        $data = $extractedData;
+        $item = $dataItem;
 
         foreach ($this->processorChain as $processorConfig) {
-            $data = $this->runProcessor($processorConfig, $data);
+            $item = $this->runProcessor($processorConfig, $item);
+            
+            // Stop chain if processor returns NullDataItem
+            if ($item->isNull()) {
+                return [
+                    'success' => false,
+                    'error' => $item->getReason(),
+                ];
+            }
         }
 
-        return $data;
+        // Return data array from final item
+        return array_merge($item->getData(), [
+            'success' => true,
+        ]);
     }
 
     /**
      * Run single processor
+     * 
+     * @param array $processorConfig Processor configuration
+     * @param \Rake\Contracts\Entities\ParsedDataItemInterface $dataItem Data item
+     * @return \Rake\Contracts\Entities\ParsedDataItemInterface Processed item
      */
-    private function runProcessor(array $processorConfig, array $data): array
+    private function runProcessor(array $processorConfig, \Rake\Contracts\Entities\ParsedDataItemInterface $dataItem): \Rake\Contracts\Entities\ParsedDataItemInterface
     {
         $type = $processorConfig['type'] ?? '';
 
         switch ($type) {
             case 'save_to_wordpress':
             case 'wordpress':
-                $processor = new WordPressPostProcessor();
                 $options = $processorConfig['settings'] ?? $processorConfig['options'] ?? [];
+                $processor = new WordPressPostProcessor($options);
                 
-                $postId = $processor->process($data, $options);
-                
-                // Transform data to include post_id
-                $data['post_id'] = $postId;
-                $data['processed'] = true;
-                
-                return $data;
+                // Process returns DataItemInterface
+                return $processor->process($dataItem);
 
             case 'transform':
                 // Transform data based on mapping
                 $mapping = $processorConfig['mapping'] ?? [];
-                return $this->transformData($data, $mapping);
+                
+                foreach ($mapping as $from => $to) {
+                    if ($dataItem->has($from)) {
+                        $dataItem->set($to, $dataItem->get($from));
+                    }
+                }
+                
+                return $dataItem;
 
             case 'filter':
                 // Filter data based on conditions
-                return $data; // Pass through for now
+                return $dataItem; // Pass through for now
 
             default:
                 // Unknown processor, pass through
-                return $data;
+                return $dataItem;
         }
     }
 

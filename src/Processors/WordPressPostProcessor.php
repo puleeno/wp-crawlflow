@@ -2,28 +2,47 @@
 
 namespace CrawlFlow\Processors;
 
-use Rake\Contracts\Processor\ProcessorInterface;
+use Rake\Processor\AbstractProcessor;
+use Rake\Contracts\Entities\ParsedDataItemInterface;
 
 /**
  * WordPress Post Processor
  * Processes extracted data and saves as WordPress posts
  */
-class WordPressPostProcessor implements ProcessorInterface
+class WordPressPostProcessor extends AbstractProcessor
 {
     /**
      * Process and save data as WordPress post
      * 
-     * @param array $data Extracted data
-     * @param array $options Processing options
-     * @return int Post ID
-     * @throws \RuntimeException If processing fails
+     * @param ParsedDataItemInterface $item Extracted data item
+     * @return ParsedDataItemInterface Processed item with post_id or NullDataItem if failed
      */
-    public function process(array $data, array $options = []): int
+    public function process(ParsedDataItemInterface $item): ParsedDataItemInterface
     {
-        $postType = $options['postType'] ?? 'post';
-        $postStatus = $options['postStatus'] ?? 'draft';
-        $authorId = $options['authorId'] ?? 1;
-        $updateIfExists = $options['updateIfExists'] ?? false;
+        // Skip if already null item
+        if ($item->isNull()) {
+            return $item;
+        }
+
+        // Validate required fields
+        try {
+            $this->validateRequiredFields($item, ['title']);
+        } catch (\RuntimeException $e) {
+            $this->logError('Validation failed', ['error' => $e->getMessage()]);
+            return $this->createNullItem('Validation failed: ' . $e->getMessage());
+        }
+
+        // Get data
+        $data = $item->getData();
+
+        // Get options from config (set in constructor) or data
+        $postType = $this->getConfig('postType', $data['postType'] ?? 'post');
+        $postStatus = $this->getConfig('postStatus', $data['postStatus'] ?? 'draft');
+        $authorId = $this->getConfig('authorId', $data['authorId'] ?? 1);
+        $updateIfExists = $this->getConfig('updateIfExists', $data['updateIfExists'] ?? false);
+
+        // Log processing
+        $this->log('Processing post', ['title' => $data['title']]);
 
         // Prepare post data
         $postData = [
@@ -78,8 +97,8 @@ class WordPressPostProcessor implements ProcessorInterface
         }
 
         // Set categories if provided
-        if (!empty($options['categories'])) {
-            wp_set_post_categories($postId, $options['categories']);
+        if (!empty($this->config['categories'])) {
+            wp_set_post_categories($postId, $this->config['categories']);
         }
 
         // Set tags if extracted
@@ -87,23 +106,34 @@ class WordPressPostProcessor implements ProcessorInterface
             wp_set_post_tags($postId, $data['tags']);
         }
 
-        return $postId;
+        // Log success
+        $this->log('Post saved successfully', ['post_id' => $postId]);
+
+        // Update item with post_id
+        $item->set('post_id', $postId);
+        $item->set('processed', true);
+        $item->setMeta('processor', 'wordpress_post');
+        $item->setMeta('processed_at', current_time('mysql'));
+
+        // Return processed item
+        return $item;
     }
 
     /**
      * Process multiple items in batch
      */
-    public function processBatch(array $items, array $options = []): array
+    public function processBatch(array $items): array
     {
         $results = [];
 
         foreach ($items as $item) {
             try {
-                $postId = $this->process($item, $options);
+                $result = $this->process($item);
                 $results[] = [
                     'success' => true,
-                    'post_id' => $postId,
+                    'post_id' => $result['post_id'] ?? null,
                     'title' => $item['title'] ?? '',
+                    'data' => $result,
                 ];
             } catch (\Exception $e) {
                 $results[] = [

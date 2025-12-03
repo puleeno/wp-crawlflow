@@ -17,6 +17,7 @@ class ApplicationBootstrapper extends RakeApplicationBootstrapper
     private const DEFAULT_PROVIDERS = [
         \CrawlFlow\ServiceProvider\CoreServiceProvider::class,
         \CrawlFlow\ServiceProvider\HttpServiceProvider::class,
+        \CrawlFlow\ServiceProvider\ProcessorServiceProvider::class,
         \CrawlFlow\ServiceProvider\AdminServiceProvider::class,
         \CrawlFlow\ServiceProvider\FlowServiceProvider::class,
         \CrawlFlow\ServiceProvider\CronServiceProvider::class,
