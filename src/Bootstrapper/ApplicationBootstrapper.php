@@ -3,22 +3,18 @@
 namespace CrawlFlow\Bootstrapper;
 
 use Rake\Rake;
+use Rake\ApplicationBootstrapper as RakeApplicationBootstrapper;
 
 /**
  * Application Bootstrapper
- * Centralized bootstrapper for registering and booting all service providers
+ * CrawlFlow-specific bootstrapper that extends Rake ApplicationBootstrapper
  */
-class ApplicationBootstrapper
+class ApplicationBootstrapper extends RakeApplicationBootstrapper
 {
     /**
-     * @var Rake
+     * Default service providers for CrawlFlow
      */
-    private Rake $app;
-
-    /**
-     * @var array Service providers to register
-     */
-    private array $providers = [
+    private const DEFAULT_PROVIDERS = [
         \CrawlFlow\ServiceProvider\CoreServiceProvider::class,
         \CrawlFlow\ServiceProvider\HttpServiceProvider::class,
         \CrawlFlow\ServiceProvider\AdminServiceProvider::class,
@@ -27,90 +23,19 @@ class ApplicationBootstrapper
     ];
 
     /**
-     * @var array Registered providers
-     */
-    private array $registeredProviders = [];
-
-    /**
      * Constructor
-     */
-    public function __construct()
-    {
-        $this->app = Rake::getInstance();
-    }
-
-    /**
-     * Bootstrap the application
      * 
-     * @return self
-     * @throws \RuntimeException If bootstrapping fails
+     * @param Rake|null $app Rake instance (optional)
+     * @param array $providers Additional providers (optional)
      */
-    public function bootstrap(): self
+    public function __construct(?Rake $app = null, array $providers = [])
     {
-        $this->registerProviders();
-        $this->bootProviders();
+        $app = $app ?? Rake::getInstance();
         
-        return $this;
-    }
-
-    /**
-     * Register all service providers
-     * 
-     * @throws \RuntimeException If provider registration fails
-     */
-    private function registerProviders(): void
-    {
-        foreach ($this->providers as $providerClass) {
-            if (!class_exists($providerClass)) {
-                throw new \RuntimeException("Service provider not found: {$providerClass}");
-            }
-
-            $provider = new $providerClass();
-            
-            // Register services
-            if (method_exists($provider, 'register')) {
-                $provider->register($this->app);
-            }
-
-            $this->registeredProviders[] = $provider;
-        }
-    }
-
-    /**
-     * Boot all registered service providers
-     */
-    private function bootProviders(): void
-    {
-        foreach ($this->registeredProviders as $provider) {
-            if (method_exists($provider, 'boot')) {
-                $provider->boot($this->app);
-            }
-        }
-    }
-
-    /**
-     * Get Rake application instance
-     */
-    public function getApp(): Rake
-    {
-        return $this->app;
-    }
-
-    /**
-     * Get registered providers
-     */
-    public function getRegisteredProviders(): array
-    {
-        return $this->registeredProviders;
-    }
-
-    /**
-     * Add custom provider
-     */
-    public function addProvider(string $providerClass): self
-    {
-        $this->providers[] = $providerClass;
-        return $this;
+        // Merge default providers with custom providers
+        $allProviders = array_merge(self::DEFAULT_PROVIDERS, $providers);
+        
+        parent::__construct($app, $allProviders);
     }
 }
 

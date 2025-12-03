@@ -113,15 +113,17 @@ class ServiceProviderBootTest extends TestCase
     {
         $providers = $this->bootstrapper->getRegisteredProviders();
         
-        // Should have 3 providers
-        $this->assertCount(3, $providers);
+        // Should have 5 providers (Core, Http, Admin, Flow, Cron)
+        $this->assertCount(5, $providers);
         
         // Check provider types
         $providerClasses = array_map(fn($p) => get_class($p), $providers);
         
         $this->assertContains('CrawlFlow\ServiceProvider\CoreServiceProvider', $providerClasses);
+        $this->assertContains('CrawlFlow\ServiceProvider\HttpServiceProvider', $providerClasses);
         $this->assertContains('CrawlFlow\ServiceProvider\AdminServiceProvider', $providerClasses);
         $this->assertContains('CrawlFlow\ServiceProvider\FlowServiceProvider', $providerClasses);
+        $this->assertContains('CrawlFlow\ServiceProvider\CronServiceProvider', $providerClasses);
     }
 
     public function test_controller_hooks_are_registered()

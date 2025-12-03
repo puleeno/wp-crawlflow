@@ -50,7 +50,7 @@ class CrawlFlowServiceProviderTest extends TestCase
         $this->assertTrue(method_exists($provider, 'bootServices'));
     }
 
-    public function test_all_service_providers_extend_crawlflow_service_provider()
+    public function test_all_service_providers_extend_abstract_service_provider()
     {
         $providers = [
             \CrawlFlow\ServiceProvider\AdminServiceProvider::class,
@@ -68,9 +68,9 @@ class CrawlFlowServiceProviderTest extends TestCase
             
             $this->assertNotNull($parent, "{$providerClass} should have a parent class");
             $this->assertEquals(
-                CrawlFlowServiceProvider::class,
+                \Rake\ServiceProvider\AbstractServiceProvider::class,
                 $parent->getName(),
-                "{$providerClass} should extend CrawlFlowServiceProvider"
+                "{$providerClass} should extend AbstractServiceProvider"
             );
         }
     }

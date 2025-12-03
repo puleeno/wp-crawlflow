@@ -3,6 +3,7 @@
 namespace CrawlFlow\ServiceProvider;
 
 use Rake\Rake;
+use Rake\ServiceProvider\AbstractServiceProvider;
 use Rake\Manager\HttpClientManager;
 use Puleeno\Rake\WordPress\Http\WordPressHttpClient;
 
@@ -10,7 +11,7 @@ use Puleeno\Rake\WordPress\Http\WordPressHttpClient;
  * HTTP Service Provider
  * Registers HTTP client for Rake framework
  */
-class HttpServiceProvider extends CrawlFlowServiceProvider
+class HttpServiceProvider extends AbstractServiceProvider
 {
     /**
      * Register services

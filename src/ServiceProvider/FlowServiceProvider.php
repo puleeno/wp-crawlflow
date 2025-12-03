@@ -3,12 +3,13 @@
 namespace CrawlFlow\ServiceProvider;
 
 use Rake\Rake;
+use Rake\ServiceProvider\AbstractServiceProvider;
 
 /**
  * Flow Service Provider
  * Registers flow execution services
  */
-class FlowServiceProvider extends CrawlFlowServiceProvider
+class FlowServiceProvider extends AbstractServiceProvider
 {
     /**
      * Register flow services

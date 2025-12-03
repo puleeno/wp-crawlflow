@@ -3,8 +3,9 @@
 namespace CrawlFlow\ServiceProvider;
 
 use Rake\Rake;
+use Rake\ServiceProvider\AbstractServiceProvider;
 
-class CrawlFlowMigrationServiceProvider extends CrawlFlowServiceProvider
+class CrawlFlowMigrationServiceProvider extends AbstractServiceProvider
 {
     protected function registerServices(): void
     {

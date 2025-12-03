@@ -1,0 +1,16 @@
+CrawlFlow Tests Bootstrap Loaded
+PHPUnit 10.5.59 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.1.30
+Configuration: C:\Users\puleeno\Projects\dentalpart-crawler\wp-content\plugins\wp-crawlflow\phpunit.xml
+
+[2025-12-03T14:17:12.383223+00:00] CRAWLFLOW.INFO: CrawlFlow Logger Service initialized {"pid":46912,"sapi":"cli","memory_usage":10485760} []
+WWSSS
+✓ Cronjob simulation successful
+  Project loaded: Test Project 69304668717c2
+  Flow nodes: 3
+  Flow edges: 2
+W
+✓ Multiple projects loaded successfully
+  Projects: 3
+WWWWWWWWWWWWWWWWWWWWWWWWWWW.......WWWWW{"success":false,"data":"Project name is required"}
