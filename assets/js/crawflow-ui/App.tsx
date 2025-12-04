@@ -1105,6 +1105,8 @@ const App: React.FC = () => {
                   pickingRuleId={inspectorConfig?.pickingState?.ruleId ?? null}
                   onInspectSelector={setHighlightedSelector}
                   highlightedSelector={highlightedSelector}
+                  nodes={nodes}
+                  edges={edges}
                 />
             </ReactFlowProvider>
         </div>

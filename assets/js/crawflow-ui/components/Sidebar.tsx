@@ -21,7 +21,7 @@ import {
   FrameIcon,
   FolderIcon,
 } from './icons';
-import { PROCESSORS } from '../presets';
+import { useRegistry } from '../hooks/useRegistry';
 
 interface SidebarProps {
   onAddNode: (type: string, data: NodeData, sourceNode?: Node | null) => void;
@@ -265,11 +265,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
 
 
   const addProcessorNode = () => {
-    const defaultProcessor = PROCESSORS[0];
-    // FIX: Cast the created data object to ProcessorNodeData. This is necessary because TypeScript cannot infer the correlation between the 'id' and 'defaultSettings' properties from the PROCESSORS array, leading to a type error with the discriminated union.
+    const { processors } = useRegistry();
+    const defaultProcessor = processors[0];
+    
+    if (!defaultProcessor) {
+      console.warn('No processors available');
+      return;
+    }
+    
+    // Create processor node with empty settings (backend will provide defaults)
     const data = { 
-        processorType: defaultProcessor.id,
-        settings: defaultProcessor.defaultSettings
+        processorType: defaultProcessor.type as any,
+        settings: {} as any
     } as ProcessorNodeData;
     handleAddNode('processor', data, selectedNode);
   }

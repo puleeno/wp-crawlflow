@@ -14,11 +14,67 @@ class DashboardRenderer
     private $dashboardService;
 
     /**
+     * @var RegistryService
+     */
+    private $registryService;
+
+    /**
      * Constructor
      */
     public function __construct()
     {
         $this->dashboardService = new DashboardService();
+        $this->registryService = new RegistryService();
+        
+        // Enqueue scripts and localize data
+        add_action('admin_enqueue_scripts', [$this, 'enqueueScriptsAndData']);
+    }
+
+    /**
+     * Enqueue scripts and localize registry data
+     */
+    public function enqueueScriptsAndData($hook): void
+    {
+        // Only on CrawlFlow pages
+        if (strpos($hook, 'crawlflow') === false) {
+            return;
+        }
+
+        // Enqueue React UI script (read from Vite manifest)
+        $plugin_dir = plugin_dir_path(dirname(dirname(__FILE__)));
+        $manifest_path = $plugin_dir . 'assets/js/crawflow-ui/dist/.vite/manifest.json';
+        
+        $script_file = 'crawflow-ui.Dk2KSQ2S.js'; // default fallback
+        if (file_exists($manifest_path)) {
+            $manifest = json_decode(file_get_contents($manifest_path), true);
+            if (isset($manifest['index.html']['file'])) {
+                $script_file = $manifest['index.html']['file'];
+            }
+        }
+        
+        $script_url = plugin_dir_url(dirname(dirname(__FILE__))) . 'assets/js/crawflow-ui/dist/' . $script_file;
+        $script_path = $plugin_dir . 'assets/js/crawflow-ui/dist/' . $script_file;
+        
+        wp_enqueue_script(
+            'crawlflow-ui',
+            $script_url,
+            ['wp-element'],
+            file_exists($script_path) ? filemtime($script_path) : '1.0.0',
+            true
+        );
+
+        // Get registry data from managers
+        $registryData = $this->registryService->getAllRegistryData();
+
+        // Localize for React UI (must be AFTER wp_enqueue_script)
+        wp_localize_script('crawlflow-ui', 'crawlflowRegistry', [
+            'dataSources' => $registryData['dataSources'],
+            'processors' => $registryData['processors'],
+            'parsers' => $registryData['parsers'],
+            'httpClients' => $registryData['httpClients'],
+            'nonce' => wp_create_nonce('crawlflow_nonce'),
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+        ]);
     }
 
     /**

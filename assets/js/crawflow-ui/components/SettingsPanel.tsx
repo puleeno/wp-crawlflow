@@ -3,7 +3,8 @@ import React, { useState, useRef, ChangeEvent, useEffect, useMemo } from 'react'
 import { Node } from 'reactflow';
 import { XMarkIcon, Cog6ToothIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, CursorArrowRaysIcon, CloudIcon } from './icons';
 import { NodeData, StartNodeData, ClickNodeData, ExtractionRule, FileInputMethod, MySQLConnection, ProjectSettings, LoopNodeData, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, WorkerRule, WorkerRuleType, URLFormatRule, HTMLContainsRule, DOMValueRule, TagAttributeRule, ExtractFrom, URLSourceSettings, APISourceSettings, APIKeyAuth, BearerTokenAuth, BasicAuth, XMLSourceSettings, JSONSourceSettings, PagePagination, OffsetLimitPagination, NextURLPagination, RuleCondition, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings, CSVExtractorNodeData, ColumnMapping, JSONExtractorNodeData, PathMapping, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData, DataSourceTypeRule } from '../types';
-import { PRESETS, PROCESSORS } from '../presets';
+import { PRESETS } from '../presets';
+import { useRegistry } from '../hooks/useRegistry';
 
 
 interface SettingsPanelProps {
@@ -25,6 +26,9 @@ interface SettingsPanelProps {
   pickingRuleId: string | null;
   onInspectSelector: (selector: string | null) => void;
   highlightedSelector: string | null;
+  // For field mapping
+  nodes: Node[];
+  edges: any[];
 }
 
 const commonInputClasses = "w-full p-2 bg-white text-gray-900 border border-slate-300 rounded-md shadow-sm placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-gray-500";
@@ -1022,18 +1026,22 @@ const MySQLExtractorSettings: React.FC<{ node: Node<MySQLExtractorNodeData>; onU
 
 
 // --- Processor Node Settings ---
-const ProcessorNodeSettings: React.FC<{ node: Node<ProcessorNodeData>; onUpdate: (data: ProcessorNodeData) => void }> = ({ node, onUpdate }) => {
+const ProcessorNodeSettings: React.FC<{ 
+    node: Node<ProcessorNodeData>; 
+    onUpdate: (data: ProcessorNodeData) => void;
+    nodes: Node[];
+    edges: any[];
+}> = ({ node, onUpdate, nodes, edges }) => {
     const { data } = node;
+    const { processors } = useRegistry();
 
-    const handleTypeChange = (type: ProcessorNodeData['processorType']) => {
-        const processor = PROCESSORS.find(p => p.id === type);
-        if (processor) {
-            // Fix: Cast strictly to avoid union mismatch issues
-            onUpdate({ 
-                processorType: type, 
-                settings: processor.defaultSettings 
-            } as unknown as ProcessorNodeData);
-        }
+    const handleTypeChange = (type: string) => {
+        // When changing processor type, reset settings to empty object
+        // Backend will provide default settings
+        onUpdate({ 
+            processorType: type as any, 
+            settings: {} as any
+        } as ProcessorNodeData);
     };
 
     const handleSettingsChange = (key: string, value: any) => {
@@ -1041,77 +1049,222 @@ const ProcessorNodeSettings: React.FC<{ node: Node<ProcessorNodeData>; onUpdate:
         onUpdate({ ...data, settings: { ...data.settings, [key]: value } } as ProcessorNodeData);
     };
 
+    // Get available fields from upstream extractor nodes
+    const getAvailableFields = (startNodeId: string): string[] => {
+        const fields = new Set<string>();
+        const visited = new Set<string>();
+        const queue = [startNodeId];
+        const extractorTypes = ['html-data-extractor', 'csv-extractor', 'json-extractor', 'xml-extractor', 'mysql-extractor'];
+
+        while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            if (visited.has(currentId)) continue;
+            visited.add(currentId);
+
+            const currentNode = nodes.find(n => n.id === currentId);
+            if (!currentNode) continue;
+
+            if (extractorTypes.includes(currentNode.type || '')) {
+                if (currentNode.type === 'html-data-extractor') {
+                    const d = currentNode.data as HTMLDataExtractorNodeData;
+                    d.customRules.forEach(r => fields.add(r.name));
+                    (d.presets || []).forEach(presetKey => {
+                        PRESETS[presetKey as string]?.html?.rules.forEach(r => fields.add(r.name));
+                    });
+                } else if (currentNode.type === 'csv-extractor') {
+                    const d = currentNode.data as CSVExtractorNodeData;
+                    d.mappings.forEach(m => fields.add(m.fieldName));
+                    (d.presets || []).forEach(presetKey => {
+                        PRESETS[presetKey as string]?.csv?.mappings.forEach(m => fields.add(m.fieldName));
+                    });
+                } else if (currentNode.type === 'json-extractor') {
+                    const d = currentNode.data as JSONExtractorNodeData;
+                    d.mappings.forEach(m => fields.add(m.fieldName));
+                    (d.presets || []).forEach(presetKey => {
+                        PRESETS[presetKey as string]?.json?.mappings.forEach(m => fields.add(m.fieldName));
+                    });
+                } else if (currentNode.type === 'xml-extractor') {
+                    const d = currentNode.data as XMLExtractorNodeData;
+                    d.mappings.forEach(m => fields.add(m.fieldName));
+                    (d.presets || []).forEach(presetKey => {
+                        PRESETS[presetKey as string]?.xml?.mappings.forEach(m => fields.add(m.fieldName));
+                    });
+                } else if (currentNode.type === 'mysql-extractor') {
+                    const d = currentNode.data as MySQLExtractorNodeData;
+                    d.mappings.forEach(m => fields.add(m.fieldName));
+                    (d.presets || []).forEach(presetKey => {
+                        PRESETS[presetKey as string]?.mysql?.mappings.forEach(m => fields.add(m.fieldName));
+                    });
+                }
+                continue;
+            }
+
+            // Find incoming edges to traverse upstream
+            const incomingEdges = edges.filter((e: any) => e.target === currentId);
+            incomingEdges.forEach((e: any) => queue.push(e.source));
+        }
+        return Array.from(fields);
+    };
+
+    const availableFields = useMemo(() => getAvailableFields(node.id), [nodes, edges, node.id]);
+
+    const updateMapping = (field: string, value: string) => {
+        const currentSettings = data.settings as any;
+        const newMapping = { ...(currentSettings.fieldMappings || {}), [field]: value };
+        handleSettingsChange('fieldMappings', newMapping);
+    };
+
+    const renderMappingSection = (destLabel: string) => {
+        const settings = data.settings as any;
+        const isAutoMap = settings.autoMapFields || false;
+
+        return (
+            <div className="pt-2 border-t mt-2">
+                <label className="flex items-center gap-2 mb-2">
+                    <input
+                        type="checkbox"
+                        checked={isAutoMap}
+                        onChange={e => handleSettingsChange('autoMapFields', e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-semibold text-gray-700">Auto Map Fields</span>
+                </label>
+                
+                <div className="space-y-2 bg-slate-50 p-2 rounded border border-slate-200">
+                    <div className="text-xs font-bold text-gray-500 uppercase flex justify-between px-1">
+                        <span>Extracted Field</span>
+                        <span>{destLabel}</span>
+                    </div>
+                    {availableFields.length === 0 ? (
+                        <div className="text-xs text-gray-400 italic text-center py-2">No fields found from upstream extractors.</div>
+                    ) : (
+                        availableFields.map(field => (
+                            <div key={field} className="flex items-center gap-2">
+                                <div className="flex-1 text-sm bg-white border border-gray-200 px-2 py-1.5 rounded text-gray-700 truncate" title={field}>
+                                    {field}
+                                </div>
+                                <span className="text-gray-400">→</span>
+                                <input 
+                                    type="text" 
+                                    placeholder={field} 
+                                    value={isAutoMap ? field : ((settings.fieldMappings || {})[field] || '')}
+                                    onChange={e => updateMapping(field, e.target.value)}
+                                    disabled={isAutoMap}
+                                    className={`${smallInputClasses} flex-1 ${isAutoMap ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                />
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    // Check if processor supports field mapping
+    const supportsFieldMapping = ['save_to_database', 'save-to-database', 'send_to_api', 'send-to-api', 'generate_csv_file', 'generate-csv-file'].includes(data.processorType);
+
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Processor Settings</h3>
             <div>
                 <label className={commonLabelClasses}>Processor Type</label>
-                <select value={data.processorType} onChange={e => handleTypeChange(e.target.value as any)} className={commonInputClasses}>
-                    {PROCESSORS.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                <select value={data.processorType} onChange={e => handleTypeChange(e.target.value)} className={commonInputClasses}>
+                    {processors.map(p => (
+                        <option key={p.type} value={p.type}>
+                            {p.icon} {p.label}
+                        </option>
                     ))}
                 </select>
             </div>
 
             <CollapsibleSection title="Configuration" defaultOpen>
                 <div className="space-y-3">
-                    {data.processorType === 'save-to-database' && (
-                        <>
-                            <select value={(data.settings as SaveToDbSettings).connectionType} onChange={e => handleSettingsChange('connectionType', e.target.value)} className={commonInputClasses}>
-                                <option value="mysql">MySQL</option>
-                                <option value="postgresql">PostgreSQL</option>
-                            </select>
-                            <input type="text" placeholder="Host" value={(data.settings as SaveToDbSettings).host || ''} onChange={e => handleSettingsChange('host', e.target.value)} className={commonInputClasses} />
-                            <input type="text" placeholder="User" value={(data.settings as SaveToDbSettings).user || ''} onChange={e => handleSettingsChange('user', e.target.value)} className={commonInputClasses} />
-                            <input type="password" placeholder="Password" value={(data.settings as SaveToDbSettings).password || ''} onChange={e => handleSettingsChange('password', e.target.value)} className={commonInputClasses} />
-                            <input type="text" placeholder="Database" value={(data.settings as SaveToDbSettings).database || ''} onChange={e => handleSettingsChange('database', e.target.value)} className={commonInputClasses} />
-                            <input type="text" placeholder="Table Name" value={(data.settings as SaveToDbSettings).tableName || ''} onChange={e => handleSettingsChange('tableName', e.target.value)} className={commonInputClasses} />
-                            <select value={(data.settings as SaveToDbSettings).conflictStrategy} onChange={e => handleSettingsChange('conflictStrategy', e.target.value)} className={commonInputClasses}>
-                                <option value="insert">Insert (Fail on Duplicate)</option>
-                                <option value="upsert">Upsert (Update on Duplicate)</option>
-                                <option value="skip">Skip on Duplicate</option>
-                            </select>
-                        </>
-                    )}
-                    {data.processorType === 'send-to-api' && (
-                        <>
-                            <input type="url" placeholder="Endpoint URL" value={(data.settings as SendToApiSettings).endpointUrl} onChange={e => handleSettingsChange('endpointUrl', e.target.value)} className={commonInputClasses} />
-                            <select value={(data.settings as SendToApiSettings).method} onChange={e => handleSettingsChange('method', e.target.value)} className={commonInputClasses}>
-                                <option value="POST">POST</option>
-                                <option value="PUT">PUT</option>
-                                <option value="PATCH">PATCH</option>
-                            </select>
-                        </>
-                    )}
-                    {data.processorType === 'generate-csv-file' && (
-                        <>
-                            <input type="text" placeholder="File Name Pattern" value={(data.settings as GenerateCsvSettings).fileName} onChange={e => handleSettingsChange('fileName', e.target.value)} className={commonInputClasses} />
-                            <select value={(data.settings as GenerateCsvSettings).delimiter} onChange={e => handleSettingsChange('delimiter', e.target.value)} className={commonInputClasses}>
-                                <option value=",">Comma (,)</option>
-                                <option value=";">Semicolon (;)</option>
-                                <option value="\t">Tab (\t)</option>
-                            </select>
-                             <div className="flex items-center gap-2 mt-2">
-                                <input
-                                    type="checkbox"
-                                    id="includeHeader"
-                                    checked={(data.settings as GenerateCsvSettings).includeHeader}
-                                    onChange={e => handleSettingsChange('includeHeader', e.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <label htmlFor="includeHeader" className="text-sm text-gray-700">Include Header Row</label>
+                    {processors.find(p => p.type === data.processorType)?.configFields?.map(field => {
+                        const settings = data.settings as any;
+                        const value = settings[field.name] ?? field.default ?? '';
+                        
+                        return (
+                            <div key={field.name}>
+                                <label htmlFor={field.name} className={commonLabelClasses}>
+                                    {field.label}
+                                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                                </label>
+                                
+                                {field.type === 'select' && (
+                                    <select 
+                                        id={field.name}
+                                        value={value}
+                                        onChange={e => handleSettingsChange(field.name, e.target.value)}
+                                        className={commonInputClasses}
+                                    >
+                                        {field.options && (
+                                            typeof field.options === 'object' && !Array.isArray(field.options) ? (
+                                                // Object format: { value: label }
+                                                Object.entries(field.options).map(([val, label]) => (
+                                                    <option key={val} value={val}>{label}</option>
+                                                ))
+                                            ) : (
+                                                // Array format: ['value1', 'value2']
+                                                (field.options as string[]).map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))
+                                            )
+                                        )}
+                                    </select>
+                                )}
+                                
+                                {field.type === 'textarea' && (
+                                    <textarea
+                                        id={field.name}
+                                        value={value}
+                                        onChange={e => handleSettingsChange(field.name, e.target.value)}
+                                        placeholder={field.placeholder}
+                                        className={`${commonInputClasses} h-24`}
+                                    />
+                                )}
+                                
+                                {field.type === 'checkbox' && (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id={field.name}
+                                            checked={!!value}
+                                            onChange={e => handleSettingsChange(field.name, e.target.checked)}
+                                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <label htmlFor={field.name} className="text-sm text-gray-700">{field.placeholder || field.label}</label>
+                                    </div>
+                                )}
+                                
+                                {['text', 'number', 'url', 'password'].includes(field.type) && (
+                                    <input
+                                        type={field.type}
+                                        id={field.name}
+                                        value={value}
+                                        onChange={e => handleSettingsChange(field.name, field.type === 'number' ? Number(e.target.value) : e.target.value)}
+                                        placeholder={field.placeholder}
+                                        className={commonInputClasses}
+                                    />
+                                )}
+                                
+                                {field.description && (
+                                    <p className="text-xs text-gray-500 mt-1">{field.description}</p>
+                                )}
                             </div>
-                        </>
-                    )}
-                     {data.processorType === 'send-email-notification' && (
-                        <>
-                             <input type="text" placeholder="Recipients (comma separated)" value={(data.settings as SendEmailSettings).recipients} onChange={e => handleSettingsChange('recipients', e.target.value)} className={commonInputClasses} />
-                             <input type="text" placeholder="Subject" value={(data.settings as SendEmailSettings).subject} onChange={e => handleSettingsChange('subject', e.target.value)} className={commonInputClasses} />
-                             <textarea placeholder="Body Template" value={(data.settings as SendEmailSettings).body} onChange={e => handleSettingsChange('body', e.target.value)} className={`${commonInputClasses} h-24`} />
-                        </>
+                        );
+                    })}
+                    
+                    {!processors.find(p => p.type === data.processorType)?.configFields && (
+                        <p className="text-sm text-gray-500 italic">No configuration fields available for this processor.</p>
                     )}
                 </div>
             </CollapsibleSection>
+
+            {supportsFieldMapping && renderMappingSection(
+                data.processorType === 'save_to_database' || data.processorType === 'save-to-database' ? 'DB Column' :
+                data.processorType === 'send_to_api' || data.processorType === 'send-to-api' ? 'API Field' :
+                'Target Field'
+            )}
         </div>
     );
 };
@@ -1300,7 +1453,7 @@ const ShapeNodeSettings: React.FC<{ node: Node<ShapeNodeData>; onUpdate: (data: 
 
 // --- Main Settings Panel Component ---
 const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
-    const { node, onUpdateNode, onDeleteNode, onClose, projectSettings, onUpdateProjectSettings, onExport, onSave, onImport, isOpen } = props;
+    const { node, onUpdateNode, onDeleteNode, onClose, projectSettings, onUpdateProjectSettings, onExport, onSave, onImport, isOpen, nodes, edges } = props;
 
     const renderNodeSettings = () => {
         if (!node) return null;
@@ -1327,7 +1480,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
             case 'mysql-extractor':
                 return <MySQLExtractorSettings node={node as Node<MySQLExtractorNodeData>} onUpdate={handleUpdate as (data: MySQLExtractorNodeData) => void} />;
             case 'processor':
-                return <ProcessorNodeSettings node={node as Node<ProcessorNodeData>} onUpdate={handleUpdate as (data: ProcessorNodeData) => void} />;
+                return <ProcessorNodeSettings node={node as Node<ProcessorNodeData>} onUpdate={handleUpdate as (data: ProcessorNodeData) => void} nodes={nodes} edges={edges} />;
             case 'shape':
                 return <ShapeNodeSettings node={node as Node<ShapeNodeData>} onUpdate={handleUpdate as (data: ShapeNodeData) => void} />;
             case 'repository':
@@ -1341,7 +1494,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
         }
     };
 
-    const renderProjectSettings = () => (
+    const renderProjectSettings = () => {
+        const { httpClients } = useRegistry();
+        
+        return (
         <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Project Settings</h3>
             
@@ -1386,6 +1542,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                 <label className={commonLabelClasses}>User Agent</label>
                 <input type="text" value={projectSettings.userAgent} onChange={e => onUpdateProjectSettings({ userAgent: e.target.value })} className={commonInputClasses} />
             </div>
+            <div>
+                <label className={commonLabelClasses}>HTTP Client</label>
+                <select 
+                    value={projectSettings.httpClient || ''} 
+                    onChange={e => onUpdateProjectSettings({ httpClient: e.target.value || undefined })} 
+                    className={commonInputClasses}
+                >
+                    <option value="">Default (Auto-select)</option>
+                    {httpClients.map(client => (
+                        <option key={client.name} value={client.name}>
+                            {client.icon} {client.label}
+                        </option>
+                    ))}
+                </select>
+                {projectSettings.httpClient && (
+                    <p className="text-xs text-gray-500 mt-1">
+                        {httpClients.find(c => c.name === projectSettings.httpClient)?.description || ''}
+                    </p>
+                )}
+            </div>
 
             <div className="pt-6 border-t mt-6">
                 <h4 className="font-semibold text-gray-700 mb-3">Actions</h4>
@@ -1406,7 +1582,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                 </button>
             </div>
         </div>
-    );
+        );
+    };
 
     return (
         <aside className={`fixed top-0 right-0 h-full w-80 bg-white p-6 border-l border-gray-200 shadow-xl z-40 overflow-y-auto transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>

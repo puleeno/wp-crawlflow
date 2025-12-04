@@ -108,6 +108,9 @@ class WP_CrawlFlow {
      * Initialize WordPress hooks
      */
     private function initHooks() {
+        // Initialize registry hooks (for processors, data sources, etc.)
+        \CrawlFlow\Hooks\RegistryHooks::init();
+
         // Plugin activation/deactivation
         register_activation_hook(CRAWLFLOW_PLUGIN_FILE, [$this, 'activate']);
         register_deactivation_hook(CRAWLFLOW_PLUGIN_FILE, [$this, 'deactivate']);

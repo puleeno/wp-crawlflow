@@ -2,11 +2,12 @@ import React, { memo } from 'react';
 import BaseNode from './BaseNode';
 import type { CustomNodeProps, ProcessorNodeData, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings } from '../../types';
 import { Cog6ToothIcon } from '../icons';
-import { PROCESSORS } from '../../presets';
+import { useRegistry } from '../../hooks/useRegistry';
 
 const ProcessorNode: React.FC<CustomNodeProps<ProcessorNodeData>> = ({ data, selected }) => {
-  const processor = PROCESSORS.find(p => p.id === data.processorType);
-  const processorName = processor ? processor.name : 'Not Selected';
+  const { processors } = useRegistry();
+  const processor = processors.find(p => p.type === data.processorType);
+  const processorName = processor ? processor.label : 'Not Selected';
 
   const renderSummary = () => {
     switch (data.processorType) {

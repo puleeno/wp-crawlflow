@@ -21,6 +21,7 @@ export interface ProjectSettings {
   crawlDelay: number;
   userAgent: string;
   concurrency: number;
+  httpClient?: string; // HTTP client name from registry
 }
 
 
@@ -236,12 +237,29 @@ export interface SendEmailSettings {
     body: string;
 }
 
+// Field Mapping for processors
+export interface FieldMapping {
+  [extractedField: string]: string; // extractedField => targetField
+}
+
+// Base processor settings with field mapping support
+export interface BaseProcessorSettings {
+  autoMapFields?: boolean;
+  fieldMappings?: FieldMapping;
+}
+
+// Extended settings types
+export interface SaveToDbSettingsWithMapping extends SaveToDbSettings, BaseProcessorSettings {}
+export interface SendToApiSettingsWithMapping extends SendToApiSettings, BaseProcessorSettings {}
+export interface GenerateCsvSettingsWithMapping extends GenerateCsvSettings, BaseProcessorSettings {}
+
 // Discriminated Union for ProcessorNodeData
 export type ProcessorNodeData = 
-    | { processorType: 'save-to-database'; settings: SaveToDbSettings; }
-    | { processorType: 'send-to-api'; settings: SendToApiSettings; }
-    | { processorType: 'generate-csv-file'; settings: GenerateCsvSettings; }
-    | { processorType: 'send-email-notification'; settings: SendEmailSettings; };
+    | { processorType: 'save_to_database' | 'save-to-database'; settings: SaveToDbSettingsWithMapping; }
+    | { processorType: 'send_to_api' | 'send-to-api'; settings: SendToApiSettingsWithMapping; }
+    | { processorType: 'generate_csv_file' | 'generate-csv-file'; settings: GenerateCsvSettingsWithMapping; }
+    | { processorType: 'send_email_notification' | 'send-email-notification'; settings: SendEmailSettings; }
+    | { processorType: 'save_to_wordpress'; settings: any; };
 
 
 export type WorkerRuleType = 'url-format' | 'html-contains' | 'dom-value' | 'tag-attribute' | 'data-source-type';

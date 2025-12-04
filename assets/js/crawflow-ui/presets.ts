@@ -1,5 +1,5 @@
 
-import { ExtractionRule, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings, ProcessorNodeData, ColumnMapping, PathMapping } from './types';
+import { ExtractionRule, ColumnMapping, PathMapping } from './types';
 
 interface Preset {
   name: string;
@@ -254,52 +254,5 @@ export const PRESETS: Record<string, Preset> = {
 };
 
 
-export const PROCESSORS: {
-  id: ProcessorNodeData['processorType'];
-  name: string;
-  defaultSettings: ProcessorNodeData['settings'];
-}[] = [
-  {
-    id: 'save-to-database',
-    name: 'Save to Database',
-    defaultSettings: {
-      connectionType: 'mysql',
-      host: 'localhost',
-      port: '3306',
-      user: 'root',
-      password: '',
-      database: 'scraped_data',
-      tableName: 'results',
-      conflictStrategy: 'upsert',
-    } as SaveToDbSettings,
-  },
-  {
-    id: 'send-to-api',
-    name: 'Send to API',
-    defaultSettings: {
-      endpointUrl: 'https://api.example.com/data',
-      method: 'POST',
-      authType: 'none',
-      authDetails: {},
-      headers: [{ id: '1', key: 'Content-Type', value: 'application/json' }],
-    } as SendToApiSettings,
-  },
-  {
-    id: 'generate-csv-file',
-    name: 'Generate CSV File',
-    defaultSettings: {
-      fileName: 'crawl_results_{{date}}.csv',
-      delimiter: ',',
-      includeHeader: true,
-    } as GenerateCsvSettings,
-  },
-  {
-    id: 'send-email-notification',
-    name: 'Send Email Notification',
-    defaultSettings: {
-      recipients: 'admin@example.com',
-      subject: 'Crawl Finished: New Data Found for {{url}}',
-      body: 'Data was successfully extracted.\n\nTitle: {{title}}\nPrice: {{price}}',
-    } as SendEmailSettings,
-  },
-];
+// PROCESSORS removed - now loaded dynamically from ProcessorManager via registry
+// See: src/Admin/RegistryService.php and hooks/useRegistry.ts
