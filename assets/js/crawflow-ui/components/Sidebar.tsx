@@ -186,12 +186,20 @@ const DiagramElementsPanel: React.FC<{ onAddShapeNode: (shapeType: ShapeType) =>
 
 
 const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onClose, nodes, edges, mouseMode, onSetMouseMode, onAddShapeNode }) => {
-  const { dataSources: registryDataSources } = useRegistry();
+  const { dataSources: registryDataSources, processors, loading } = useRegistry();
   
   const handleAddNode = (type: string, data: NodeData, sourceNode?: Node | null) => {
     onAddNode(type, data, sourceNode);
     onClose();
   }
+  
+  // Debug logging
+  console.log('🔍 Sidebar render:', {
+    registryDataSources: registryDataSources?.length,
+    processors: processors?.length,
+    loading,
+    selectedNode: selectedNode?.type
+  });
   
   const addClickNode = () => {
     const data: ClickNodeData = { selector: 'a.next-page' };
@@ -273,13 +281,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
 
 
   const addProcessorNode = () => {
-    const { processors } = useRegistry();
-    const defaultProcessor = processors[0];
+    // Use processors from top-level useRegistry() call
+    console.log('🔧 addProcessorNode called:', { processors, loading });
     
-    if (!defaultProcessor) {
-      console.warn('No processors available');
+    if (!processors || processors.length === 0) {
+      console.error('❌ No processors available:', { processors, loading });
+      alert('⚠️ No processors available. Please refresh the page.');
       return;
     }
+    
+    const defaultProcessor = processors[0];
+    console.log('✅ Using processor:', defaultProcessor);
     
     // Create processor node with empty settings (backend will provide defaults)
     const data = { 
@@ -300,21 +312,27 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
                 <div>
                     <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Data Sources</h2>
                     <p className="text-sm text-gray-600 mt-2 mb-4">Click to add a starting point for your crawl.</p>
-                    <div className="flex flex-col gap-3">
-                        {registryDataSources.map(source => {
-                          const defaultData = createDefaultStartNodeData(source);
-                          return (
-                            <button
-                              key={source.type}
-                              onClick={() => addStartNode(defaultData)}
-                              className={`flex items-center gap-3 p-3 text-white rounded-lg transition-all duration-200 shadow-md transform hover:scale-105 ${getDataSourceColorClasses(source.type)}`}
-                            >
-                              {getIconComponent(source.icon)}
-                              <span className="font-semibold">{source.label}</span>
-                            </button>
-                          );
-                        })}
-                    </div>
+                    {loading ? (
+                        <div className="text-center py-4 text-gray-500">Loading data sources...</div>
+                    ) : !registryDataSources || registryDataSources.length === 0 ? (
+                        <div className="text-center py-4 text-red-500">⚠️ No data sources available</div>
+                    ) : (
+                        <div className="flex flex-col gap-3">
+                            {registryDataSources.map(source => {
+                              const defaultData = createDefaultStartNodeData(source);
+                              return (
+                                <button
+                                  key={source.type}
+                                  onClick={() => addStartNode(defaultData)}
+                                  className={`flex items-center gap-3 p-3 text-white rounded-lg transition-all duration-200 shadow-md transform hover:scale-105 ${getDataSourceColorClasses(source.type)}`}
+                                >
+                                  {getIconComponent(source.icon)}
+                                  <span className="font-semibold">{source.label}</span>
+                                </button>
+                              );
+                            })}
+                        </div>
+                    )}
                 </div>
                 <DiagramElementsPanel onAddShapeNode={onAddShapeNode} />
             </>

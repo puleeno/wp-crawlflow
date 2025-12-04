@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { DialogProvider } from './components/Dialog';
 
 // WordPress integration: Wait for DOM and mount to WordPress container
 function waitForElement(callback: () => void, maxWait = 5000) {
@@ -61,7 +62,9 @@ function initReactApp() {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
       <React.StrictMode>
-        <App />
+        <DialogProvider>
+          <App />
+        </DialogProvider>
       </React.StrictMode>
     );
   } catch (error) {

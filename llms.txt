@@ -340,6 +340,186 @@ Interface: CrawlFlow\Contracts\WorkerInterface
 
 ---
 
+## 🎯 NODE CONNECTION RULES (RULE ENGINE - STRATEGY PATTERN)
+
+**CRITICAL**: Connection rules are defined declaratively and enforced by Rule Engine
+
+### Architecture: Strategy Pattern + Rule Engine
+
+**File**: `assets/js/crawflow-ui/rules/ConnectionRules.ts`
+
+**Design Pattern**: Strategy Pattern with declarative rule registry
+
+**Key Components**:
+1. `CONNECTION_RULES` - Declarative rule definitions
+2. `ConnectionRuleEngine` - Validation engine
+3. `ValidationResult` - Type-safe validation results
+
+### Rule Definitions (Declarative)
+
+```typescript
+export const CONNECTION_RULES: ConnectionRule[] = [
+  // Rule 1: Data Source → Repository ONLY
+  {
+    from: 'start',
+    to: ['repository'],
+    description: 'Data Source can ONLY connect to Repository',
+    maxConnections: 1,
+    required: true
+  },
+
+  // Rule 2: Repository → Worker ONLY
+  {
+    from: 'repository',
+    to: ['worker'],
+    description: 'Repository can ONLY connect to Worker',
+    maxConnections: undefined, // Unlimited
+    required: true
+  },
+
+  // Rule 3: Worker → Processor ONLY
+  {
+    from: 'worker',
+    to: ['processor'],
+    description: 'Worker can ONLY connect to Processor',
+    maxConnections: 1,
+    required: true
+  },
+
+  // Rule 4: Processor → Processor OR Completion
+  {
+    from: 'processor',
+    to: ['processor', 'completion'],
+    description: 'Processor can ONLY connect to Processor or Completion',
+    maxConnections: 1,
+    required: false
+  },
+
+  // Rule 5: Extractors have NO outgoing connections
+  {
+    from: 'html-extractor',
+    to: [],
+    description: 'HTML Extractor has NO outgoing connections (input only)',
+    maxConnections: 0
+  },
+  // ... (same for csv, json, xml, mysql extractors)
+
+  // Rule 6: Completion is final node
+  {
+    from: 'completion',
+    to: [],
+    description: 'Completion node is the final node',
+    maxConnections: 0
+  }
+];
+```
+
+### Rule Engine Usage
+
+```typescript
+// In App.tsx onConnect callback
+const onConnect = (params) => {
+  const sourceNode = nodes.find(n => n.id === params.source);
+  const targetNode = nodes.find(n => n.id === params.target);
+
+  // Validate using Rule Engine (NO if/else logic!)
+  const validationResult = connectionRuleEngine.validateConnection(
+    sourceNode,
+    targetNode,
+    edges
+  );
+
+  if (!validationResult.isValid) {
+    alert(`⛔ Invalid Connection\n\n${validationResult.error}`);
+    return;
+  }
+
+  // Connection is valid
+  setEdges((eds) => addEdge(params, eds));
+};
+```
+
+### Benefits of Rule Engine Approach
+
+1. **Declarative**: Rules defined as data, not code
+2. **Maintainable**: Add/modify rules without touching logic
+3. **Testable**: Easy to unit test rule engine
+4. **Type-safe**: TypeScript interfaces for all rules
+5. **Extensible**: New node types = new rules, no code changes
+6. **No if/else hell**: Clean separation of rules and logic
+7. **Cycle detection**: Built-in graph validation
+8. **Max connections**: Automatic enforcement
+
+### Visual Flow Example
+```
+[Data Source 1] ─┐
+[Data Source 2] ─┼─→ [Repository] ─┬─→ [Worker 1] ─→ [Processor 1] ─→ [Processor 2] → Completion
+[Data Source 3] ─┘                  │                      ↑
+                                     │                      │
+                                     │              [HTML Extractor]
+                                     │                   (input only)
+                                     │
+                                     └─→ [Worker 2] ─→ [Processor 3] → Completion
+                                              ↑
+                                              │
+                                      [CSV Extractor]
+                                        (input only)
+```
+
+### Node Type Definitions
+
+```typescript
+export type NodeType = 
+  | 'start'           // Data sources (URL, API, CSV, XML, MySQL)
+  | 'repository'      // Raw items repository (unified storage)
+  | 'worker'          // Data processing worker
+  | 'processor'       // Data processor (transform, save)
+  | 'completion'      // Final completion node
+  | 'html-extractor'  // HTML data extractor (input for worker)
+  | 'csv-extractor'   // CSV data extractor
+  | 'json-extractor'  // JSON data extractor
+  | 'xml-extractor'   // XML data extractor
+  | 'mysql-extractor' // MySQL data extractor
+```
+
+### Validation Features
+
+1. **Single Connection Validation**:
+   ```typescript
+   connectionRuleEngine.validateConnection(sourceNode, targetNode, edges)
+   ```
+
+2. **Full Flow Validation** (for import):
+   ```typescript
+   const validation = connectionRuleEngine.validateFlow(nodes, edges);
+   // Returns: { isValid, errors[], invalidEdges[] }
+   ```
+
+3. **Allowed Targets Query**:
+   ```typescript
+   const allowedTargets = connectionRuleEngine.getAllowedTargets('worker');
+   // Returns: ['processor']
+   ```
+
+4. **Connection Check**:
+   ```typescript
+   const canConnect = connectionRuleEngine.isConnectionAllowed('worker', 'processor');
+   // Returns: true
+   ```
+
+### Error Messages
+
+Rule Engine provides clear, human-readable error messages:
+
+```
+❌ "Worker can ONLY connect to Processor (found: repository)"
+❌ "Processor can have maximum 1 outgoing connection(s)"
+❌ "HTML Extractor has NO outgoing connections (input only)"
+❌ "Connection would create a cycle"
+```
+
+---
+
 ## 🎭 NODE EXECUTORS (UI → Rake Bridge)
 
 ### StartNodeExecutor

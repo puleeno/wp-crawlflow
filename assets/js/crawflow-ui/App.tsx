@@ -38,7 +38,8 @@ import ProcessorNode from './components/nodes/ProcessorNode';
 import CompletionNode from './components/nodes/CompletionNode';
 import ShapeNode from './components/nodes/ShapeNode';
 import { Bars3Icon, Cog6ToothIcon } from './components/icons';
-
+import { connectionRuleEngine, cleanInvalidEdges } from './rules/ConnectionRules';
+import { useDialog } from './components/Dialog';
 
 import { NodeData, ProjectSettings, HTMLDataExtractorNodeData, ShapeNodeData, ShapeType } from './types';
 
@@ -60,6 +61,24 @@ const initialNodes: Node[] = [];
 
 let id = 1;
 const getId = () => `${id++}`;
+
+// Helper: Reset ID counter based on existing nodes
+const resetIdCounter = (existingNodes: Node[]) => {
+  if (existingNodes.length === 0) {
+    id = 1;
+    return;
+  }
+  
+  // Find max numeric ID in existing nodes
+  const maxId = existingNodes.reduce((max, node) => {
+    const nodeId = parseInt(node.id, 10);
+    return !isNaN(nodeId) && nodeId > max ? nodeId : max;
+  }, 0);
+  
+  // Set counter to max + 1
+  id = maxId + 1;
+  console.log(`🔢 Reset ID counter to ${id} (based on max existing ID: ${maxId})`);
+};
 
 const EXTRACTOR_NODE_TYPES = ['html-data-extractor', 'csv-extractor', 'json-extractor', 'xml-extractor', 'mysql-extractor'];
 
@@ -126,6 +145,9 @@ const defaultShapeSizes: Record<ShapeType, { width: number; height: number }> = 
 
 
 const App: React.FC = () => {
+  // Dialog system (replaces window.alert/confirm)
+  const dialog = useDialog();
+  
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -173,13 +195,58 @@ const App: React.FC = () => {
           }));
         }
         
-        // Load nodes if available
-        if (nodes && Array.isArray(nodes) && nodes.length > 0) {
+        // CRITICAL: Load nodes và edges CÙNG LÚC để validate đúng
+        if (nodes && Array.isArray(nodes) && nodes.length > 0 && 
+            edges && Array.isArray(edges)) {
+          
+          console.log('🔍 Loading project:', { nodes: nodes.length, edges: edges.length });
+          console.log('📋 Edges:', edges);
+          
+          // Reset ID counter based on existing nodes
+          resetIdCounter(nodes);
+          
+          // Validate edges TRƯỚC KHI load (with full nodes data)
+          const validation = connectionRuleEngine.validateFlow(nodes, edges);
+          
+          if (!validation.isValid) {
+            console.warn('⚠️ Project loaded with INVALID connections:');
+            console.table(validation.errors);
+            console.warn('❌ Invalid edges:', validation.invalidEdges);
+            
+            // Auto-clean invalid edges
+            const cleanEdges = cleanInvalidEdges(nodes, edges);
+            console.log('✅ Cleaned edges:', cleanEdges);
+            console.log(`🧹 Removed ${edges.length - cleanEdges.length} invalid edge(s)`);
+            
+            // Load cleaned data
+            setNodes(nodes);
+            setEdges(cleanEdges);
+            
+            // Notify user
+            setTimeout(() => {
+              dialog.showAlert(
+                `Found ${validation.errors.length} invalid connection(s) that violate connection rules.\n\n` +
+                `❌ Removed:\n` +
+                validation.errors.slice(0, 5).join('\n') +
+                (validation.errors.length > 5 ? `\n... and ${validation.errors.length - 5} more` : '') +
+                `\n\n✅ Kept ${cleanEdges.length} valid connection(s)\n\n` +
+                `Please review and fix the flow before saving.`,
+                'warning',
+                'Project Loaded with Issues'
+              );
+            }, 1000);
+          } else {
+            console.log('✅ Project loaded with valid connections');
+            // Load valid data
+            setNodes(nodes);
+            setEdges(edges);
+          }
+        } else if (nodes && Array.isArray(nodes) && nodes.length > 0) {
+          // Only nodes, no edges
           setNodes(nodes);
-        }
-        
-        // Load edges if available
-        if (edges && Array.isArray(edges)) {
+        } else if (edges && Array.isArray(edges)) {
+          // Only edges, no nodes (shouldn't happen but handle it)
+          console.warn('⚠️ Edges without nodes, skipping validation');
           setEdges(edges);
         }
       } else if (config && !config.projectConfig && config.projectId) {
@@ -263,19 +330,39 @@ const App: React.FC = () => {
     
     // Case 3: Both processors and completion node exist. Manage positions and connections.
     if (processorNodes.length > 0 && completionNode) {
-        // Identify "last" processors (those not connected to another processor)
+        // CRITICAL RULE: Trong 1 flow từ worker → finish, CHỈ processor cuối cùng connect tới finish
+        // "Last processor" = processor KHÔNG có outgoing tới processor khác
+        
+        // Identify processors that have outgoing to other processors (NOT last)
         const processorsThatAreSourcesForOtherProcessors = new Set<string>();
+        
+        console.log('🔍 Checking processor outgoing edges:', {
+            totalEdges: edges.length,
+            processorNodes: processorNodes.map(p => p.id)
+        });
+        
         for (const edge of edges) {
             const sourceNode = nodes.find(n => n.id === edge.source);
             const targetNode = nodes.find(n => n.id === edge.target);
+            
             if (sourceNode?.type === 'processor' && targetNode?.type === 'processor') {
+                // This processor has outgoing to another processor → NOT last
                 processorsThatAreSourcesForOtherProcessors.add(sourceNode.id);
+                console.log(`  ✓ Processor ${sourceNode.id} → ${targetNode.id} (has outgoing, NOT last)`);
             }
         }
 
+        // Find "last" processors (end of chains)
         const lastProcessorIds = processorNodes
             .filter(p => !processorsThatAreSourcesForOtherProcessors.has(p.id))
             .map(p => p.id);
+        
+        console.log('🎯 Last processors (will connect to completion):', lastProcessorIds);
+        console.log('📊 Summary:', {
+            totalProcessors: processorNodes.length,
+            processorsWithOutgoing: processorsThatAreSourcesForOtherProcessors.size,
+            lastProcessors: lastProcessorIds.length
+        });
         
         const lastProcessorNodes = nodes.filter(n => lastProcessorIds.includes(n.id));
 
@@ -295,20 +382,39 @@ const App: React.FC = () => {
         }
 
         // Synchronize edges to the completion node
+        // RULE: Only "last" processors (end of chains) connect to completion
         const currentCompletionEdges = edges.filter(e => e.target === COMPLETION_NODE_ID);
         const edgesToCreate = lastProcessorIds.filter(id => !currentCompletionEdges.some(e => e.source === id));
         const edgesToRemove = currentCompletionEdges.filter(e => !lastProcessorIds.includes(e.source as string));
 
-        if (edgesToCreate.length > 0 || edgesToRemove.length > 0) {
+        // CRITICAL: Always sync, even if arrays seem equal (handle duplicates)
+        if (edgesToCreate.length > 0 || edgesToRemove.length > 0 || currentCompletionEdges.length !== lastProcessorIds.length) {
+            console.log('🔄 Syncing completion edges:', {
+                allProcessors: processorNodes.length,
+                lastProcessors: lastProcessorIds,
+                currentCompletionEdges: currentCompletionEdges.map(e => `${e.source} (${e.type || 'default'})`),
+                toCreate: edgesToCreate,
+                toRemove: edgesToRemove.map(e => `${e.source} → completion`)
+            });
+            
             setEdges(eds => {
-                const filteredEdges = eds.filter(e => !edgesToRemove.some(er => er.id === e.id));
-                const newEdges = edgesToCreate.map(sourceId => ({
+                // CRITICAL: Remove ALL completion edges first, then add only valid ones
+                // This handles duplicates và stale edges
+                let cleanedEdges = eds.filter(e => e.target !== COMPLETION_NODE_ID);
+                
+                console.log(`🧹 Removed ALL ${eds.length - cleanedEdges.length} completion edge(s) for clean slate`);
+                
+                // Add ONLY edges from last processors
+                const newEdges = lastProcessorIds.map(sourceId => ({
                     id: `e-${sourceId}-${COMPLETION_NODE_ID}`,
                     source: sourceId,
                     target: COMPLETION_NODE_ID,
                     type: 'smoothstep',
                 }));
-                return [...filteredEdges, ...newEdges];
+                
+                console.log(`➕ Adding ${newEdges.length} completion edge(s) from:`, lastProcessorIds);
+                
+                return [...cleanedEdges, ...newEdges];
             });
         }
     }
@@ -338,17 +444,37 @@ const App: React.FC = () => {
     };
   }, []);
 
+  /**
+   * Connection validation using Rule Engine (Strategy Pattern)
+   * Thay thế toàn bộ if/else logic bằng declarative rules
+   */
   const onConnect = useCallback((params: Edge | Connection) => {
     const sourceNode = nodes.find(n => n.id === params.source);
     const targetNode = nodes.find(n => n.id === params.target);
 
-    if (sourceNode?.type === 'repository' && targetNode?.type !== 'worker') {
-      console.warn("Connection prevented: Raw Items Repository can only connect to a Worker node.");
+    if (!sourceNode || !targetNode) {
+      console.warn("⛔ Connection prevented: Invalid source or target node.");
       return;
     }
 
+    // Validate connection using Rule Engine
+    const validationResult = connectionRuleEngine.validateConnection(
+      sourceNode,
+      targetNode,
+      edges,
+      nodes  // Pass nodes for accurate extractor validation
+    );
+
+    if (!validationResult.isValid) {
+      console.warn(`⛔ Connection prevented: ${validationResult.error}`);
+      dialog.showAlert(validationResult.error, 'error', 'Invalid Connection');
+      return;
+    }
+
+    // Connection is valid - add it
+    console.log(`✅ Connection allowed: ${sourceNode.type} → ${targetNode.type}`);
     setEdges((eds) => addEdge(params, eds));
-  }, [nodes, setEdges]);
+  }, [nodes, edges, setEdges]);
 
   const onSelectionChange = useCallback(({ nodes: selectedNodes }: OnSelectionChangeParams) => {
     const newSelectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
@@ -398,6 +524,10 @@ const App: React.FC = () => {
       });
     });
   }, [setNodes]);
+
+  // REMOVED: Continuous validation caused infinite loop
+  // Validation is now only done in onConnect() callback
+  // Invalid edges are prevented from being created in the first place
 
 
   const addNode = (type: string, data: NodeData, sourceNode: Node | null = null) => {
@@ -456,6 +586,14 @@ const App: React.FC = () => {
     
     // Worker Node Logic
     if (type === 'worker') {
+      // STRICT: Worker must be connected from Repository ONLY
+      const repositoryNode = nodes.find(n => n.id === REPOSITORY_NODE_ID);
+      
+      if (!repositoryNode) {
+        alert("⛔ Cannot create Worker: Raw Items Repository must exist first. Please add a Data Source.");
+        return;
+      }
+
       const workerNodesCount = nodes.filter(n => n.type === 'worker').length;
       const newNodeId = getId();
       const newNode: Node = {
@@ -467,16 +605,17 @@ const App: React.FC = () => {
         },
         data,
       };
+      
+      // Always connect from Repository to Worker (ignore sourceNode)
+      const repoToWorkerEdge: Edge = {
+        id: `e-${REPOSITORY_NODE_ID}-${newNodeId}`,
+        source: REPOSITORY_NODE_ID,
+        target: newNodeId,
+        animated: true,
+      };
+      
       setNodes((nds) => nds.concat(newNode));
-      if (sourceNode) {
-        const newEdge: Edge = {
-          id: `e-${sourceNode.id}-${newNodeId}`,
-          source: sourceNode.id,
-          target: newNodeId,
-          animated: true,
-        };
-        setEdges((eds) => addEdge(newEdge, eds));
-      }
+      setEdges((eds) => addEdge(repoToWorkerEdge, eds));
       return;
     }
 
@@ -519,20 +658,39 @@ const App: React.FC = () => {
         return;
     }
 
+    // Processor Node Logic
+    if (type === 'processor') {
+      // STRICT: Processor must be connected from Worker or another Processor ONLY
+      if (!sourceNode) {
+        alert("⛔ Cannot create Processor: Must be connected from a Worker or another Processor.");
+        return;
+      }
+
+      if (sourceNode.type !== 'worker' && sourceNode.type !== 'processor') {
+        alert("⛔ Cannot create Processor: Must be connected from a Worker or another Processor.");
+        return;
+      }
+    }
+
     // Standard logic for other action nodes (Click, Loop, Processor)
     let finalSourceNode = sourceNode;
 
-    if (type === 'processor' && sourceNode?.type === 'worker') {
-      // If adding a processor from a worker, find the end of the existing chain
-      let lastProcessorInChainId: string | null = null;
+    if (type === 'processor') {
+      // CRITICAL: Processor incoming connection = selectedNode (Worker hoặc Processor)
+      // KHÔNG tự động tìm chain! User chọn node nào thì connect vào node đó!
       
-      const firstProcessorEdge = edges.find(e => 
-          e.source === sourceNode.id && nodes.find(n => n.id === e.target)?.type === 'processor'
-      );
-      
-      if (firstProcessorEdge) {
-          lastProcessorInChainId = firstProcessorEdge.target;
+      if (sourceNode?.type === 'worker') {
+        // Case 1: Adding processor from Worker
+        // Check if worker already has a processor chain
+        const firstProcessorEdge = edges.find(e => 
+            e.source === sourceNode.id && nodes.find(n => n.id === e.target)?.type === 'processor'
+        );
+        
+        if (firstProcessorEdge) {
+          // Worker already has processors, find the last one in chain
+          let lastProcessorInChainId: string = firstProcessorEdge.target;
           let isLast = false;
+          
           while (!isLast) {
               const nextEdge = edges.find(e => 
                   e.source === lastProcessorInChainId && nodes.find(n => n.id === e.target)?.type === 'processor'
@@ -543,11 +701,19 @@ const App: React.FC = () => {
                   isLast = true;
               }
           }
-      }
-      
-      if (lastProcessorInChainId) {
+          
+          // Connect new processor to the last processor in chain
           finalSourceNode = nodes.find(n => n.id === lastProcessorInChainId) || sourceNode;
+        } else {
+          // Worker has no processors yet, connect directly to worker
+          finalSourceNode = sourceNode;
+        }
+      } else if (sourceNode?.type === 'processor') {
+        // Case 2: Adding processor from another Processor
+        // Connect directly to the selected processor (NO chain finding!)
+        finalSourceNode = sourceNode;
       }
+      // If sourceNode is neither worker nor processor, finalSourceNode stays as sourceNode (fallback)
     }
 
     const newNodeId = getId();
@@ -583,13 +749,148 @@ const App: React.FC = () => {
     setNodes((nds) => nds.concat(newNode));
 
     if (finalSourceNode) {
-      const newEdge: Edge = {
-        id: `e-${finalSourceNode.id}-${newNodeId}`,
-        source: finalSourceNode.id,
-        target: newNodeId,
-        animated: true,
-      };
-      setEdges((eds) => addEdge(newEdge, eds));
+      // Special handling for Processor: INSERT logic
+      if (type === 'processor' && sourceNode?.type === 'processor') {
+        // INSERT processor vào giữa chain
+        // Ví dụ: a → b, chọn a, thêm c
+        // Kết quả: a → c → b
+        
+        console.log('🔧 INSERT Processor Logic:', {
+          selectedProcessor: finalSourceNode.id,
+          newProcessorId: newNodeId,
+          currentEdges: edges.length
+        });
+        
+        // CRITICAL: INSERT processor with EXPLICIT completion edge management
+        setEdges((eds) => {
+          console.log('🔧 INSERT Processor - Current edges:', eds.length);
+          
+          // Step 0: Clean ALL invalid edges trong toàn bộ flow trước
+          const allNodes = [...nodes, { id: newNodeId, type, position: { x: 0, y: 0 }, data }];
+          const validationBeforeInsert = connectionRuleEngine.validateFlow(allNodes, eds);
+          
+          if (!validationBeforeInsert.isValid) {
+            console.warn('⚠️ Found invalid edges before INSERT:', validationBeforeInsert.errors);
+            console.warn('❌ Invalid edges:', validationBeforeInsert.invalidEdges.map(e => e.id));
+            eds = cleanInvalidEdges(allNodes, eds);
+            console.log(`🧹 Cleaned ${validationBeforeInsert.invalidEdges.length} invalid edge(s)`);
+          }
+          
+          // Step 1: Remove TẤT CẢ completion edges (will be recreated sau)
+          const completionEdgesRemoved = eds.filter(e => e.target === COMPLETION_NODE_ID);
+          eds = eds.filter(e => e.target !== COMPLETION_NODE_ID);
+          console.log(`🧹 Removed ALL ${completionEdgesRemoved.length} completion edges (will recreate)`);
+          
+          // Step 2: Clean invalid incoming vào selected processor
+          let cleanedEdges = eds.filter(e => {
+            if (e.target === finalSourceNode.id) {
+              const edgeSourceNode = nodes.find(n => n.id === e.source);
+              if (edgeSourceNode?.type !== 'worker' && edgeSourceNode?.type !== 'processor') {
+                console.warn(`❌ Removing invalid incoming: ${e.id} (${edgeSourceNode?.type} → processor)`);
+                return false;
+              }
+            }
+            return true;
+          });
+          
+          // Step 3: Find old outgoing edge từ selected processor
+          const oldOutgoingEdge = cleanedEdges.find(e => e.source === finalSourceNode.id);
+
+          if (oldOutgoingEdge) {
+            // INSERT: a → c → b
+            const nextNodeId = oldOutgoingEdge.target;
+            console.log(`🔗 INSERT between ${finalSourceNode.id} and ${nextNodeId}`);
+
+            // Remove old edge
+            cleanedEdges = cleanedEdges.filter(e => e.id !== oldOutgoingEdge.id);
+            console.log(`✂️ Removed: ${oldOutgoingEdge.id}`);
+
+            // Add 2 new edges
+            const edge1: Edge = {
+              id: `e-${finalSourceNode.id}-${newNodeId}`,
+              source: finalSourceNode.id,
+              target: newNodeId,
+              animated: true
+            };
+
+            const edge2: Edge = {
+              id: `e-${newNodeId}-${nextNodeId}`,
+              source: newNodeId,
+              target: nextNodeId,
+              animated: true
+            };
+
+            cleanedEdges = [...cleanedEdges, edge1, edge2];
+            console.log(`➕ Added: ${edge1.id}, ${edge2.id}`);
+            
+          } else {
+            // APPEND: a → c
+            console.log(`➕ APPEND to ${finalSourceNode.id} (end of chain)`);
+            
+            const newEdge: Edge = {
+              id: `e-${finalSourceNode.id}-${newNodeId}`,
+              source: finalSourceNode.id,
+              target: newNodeId,
+              animated: true
+            };
+            
+            cleanedEdges = [...cleanedEdges, newEdge];
+          }
+          
+          // Step 4: Recreate completion edges từ last processors
+          // Find last processors with UPDATED edges (after INSERT)
+          // Use allNodes (includes new processor) instead of processorNodes
+          const updatedProcessorNodes = allNodes.filter(n => n.type === 'processor');
+          const processorsWithOutgoing = new Set<string>();
+          
+          console.log('🔍 Finding last processors from updated edges:', {
+            totalProcessors: updatedProcessorNodes.length,
+            totalEdges: cleanedEdges.length
+          });
+          
+          for (const edge of cleanedEdges) {
+            const src = allNodes.find(n => n.id === edge.source);
+            const tgt = allNodes.find(n => n.id === edge.target);
+            
+            if (src?.type === 'processor' && tgt?.type === 'processor') {
+              processorsWithOutgoing.add(edge.source);
+              console.log(`  ✓ Processor ${edge.source} → ${edge.target} (has outgoing, NOT last)`);
+            }
+          }
+          
+          const lastProcessorIds = updatedProcessorNodes
+            .filter(p => typeof p.id === 'string' && !processorsWithOutgoing.has(p.id))
+            .map(p => p.id);
+          
+          console.log('🎯 Recreating completion edges from last processors:', lastProcessorIds);
+          console.log('📊 Last processor summary:', {
+            totalProcessors: updatedProcessorNodes.length,
+            processorsWithOutgoing: processorsWithOutgoing.size,
+            lastProcessors: lastProcessorIds.length
+          });
+          
+          // Add completion edges
+          const completionEdges = lastProcessorIds.map(procId => ({
+            id: `e-${procId}-${COMPLETION_NODE_ID}`,
+            source: procId,
+            target: COMPLETION_NODE_ID,
+            type: 'smoothstep' as const
+          }));
+          
+          console.log(`➕ Recreated ${completionEdges.length} completion edge(s) from:`, lastProcessorIds);
+          
+          return [...cleanedEdges, ...completionEdges];
+        });
+      } else {
+        // Standard logic for non-processor or worker source
+        const newEdge: Edge = {
+          id: `e-${finalSourceNode.id}-${newNodeId}`,
+          source: finalSourceNode.id,
+          target: newNodeId,
+          animated: true,
+        };
+        setEdges((eds) => addEdge(newEdge, eds));
+      }
     }
   };
   
@@ -641,15 +942,75 @@ const App: React.FC = () => {
         try {
           const config = JSON.parse(e.target?.result as string);
           if (config.projectSettings && config.nodes && config.edges) {
-            setProjectSettings(config.projectSettings);
-            setNodes(config.nodes);
-            setEdges(config.edges);
-            setSelectedNode(null);
+            // Validate flow before importing using Rule Engine
+            const validation = connectionRuleEngine.validateFlow(config.nodes, config.edges);
+            
+            if (!validation.isValid) {
+              // Ask user if they want to clean up invalid edges
+              const confirmCleanup = window.confirm(
+                `⚠️ Flow has ${validation.invalidEdges.length} invalid connection(s):\n\n` +
+                validation.errors.slice(0, 5).join('\n') +
+                (validation.errors.length > 5 ? `\n... and ${validation.errors.length - 5} more` : '') +
+                `\n\n✅ Click OK to import and automatically remove invalid connections` +
+                `\n❌ Click Cancel to abort import`
+              );
+
+              if (!confirmCleanup) {
+                alert('Import cancelled.');
+                if(event.target) event.target.value = '';
+                return;
+              }
+
+              // Clean up invalid edges
+              const cleanEdges = cleanInvalidEdges(config.nodes, config.edges);
+              
+              // Reset ID counter based on imported nodes
+              resetIdCounter(config.nodes);
+              
+              setProjectSettings(config.projectSettings);
+              setNodes(config.nodes);
+              setEdges(cleanEdges);
+              setSelectedNode(null);
+
+              // Show summary after a short delay
+              setTimeout(() => {
+                alert(
+                  `✅ Project imported successfully!\n\n` +
+                  `Removed ${validation.invalidEdges.length} invalid connection(s)\n` +
+                  `Kept ${cleanEdges.length} valid connection(s)`
+                );
+              }, 100);
+            } else {
+              // Flow is valid, import as-is
+              
+              // Reset ID counter based on imported nodes
+              resetIdCounter(config.nodes);
+              
+              setProjectSettings(config.projectSettings);
+              setNodes(config.nodes);
+              setEdges(config.edges);
+              setSelectedNode(null);
+
+              if (validation.warnings.length > 0) {
+                setTimeout(() => {
+                  alert(
+                    `✅ Project imported successfully!\n\n` +
+                    `⚠️ Warnings:\n` +
+                    validation.warnings.join('\n')
+                  );
+                }, 100);
+              } else {
+                setTimeout(() => {
+                  alert('✅ Project imported successfully! All connections are valid.');
+                }, 100);
+              }
+            }
           } else {
-            alert('Invalid configuration file.');
+            alert('❌ Invalid configuration file format.');
           }
         } catch (error) {
-          alert('Error reading configuration file.');
+          console.error('Import error:', error);
+          alert('❌ Error reading configuration file: ' + (error as Error).message);
         }
       };
       reader.readAsText(file);

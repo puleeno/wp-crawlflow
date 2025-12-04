@@ -55,10 +55,12 @@ class DashboardRenderer
         $script_url = plugin_dir_url(dirname(dirname(__FILE__))) . 'assets/js/crawflow-ui/dist/' . $script_file;
         $script_path = $plugin_dir . 'assets/js/crawflow-ui/dist/' . $script_file;
         
+        // Bundle React into crawflow-ui.js (no wp-element dependency)
+        // This avoids conflicts with WordPress's React version
         wp_enqueue_script(
             'crawlflow-ui',
             $script_url,
-            ['wp-element'],
+            [], // No dependencies - React is bundled
             file_exists($script_path) ? filemtime($script_path) : '1.0.0',
             true
         );
@@ -72,6 +74,7 @@ class DashboardRenderer
             'processors' => $registryData['processors'],
             'parsers' => $registryData['parsers'],
             'httpClients' => $registryData['httpClients'],
+            'completionActions' => $registryData['completionActions'],
             'nonce' => wp_create_nonce('crawlflow_nonce'),
             'ajaxUrl' => admin_url('admin-ajax.php'),
         ]);

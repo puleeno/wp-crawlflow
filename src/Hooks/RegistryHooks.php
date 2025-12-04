@@ -4,11 +4,15 @@ namespace CrawlFlow\Hooks;
 
 use Rake\Manager\DataSourceManager;
 use Rake\Manager\ProcessorManager;
+use Rake\Manager\CompletionActionManager;
 use Rake\DataSource\UrlDataSource;
 use Rake\DataSource\ApiDataSource;
 use Rake\DataSource\CsvDataSource;
 use Rake\DataSource\XmlDataSource;
 use Rake\DataSource\MySqlDataSource;
+use Rake\CompletionAction\ReportingAction;
+use Rake\CompletionAction\SendEmailNotificationAction;
+use Rake\CompletionAction\WebhookAction;
 use CrawlFlow\Processors\WordPressPostProcessor;
 
 /**
@@ -31,6 +35,9 @@ class RegistryHooks
         // Hook to register parsers
         do_action('crawlflow_register_parsers');
 
+        // Hook to register completion actions
+        do_action('crawlflow_register_completion_actions');
+
         // Register default types
         self::registerDefaults();
     }
@@ -45,6 +52,9 @@ class RegistryHooks
 
         // Register built-in Rake processors
         self::registerBuiltInProcessors();
+
+        // Register built-in completion actions
+        self::registerBuiltInCompletionActions();
 
         // Register WordPress-specific processors
         if (!ProcessorManager::has('save_to_wordpress')) {
@@ -134,6 +144,57 @@ class RegistryHooks
     }
 
     /**
+     * Register built-in completion actions
+     */
+    private static function registerBuiltInCompletionActions(): void
+    {
+        // Reporting action
+        if (!CompletionActionManager::hasAction('reporting')) {
+            CompletionActionManager::register(
+                'reporting',
+                new ReportingAction(),
+                [
+                    'label' => 'Generate Report',
+                    'description' => 'Generate and log summary report',
+                    'icon' => '📊',
+                    'category' => 'reporting',
+                    'enabled' => true
+                ]
+            );
+        }
+
+        // Send email notification action
+        if (!CompletionActionManager::hasAction('send_email_notification')) {
+            CompletionActionManager::register(
+                'send_email_notification',
+                new SendEmailNotificationAction(),
+                [
+                    'label' => 'Send Email Notification',
+                    'description' => 'Send email when crawl completes',
+                    'icon' => '📧',
+                    'category' => 'notification',
+                    'enabled' => true
+                ]
+            );
+        }
+
+        // Webhook action
+        if (!CompletionActionManager::hasAction('webhook')) {
+            CompletionActionManager::register(
+                'webhook',
+                new WebhookAction(),
+                [
+                    'label' => 'Webhook',
+                    'description' => 'Send HTTP POST to webhook URL',
+                    'icon' => '🔗',
+                    'category' => 'integration',
+                    'enabled' => true
+                ]
+            );
+        }
+    }
+
+    /**
      * Get example usage for external plugins
      * 
      * @return string
@@ -151,6 +212,20 @@ add_action('crawlflow_register_processors', function() {
     \Rake\Manager\ProcessorManager::register('my_processor', MyProcessor::class, [
         'option1' => 'value1',
     ]);
+});
+
+// Register custom completion action:
+add_action('crawlflow_register_completion_actions', function() {
+    \Rake\Manager\CompletionActionManager::register(
+        'my_action',
+        new MyCompletionAction(),
+        [
+            'label' => 'My Action',
+            'description' => 'My custom action',
+            'icon' => '🎯',
+            'category' => 'custom'
+        ]
+    );
 });
 
 // Modify UI data:

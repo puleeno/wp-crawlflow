@@ -26,13 +26,15 @@ export default defineConfig(({ mode }) => {
       build: {
         outDir: buildDir,
         emptyOutDir: true,
+        sourcemap: true, // Enable source maps for debugging
         rollupOptions: {
           input: path.resolve(__dirname, 'index.html'),
           output: {
             entryFileNames: 'crawflow-ui.[hash].js',
             chunkFileNames: 'chunks/[name].[hash].js',
             assetFileNames: 'assets/[name].[hash].[ext]',
-            format: 'es',
+            format: 'iife',
+            name: 'CrawlFlowUI',
           },
         },
         manifest: true,

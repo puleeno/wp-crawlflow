@@ -6,6 +6,7 @@ use Rake\Manager\DataSourceManager;
 use Rake\Manager\ProcessorManager;
 use Rake\Manager\ParserManager;
 use Rake\Manager\HttpClientManager;
+use Rake\Manager\CompletionActionManager;
 
 /**
  * Registry Service
@@ -26,6 +27,7 @@ class RegistryService
             'processors' => $this->getProcessors(),
             'parsers' => $this->getParsers(),
             'httpClients' => $this->getHttpClients(),
+            'completionActions' => $this->getCompletionActions(),
         ];
     }
 
@@ -491,6 +493,19 @@ class RegistryService
         ];
 
         return $icons[$name] ?? '🔗';
+    }
+
+    /**
+     * Get registered completion actions
+     * 
+     * @return array
+     */
+    public function getCompletionActions(): array
+    {
+        $actions = CompletionActionManager::getAllForUI();
+        
+        // Allow external plugins to modify completion actions
+        return apply_filters('crawlflow_registered_completion_actions', $actions);
     }
 }
 
