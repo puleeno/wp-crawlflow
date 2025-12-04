@@ -48,11 +48,13 @@ export interface HttpClient {
 
 export interface ConfigField {
   name: string;
-  type: 'text' | 'number' | 'select' | 'file';
+  type: 'text' | 'number' | 'select' | 'file' | 'textarea' | 'checkbox' | 'url' | 'password';
   label: string;
+  description?: string;
   required?: boolean;
   default?: any;
-  options?: string[];
+  options?: Array<{ value: string; label: string }> | Record<string, string>;
+  placeholder?: string;
 }
 
 /**

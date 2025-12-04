@@ -5,6 +5,10 @@ namespace CrawlFlow\Hooks;
 use Rake\Manager\DataSourceManager;
 use Rake\Manager\ProcessorManager;
 use Rake\DataSource\UrlDataSource;
+use Rake\DataSource\ApiDataSource;
+use Rake\DataSource\CsvDataSource;
+use Rake\DataSource\XmlDataSource;
+use Rake\DataSource\MySqlDataSource;
 use CrawlFlow\Processors\WordPressPostProcessor;
 
 /**
@@ -36,10 +40,8 @@ class RegistryHooks
      */
     private static function registerDefaults(): void
     {
-        // Register default data source types
-        if (!DataSourceManager::hasType('url')) {
-            DataSourceManager::registerType('url', UrlDataSource::class);
-        }
+        // Register built-in data source types
+        self::registerBuiltInDataSources();
 
         // Register built-in Rake processors
         self::registerBuiltInProcessors();
@@ -54,6 +56,32 @@ class RegistryHooks
 
         // Apply filters to allow modification
         do_action('crawlflow_after_register_defaults');
+    }
+
+    /**
+     * Register built-in data source types
+     */
+    private static function registerBuiltInDataSources(): void
+    {
+        if (!DataSourceManager::hasType('url')) {
+            DataSourceManager::registerType('url', UrlDataSource::class);
+        }
+
+        if (!DataSourceManager::hasType('api')) {
+            DataSourceManager::registerType('api', ApiDataSource::class);
+        }
+
+        if (!DataSourceManager::hasType('csv')) {
+            DataSourceManager::registerType('csv', CsvDataSource::class);
+        }
+
+        if (!DataSourceManager::hasType('xml')) {
+            DataSourceManager::registerType('xml', XmlDataSource::class);
+        }
+
+        if (!DataSourceManager::hasType('mysql')) {
+            DataSourceManager::registerType('mysql', MySqlDataSource::class);
+        }
     }
 
     /**

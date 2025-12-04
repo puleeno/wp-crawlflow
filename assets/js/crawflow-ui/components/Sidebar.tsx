@@ -35,99 +35,106 @@ interface SidebarProps {
   onAddShapeNode: (shapeType: ShapeType) => void;
 }
 
-const dataSources: {
-  type: DataSourceType;
-  label: string;
-  icon: React.ReactNode;
-  defaultData: StartNodeData;
-  colorClasses: string;
-}[] = [
-  {
-    type: 'url',
-    label: 'From URL',
-    icon: <GlobeAltIcon />,
-    defaultData: {
-      sourceType: 'url',
-      sourceValue: 'https://example.com',
-      urlSettings: {
-        scope: 'entire-website',
-        excludeExtensions: ['pdf', 'jpg', 'png', 'zip', 'mp4', 'svg'],
-        excludePatterns: [],
-        whitelistPatterns: [],
-        domainPolicy: 'all',
-        domainWhitelist: [],
+/**
+ * Map icon string (emoji) to React component
+ */
+const getIconComponent = (iconString: string): React.ReactNode => {
+  const iconMap: Record<string, React.ReactNode> = {
+    '🌐': <GlobeAltIcon />,
+    '☁️': <CloudIcon />,
+    '📊': <DocumentTextIcon />,
+    '📄': <DocumentTextIcon />,
+    '📋': <DocumentTextIcon />,
+    '🗄️': <DatabaseIcon />,
+  };
+  
+  return iconMap[iconString] || <GlobeAltIcon />;
+};
+
+/**
+ * Get color classes for data source type
+ */
+const getDataSourceColorClasses = (type: string): string => {
+  const colorMap: Record<string, string> = {
+    'url': 'bg-green-500 hover:bg-green-600',
+    'api': 'bg-blue-500 hover:bg-blue-600',
+    'csv': 'bg-purple-500 hover:bg-purple-600',
+    'xml': 'bg-orange-500 hover:bg-orange-600',
+    'json': 'bg-yellow-500 hover:bg-yellow-600 text-gray-800',
+    'mysql': 'bg-red-500 hover:bg-red-600',
+  };
+  
+  return colorMap[type] || 'bg-gray-500 hover:bg-gray-600';
+};
+
+/**
+ * Create default data for start node based on data source type and config fields
+ */
+const createDefaultStartNodeData = (dataSource: any): StartNodeData => {
+  const defaultData: StartNodeData = {
+    sourceType: dataSource.type as DataSourceType,
+    sourceValue: '',
+  };
+
+  // Build default settings from configFields
+  if (dataSource.configFields && Array.isArray(dataSource.configFields)) {
+    const settings: any = {};
+    
+    dataSource.configFields.forEach((field: any) => {
+      if (field.default !== undefined) {
+        settings[field.name] = field.default;
       }
-    },
-    colorClasses: 'bg-green-500 hover:bg-green-600'
-  },
-  {
-    type: 'api',
-    label: 'From API',
-    icon: <CloudIcon />,
-    defaultData: {
-      sourceType: 'api',
-      sourceValue: 'https://api.example.com/data',
-      apiSettings: {
-        authType: 'none',
-        authDetails: {},
-        paginationType: 'none',
-        paginationDetails: {},
-      }
-    },
-    colorClasses: 'bg-blue-500 hover:bg-blue-600'
-  },
-  {
-    type: 'mysql',
-    label: 'From MySQL',
-    icon: <DatabaseIcon />,
-    defaultData: {
-      sourceType: 'mysql',
-      sourceValue: { host: 'localhost', port: '3306', user: 'root', password: '', database: 'mydatabase' },
-    },
-    colorClasses: 'bg-red-500 hover:bg-red-600'
-  },
-  {
-    type: 'csv',
-    label: 'From CSV',
-    icon: <DocumentTextIcon />,
-    defaultData: { sourceType: 'csv', sourceValue: '', inputMethod: 'paste' },
-    colorClasses: 'bg-purple-500 hover:bg-purple-600'
-  },
-  {
-    type: 'xml',
-    label: 'From XML',
-    icon: <DocumentTextIcon />,
-    defaultData: {
-      sourceType: 'xml',
-      sourceValue: '',
-      inputMethod: 'paste',
-      xmlSettings: {
-        scanUrls: true,
-        domainPolicy: 'all',
-        domainWhitelist: [],
-      }
-    },
-    colorClasses: 'bg-orange-500 hover:bg-orange-600'
-  },
-  {
-    type: 'json',
-    label: 'From JSON',
-    icon: <DocumentTextIcon />,
-    defaultData: {
-      sourceType: 'json',
-      sourceValue: '',
-      inputMethod: 'paste',
-      jsonSettings: {
-        dataHandling: 'raw',
-        urlSource: 'all-values',
-        urlKey: '',
-        domainPolicy: 'all',
-        domainWhitelist: [],
-      }
-    },
-    colorClasses: 'bg-yellow-500 hover:bg-yellow-600 text-gray-800'
-  },
-];
+    });
+
+    // Type-specific default settings
+    switch (dataSource.type) {
+      case 'url':
+        defaultData.sourceValue = settings.url || 'https://example.com';
+        defaultData.urlSettings = {
+          scope: 'entire-website',
+          excludeExtensions: ['pdf', 'jpg', 'png', 'zip', 'mp4', 'svg'],
+          excludePatterns: [],
+          whitelistPatterns: [],
+          domainPolicy: 'all',
+          domainWhitelist: [],
+        };
+        break;
+      case 'api':
+        defaultData.sourceValue = settings.url || 'https://api.example.com/data';
+        defaultData.apiSettings = {
+          authType: 'none',
+          authDetails: {},
+          paginationType: 'none',
+          paginationDetails: {},
+        };
+        break;
+      case 'csv':
+        defaultData.sourceValue = settings.content || '';
+        defaultData.inputMethod = 'paste';
+        break;
+      case 'xml':
+        defaultData.sourceValue = settings.content || '';
+        defaultData.inputMethod = 'paste';
+        defaultData.xmlSettings = {
+          scanUrls: settings.scanUrls ?? true,
+          domainPolicy: settings.domainPolicy || 'all',
+          domainWhitelist: [],
+        };
+        break;
+      case 'mysql':
+        defaultData.sourceValue = {
+          host: settings.host || 'localhost',
+          port: settings.port || '3306',
+          user: settings.user || 'root',
+          password: settings.password || '',
+          database: settings.database || '',
+        };
+        break;
+    }
+  }
+
+  return defaultData;
+};
 
 const EXTRACTOR_NODE_TYPES = ['html-data-extractor', 'csv-extractor', 'json-extractor', 'xml-extractor', 'mysql-extractor'];
 
@@ -179,6 +186,7 @@ const DiagramElementsPanel: React.FC<{ onAddShapeNode: (shapeType: ShapeType) =>
 
 
 const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onClose, nodes, edges, mouseMode, onSetMouseMode, onAddShapeNode }) => {
+  const { dataSources: registryDataSources } = useRegistry();
   
   const handleAddNode = (type: string, data: NodeData, sourceNode?: Node | null) => {
     onAddNode(type, data, sourceNode);
@@ -293,16 +301,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
                     <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Data Sources</h2>
                     <p className="text-sm text-gray-600 mt-2 mb-4">Click to add a starting point for your crawl.</p>
                     <div className="flex flex-col gap-3">
-                        {dataSources.map(source => (
-                           <button
-                            key={source.type}
-                            onClick={() => addStartNode(source.defaultData)}
-                            className={`flex items-center gap-3 p-3 text-white rounded-lg transition-all duration-200 shadow-md transform hover:scale-105 ${source.colorClasses}`}
-                          >
-                            {source.icon}
-                            <span className="font-semibold">{source.label}</span>
-                          </button>
-                        ))}
+                        {registryDataSources.map(source => {
+                          const defaultData = createDefaultStartNodeData(source);
+                          return (
+                            <button
+                              key={source.type}
+                              onClick={() => addStartNode(defaultData)}
+                              className={`flex items-center gap-3 p-3 text-white rounded-lg transition-all duration-200 shadow-md transform hover:scale-105 ${getDataSourceColorClasses(source.type)}`}
+                            >
+                              {getIconComponent(source.icon)}
+                              <span className="font-semibold">{source.label}</span>
+                            </button>
+                          );
+                        })}
                     </div>
                 </div>
                 <DiagramElementsPanel onAddShapeNode={onAddShapeNode} />

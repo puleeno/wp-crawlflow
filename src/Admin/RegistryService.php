@@ -123,14 +123,14 @@ class RegistryService
     private function getDataSourceLabel(string $type): string
     {
         $labels = [
-            'url' => 'URL Source',
-            'csv' => 'CSV Source',
-            'xml' => 'XML Source',
-            'mysql' => 'MySQL Source',
-            'api' => 'API Source',
+            'url' => 'From URL',
+            'api' => 'From API',
+            'csv' => 'From CSV',
+            'xml' => 'From XML',
+            'mysql' => 'From MySQL',
         ];
 
-        return $labels[$type] ?? ucfirst($type) . ' Source';
+        return $labels[$type] ?? 'From ' . ucfirst($type);
     }
 
     /**
@@ -139,11 +139,11 @@ class RegistryService
     private function getDataSourceDescription(string $type): string
     {
         $descriptions = [
-            'url' => 'Fetch data from web URLs',
-            'csv' => 'Import data from CSV files',
-            'xml' => 'Parse XML feeds and files',
-            'mysql' => 'Connect to external MySQL databases',
-            'api' => 'Fetch from REST APIs',
+            'url' => 'Crawl and extract data from web URLs',
+            'api' => 'Fetch data from REST API endpoints',
+            'csv' => 'Import and parse CSV files',
+            'xml' => 'Parse XML feeds, sitemaps, and files',
+            'mysql' => 'Query data from MySQL databases',
         ];
 
         return $descriptions[$type] ?? 'Data source: ' . $type;
@@ -156,10 +156,10 @@ class RegistryService
     {
         $icons = [
             'url' => '🌐',
+            'api' => '☁️',
             'csv' => '📊',
             'xml' => '📄',
             'mysql' => '🗄️',
-            'api' => '🔌',
         ];
 
         return $icons[$type] ?? '📦';
@@ -167,21 +167,29 @@ class RegistryService
 
     /**
      * Get data source config fields
+     * Loads from data source class if available, otherwise returns empty array
      */
     private function getDataSourceConfigFields(string $type): array
     {
-        $fields = [
-            'url' => [
-                ['name' => 'url', 'type' => 'text', 'label' => 'URL', 'required' => true],
-                ['name' => 'timeout', 'type' => 'number', 'label' => 'Timeout (seconds)', 'default' => 30],
-            ],
-            'csv' => [
-                ['name' => 'file', 'type' => 'file', 'label' => 'CSV File', 'required' => true],
-                ['name' => 'delimiter', 'type' => 'text', 'label' => 'Delimiter', 'default' => ','],
-            ],
-        ];
+        try {
+            $className = DataSourceManager::getRegisteredClass($type);
+            
+            if ($className && class_exists($className)) {
+                // Check if class has static method getDataSourceConfigFields
+                if (method_exists($className, 'getDataSourceConfigFields')) {
+                    $fields = call_user_func([$className, 'getDataSourceConfigFields']);
+                    
+                    // Ensure fields are in correct format
+                    return is_array($fields) ? $fields : [];
+                }
+            }
+        } catch (\Exception $e) {
+            // Log error but don't break UI
+            error_log('Error loading data source config fields for ' . $type . ': ' . $e->getMessage());
+        }
 
-        return $fields[$type] ?? [];
+        // Return empty array if no config fields found
+        return [];
     }
 
     /**
