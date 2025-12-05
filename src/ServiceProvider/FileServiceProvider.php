@@ -2,6 +2,7 @@
 
 namespace CrawlFlow\ServiceProvider;
 
+use Rake\ServiceProvider\AbstractServiceProvider;
 use Rake\Contracts\File\FileDownloaderClientInterface;
 use Rake\Manager\FileIntegrityManager;
 use RamphorRake\Adapter\File\WordPressFileDownloaderClient;
@@ -91,4 +92,3 @@ class FileServiceProvider extends AbstractServiceProvider
         return $options;
     }
 }
-

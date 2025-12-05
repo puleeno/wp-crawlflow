@@ -8,6 +8,8 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Rake\Manager\CompletionActionManager;
+use RakeManagerFileChecksumManager;
+use PuleenoRakeWordPressAdapterWordPressDatabaseAdapter;
 use Rake\CompletionAction\CreateResourceReferencesAction;
 
 echo "\n";
@@ -128,6 +130,50 @@ if (!$validation['valid']) {
     echo "Errors: " . implode(', ', $validation['errors']) . "\n";
 }
 
+// Step 6: Test checksum verification
+echo "
+📋 Step 6: Test Checksum Verification
+";
+echo str_repeat("─", 80) . "
+";
+
+
+$checksumManager = new FileChecksumManager(new WordPressDatabaseAdapter($wpdb));
+
+// Create test file and checksum
+$testFileContent = "Test file for checksum verification " . time();
+$testFilePath = sys_get_temp_dir() . "/test_checksum_" . time() . ".txt";
+file_put_contents($testFilePath, $testFileContent);
+
+try {
+    $testChecksum = $checksumManager->createFileChecksum($testFilePath);
+    echo "✅ Created checksum: {$testChecksum}
+";
+    
+    $isValid = $checksumManager->validateChecksum($testChecksum);
+    echo "✅ Checksum validation: " . ($isValid ? "Valid" : "Invalid") . "
+";
+    
+    // Test integrity verification
+    $testResourceId = 888;
+    $checksumManager->saveChecksum($testResourceId, $testChecksum);
+    $integrityCheck = $checksumManager->verifyFileIntegrity($testResourceId, $testFilePath);
+    echo "✅ File integrity check: " . ($integrityCheck ? "Valid" : "Invalid") . "
+";
+    
+    // Test duplicate detection
+    $duplicateExists = $checksumManager->checksumExists($testChecksum);
+    echo "✅ Duplicate detection: " . ($duplicateExists ? "Found" : "Not found") . "
+";
+    
+    // Cleanup
+    @unlink($testFilePath);
+    $checksumManager->deleteChecksum($testResourceId);
+} catch (Exception $e) {
+    echo "⚠️ Checksum test error: " . $e->getMessage() . "
+";
+}
+
 // Step 6: Dry-run execution (will fail on actual download but shows flow)
 echo "\n📋 Step 6: Test Execution Flow (Dry Run)\n";
 echo str_repeat('─', 80) . "\n";
@@ -188,7 +234,7 @@ try {
     echo "⚠️ Exception (expected): " . $e->getMessage() . "\n";
 }
 
-// Step 7: Check database state
+// Step 8: Check database state
 echo "\n📋 Step 7: Check Database State\n";
 echo str_repeat('─', 80) . "\n";
 
@@ -205,6 +251,11 @@ echo "rake_url_source_maps: {$urlMapsCount} mappings\n";
 $resourcesTable = $wpdb->prefix . 'rake_resources';
 $importedCount = $wpdb->get_var("SELECT COUNT(*) FROM {$resourcesTable} WHERE imported_at IS NOT NULL");
 echo "rake_resources: {$importedCount} imported resources\n";
+
+$checksumsTable = $wpdb->prefix . "rake_file_checksums";
+$checksumsCount = $wpdb->get_var("SELECT COUNT(*) FROM {$checksumsTable}");
+echo "rake_file_checksums: {$checksumsCount} checksums stored
+";
 
 // Cleanup
 echo "\n📋 Cleanup: Remove test data\n";
@@ -231,5 +282,6 @@ echo "2. Run CreateResourceReferencesAction via completion action\n";
 echo "3. Check rake_resources for imported_at timestamp\n";
 echo "4. Check rake_url_source_maps for URL mappings\n";
 echo "\n";
+
 
 
