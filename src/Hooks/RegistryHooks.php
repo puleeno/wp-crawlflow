@@ -13,6 +13,7 @@ use Rake\DataSource\MySqlDataSource;
 use Rake\CompletionAction\ReportingAction;
 use Rake\CompletionAction\SendEmailNotificationAction;
 use Rake\CompletionAction\WebhookAction;
+use Rake\CompletionAction\CreateResourceReferencesAction;
 use CrawlFlow\Processors\WordPressPostProcessor;
 
 /**
@@ -188,6 +189,34 @@ class RegistryHooks
                     'description' => 'Send HTTP POST to webhook URL',
                     'icon' => '🔗',
                     'category' => 'integration',
+                    'enabled' => true
+                ]
+            );
+        }
+
+        // Create Resource References action (with factory for dependency injection)
+        if (!CompletionActionManager::hasAction('create_resource_references')) {
+            CompletionActionManager::register(
+                'create_resource_references',
+                function() {
+                    // Resolve dependencies from container
+                    $app = \Rake\Rake::getInstance();
+                    
+                    $fileDownloader = $app->make(\Rake\Contracts\File\FileDownloaderClientInterface::class);
+                    $databaseAdapter = $app->make(\Rake\Contracts\Database\DatabaseAdapterInterface::class);
+                    $checksumManager = new \Rake\Manager\FileChecksumManager($databaseAdapter);
+                    
+                    return new CreateResourceReferencesAction(
+                        $fileDownloader,
+                        $checksumManager,
+                        $databaseAdapter
+                    );
+                },
+                [
+                    'label' => 'Create Resource References',
+                    'description' => 'Import media files with checksum deduplication and URL mapping',
+                    'icon' => '📁',
+                    'category' => 'media',
                     'enabled' => true
                 ]
             );

@@ -19,6 +19,7 @@ class ApplicationBootstrapper extends RakeApplicationBootstrapper
         \CrawlFlow\ServiceProvider\LoggerServiceProvider::class,
         \CrawlFlow\ServiceProvider\HttpServiceProvider::class,
         \CrawlFlow\ServiceProvider\ProcessorServiceProvider::class,
+        \CrawlFlow\ServiceProvider\FileServiceProvider::class,
         \CrawlFlow\ServiceProvider\AdminServiceProvider::class,
         \CrawlFlow\ServiceProvider\FlowServiceProvider::class,
         \CrawlFlow\ServiceProvider\CronServiceProvider::class,
