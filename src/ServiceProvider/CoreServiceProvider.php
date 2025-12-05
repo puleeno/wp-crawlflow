@@ -4,6 +4,8 @@ namespace CrawlFlow\ServiceProvider;
 
 use Rake\Rake;
 use Rake\ServiceProvider\AbstractServiceProvider;
+use Rake\Contracts\Database\Adapter\DatabaseAdapterInterface;
+use Puleeno\Rake\WordPress\Adapter\WordPressDatabaseAdapter;
 
 /**
  * Core Service Provider
@@ -16,6 +18,12 @@ class CoreServiceProvider extends AbstractServiceProvider
      */
     protected function registerServices(): void
     {
+        // Register Database Adapter
+        $this->app->singleton(DatabaseAdapterInterface::class, function ($app) {
+            global $wpdb;
+            return new WordPressDatabaseAdapter($wpdb);
+        });
+
         // Register LoggerService
         $this->app->singleton('CrawlFlow\LoggerService', function ($app) {
             return \CrawlFlow\LoggerService::getLogger();

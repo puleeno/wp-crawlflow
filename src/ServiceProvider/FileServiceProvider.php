@@ -5,7 +5,7 @@ namespace CrawlFlow\ServiceProvider;
 use Rake\ServiceProvider\AbstractServiceProvider;
 use Rake\Contracts\File\FileDownloaderClientInterface;
 use Rake\Manager\FileIntegrityManager;
-use RamphorRake\Adapter\File\WordPressFileDownloaderClient;
+use Puleeno\Rake\WordPress\File\WordPressFileDownloaderClient;
 
 /**
  * File Service Provider
@@ -50,7 +50,7 @@ class FileServiceProvider extends AbstractServiceProvider
     {
         $this->app->singleton(FileIntegrityManager::class, function ($app) {
             // Get database adapter
-            $databaseAdapter = $app->make(\Rake\Contracts\Database\DatabaseAdapterInterface::class);
+            $databaseAdapter = $app->make(\Rake\Contracts\Database\Adapter\DatabaseAdapterInterface::class);
 
             // Get file downloader client
             $downloaderClient = $app->make(FileDownloaderClientInterface::class);

@@ -8,11 +8,10 @@
  */
 
 require_once __DIR__ . "/../../vendor/autoload.php";
-require_once __DIR__ . "/../../wp-content/plugins/wp-crawlflow/vendor/puleeno/rake-wordpress-adapter/src/File/WordPressFileDownloaderClient.php";
 
 use Rake\Manager\FileChecksumManager;
 use Rake\Adapter\Database\WordPressDatabaseAdapter;
-use RamphorRake\Adapter\File\WordPressFileDownloaderClient;
+use Puleeno\Rake\WordPress\File\WordPressFileDownloaderClient;
 
 echo "\n";
 echo "╔═══════════════════════════════════════════════════════════════════════════╗\n";

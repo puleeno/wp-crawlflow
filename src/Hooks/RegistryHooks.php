@@ -203,7 +203,7 @@ class RegistryHooks
                     $app = \Rake\Rake::getInstance();
                     
                     $fileDownloader = $app->make(\Rake\Contracts\File\FileDownloaderClientInterface::class);
-                    $databaseAdapter = $app->make(\Rake\Contracts\Database\DatabaseAdapterInterface::class);
+                    $databaseAdapter = $app->make(\Rake\Contracts\Database\Adapter\DatabaseAdapterInterface::class);
                     $checksumManager = new \Rake\Manager\FileChecksumManager($databaseAdapter);
                     
                     return new CreateResourceReferencesAction(
