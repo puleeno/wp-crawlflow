@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . "/../../../vendor/autoload.php";
+require_once __DIR__ . "/../../../wp-content/plugins/wp-crawlflow/vendor/puleeno/rake-wordpress-adapter/src/File/WordPressFileDownloaderClient.php";
 
 use RamphorRake\Adapter\File\WordPressFileDownloaderClient;
 
