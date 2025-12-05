@@ -3,7 +3,6 @@
 /node_modules/
 
 # Build
-/assets/js/crawflow-ui/dist/
 /assets/js/crawflow-ui/node_modules/
 
 # Logs

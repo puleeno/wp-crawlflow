@@ -52,13 +52,21 @@ class FlowService
         // Register Start Node Executor
         $this->nodeRegistry->register(new Executors\StartNodeExecutor($this->rakeAdapter));
 
+        // Register Worker Node Executor
+        if (class_exists('CrawlFlow\Flow\Executors\WorkerNodeExecutor')) {
+            $this->nodeRegistry->register(new Executors\WorkerNodeExecutor($this->rakeAdapter));
+        }
+
+        // Register Processor Node Executor
+        if (class_exists('CrawlFlow\Flow\Executors\ProcessorNodeExecutor')) {
+            $this->nodeRegistry->register(new Executors\ProcessorNodeExecutor($this->rakeAdapter));
+        }
+
         // TODO: Register other node executors
         // $this->nodeRegistry->register(new Executors\ClickNodeExecutor($this->rakeAdapter));
         // $this->nodeRegistry->register(new Executors\LoopNodeExecutor($this->rakeAdapter));
         // $this->nodeRegistry->register(new Executors\ReceptionNodeExecutor($this->rakeAdapter));
-        // $this->nodeRegistry->register(new Executors\WorkerNodeExecutor($this->rakeAdapter));
         // $this->nodeRegistry->register(new Executors\ExtractorNodeExecutor($this->rakeAdapter));
-        // $this->nodeRegistry->register(new Executors\ProcessorNodeExecutor($this->rakeAdapter));
     }
 
     /**

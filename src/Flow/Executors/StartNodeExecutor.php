@@ -142,15 +142,20 @@ class StartNodeExecutor implements NodeExecutorInterface
             }
 
             // Check exclude extensions
-            $extension = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
-            if (in_array($extension, $excludeExtensions)) {
-                continue;
+            $path = parse_url($url, PHP_URL_PATH);
+            if ($path !== null) {
+                $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+                if (in_array($extension, $excludeExtensions)) {
+                    continue;
+                }
             }
 
             // Check exclude patterns
             $excluded = false;
             foreach ($excludePatterns as $pattern) {
-                if (preg_match($pattern, $url)) {
+                // Normalize pattern - add delimiter if needed
+                $normalizedPattern = $this->normalizeRegexPattern($pattern);
+                if ($normalizedPattern && preg_match($normalizedPattern, $url)) {
                     $excluded = true;
                     break;
                 }
@@ -163,7 +168,9 @@ class StartNodeExecutor implements NodeExecutorInterface
             if (!empty($whitelistPatterns)) {
                 $whitelisted = false;
                 foreach ($whitelistPatterns as $pattern) {
-                    if (preg_match($pattern, $url)) {
+                    // Normalize pattern - add delimiter if needed
+                    $normalizedPattern = $this->normalizeRegexPattern($pattern);
+                    if ($normalizedPattern && preg_match($normalizedPattern, $url)) {
                         $whitelisted = true;
                         break;
                     }
@@ -325,6 +332,29 @@ class StartNodeExecutor implements NodeExecutorInterface
     {
         // Simplified JSON path - just check for 'next' key
         return $data['next'] ?? null;
+    }
+
+    /**
+     * Normalize regex pattern for preg_match
+     * Adds delimiter if pattern doesn't have one
+     */
+    private function normalizeRegexPattern(string $pattern): ?string
+    {
+        if (empty($pattern)) {
+            return null;
+        }
+
+        // If pattern already has delimiter at start and end, return as is
+        if (preg_match('/^\/.*\/[imsxADSUXJu]*$/', $pattern) || 
+            preg_match('/^#.*#[imsxADSUXJu]*$/', $pattern) ||
+            preg_match('/^~.*~[imsxADSUXJu]*$/', $pattern)) {
+            return $pattern;
+        }
+
+        // Escape special regex characters if it's a simple string pattern
+        // Wrap with delimiter
+        $escaped = preg_quote($pattern, '/');
+        return '/' . $escaped . '/i';
     }
 
     /**

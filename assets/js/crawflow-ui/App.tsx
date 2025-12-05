@@ -301,7 +301,23 @@ const App: React.FC = () => {
   // Effect to manage the Completion node and its connections
   useEffect(() => {
     const processorNodes = nodes.filter(n => n.type === 'processor');
+    const completionNodes = nodes.filter(n => n.type === 'completion');
     const completionNode = nodes.find(n => n.id === COMPLETION_NODE_ID);
+
+    // CRITICAL: Max 1 completion node per flow - remove extra completion nodes
+    if (completionNodes.length > 1) {
+        console.warn(`⚠️ Found ${completionNodes.length} completion nodes. Removing extra nodes (max allowed: 1)`);
+        // Keep only the first completion node (or the one with COMPLETION_NODE_ID if exists)
+        const nodeToKeep = completionNode || completionNodes[0];
+        const nodesToRemove = completionNodes.filter(n => n.id !== nodeToKeep.id);
+        
+        setNodes(nds => nds.filter(n => !nodesToRemove.some(remove => remove.id === n.id)));
+        setEdges(eds => {
+            const removeIds = new Set(nodesToRemove.map(n => n.id));
+            return eds.filter(e => !removeIds.has(e.target));
+        });
+        return; // Re-run effect after cleanup
+    }
 
     // Case 1: No processors exist. Remove completion node if it exists.
     if (processorNodes.length === 0) {

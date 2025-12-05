@@ -42,9 +42,12 @@ class DashboardRenderer
 
         // Enqueue React UI script (read from Vite manifest)
         $plugin_dir = plugin_dir_path(dirname(dirname(__FILE__)));
-        $manifest_path = $plugin_dir . 'assets/js/crawflow-ui/dist/.vite/manifest.json';
+        $dist_dir = $plugin_dir . 'assets/js/crawflow-ui/dist/';
+        $manifest_path = $dist_dir . '.vite/manifest.json';
         
-        $script_file = 'crawflow-ui.Dk2KSQ2S.js'; // default fallback
+        $script_file = null;
+        
+        // Try to read from Vite manifest first
         if (file_exists($manifest_path)) {
             $manifest = json_decode(file_get_contents($manifest_path), true);
             if (isset($manifest['index.html']['file'])) {
@@ -52,8 +55,26 @@ class DashboardRenderer
             }
         }
         
+        // Fallback: scan dist directory for crawflow-ui*.js files
+        if (!$script_file && is_dir($dist_dir)) {
+            $files = glob($dist_dir . 'crawflow-ui*.js');
+            if (!empty($files)) {
+                // Get the most recently modified file
+                usort($files, function($a, $b) {
+                    return filemtime($b) - filemtime($a);
+                });
+                $script_file = basename($files[0]);
+            }
+        }
+        
+        // Final fallback: throw error if no file found
+        if (!$script_file) {
+            error_log('CrawlFlow: Cannot find crawflow-ui script file. Please run npm build in assets/js/crawflow-ui/');
+            return;
+        }
+        
         $script_url = plugin_dir_url(dirname(dirname(__FILE__))) . 'assets/js/crawflow-ui/dist/' . $script_file;
-        $script_path = $plugin_dir . 'assets/js/crawflow-ui/dist/' . $script_file;
+        $script_path = $dist_dir . $script_file;
         
         // Bundle React into crawflow-ui.js (no wp-element dependency)
         // This avoids conflicts with WordPress's React version

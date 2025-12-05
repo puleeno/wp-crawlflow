@@ -396,6 +396,15 @@ export class ConnectionRuleEngine {
       }
     });
 
+    // 3. Validate max instance of completion nodes (max 1 completion node per flow)
+    const completionNodes = nodes.filter(n => n.type === 'completion');
+    if (completionNodes.length > 1) {
+      errors.push(
+        `Flow can have maximum 1 Completion node, but found ${completionNodes.length}. ` +
+        `Please remove extra completion nodes.`
+      );
+    }
+
     return {
       isValid: errors.length === 0,
       errors,
