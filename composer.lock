@@ -346,16 +346,16 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "3.10.3",
+            "version": "3.11.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CarbonPHP/carbon.git",
-                "reference": "8e3643dcd149ae0fe1d2ff4f2c8e4bbfad7c165f"
+                "reference": "bdb375400dcd162624531666db4799b36b64e4a1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/8e3643dcd149ae0fe1d2ff4f2c8e4bbfad7c165f",
-                "reference": "8e3643dcd149ae0fe1d2ff4f2c8e4bbfad7c165f",
+                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/bdb375400dcd162624531666db4799b36b64e4a1",
+                "reference": "bdb375400dcd162624531666db4799b36b64e4a1",
                 "shasum": ""
             },
             "require": {
@@ -363,9 +363,9 @@
                 "ext-json": "*",
                 "php": "^8.1",
                 "psr/clock": "^1.0",
-                "symfony/clock": "^6.3.12 || ^7.0",
+                "symfony/clock": "^6.3.12 || ^7.0 || ^8.0",
                 "symfony/polyfill-mbstring": "^1.0",
-                "symfony/translation": "^4.4.18 || ^5.2.1 || ^6.0 || ^7.0"
+                "symfony/translation": "^4.4.18 || ^5.2.1 || ^6.0 || ^7.0 || ^8.0"
             },
             "provide": {
                 "psr/clock-implementation": "1.0"
@@ -447,7 +447,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-09-06T13:39:36+00:00"
+            "time": "2025-12-02T21:04:28+00:00"
         },
         {
             "name": "psr/clock",
@@ -657,12 +657,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/puleeno/rake-wordpress-adapter.git",
-                "reference": "bf210bc0f64e88bee00882379d6fe904e1ec867f"
+                "reference": "be73054ef9683350fcefca149f5589065b35a047"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/bf210bc0f64e88bee00882379d6fe904e1ec867f",
-                "reference": "bf210bc0f64e88bee00882379d6fe904e1ec867f",
+                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/be73054ef9683350fcefca149f5589065b35a047",
+                "reference": "be73054ef9683350fcefca149f5589065b35a047",
                 "shasum": ""
             },
             "require": {
@@ -691,7 +691,7 @@
                 "issues": "https://github.com/puleeno/rake-wordpress-adapter/issues",
                 "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/v2"
             },
-            "time": "2025-07-24T12:13:36+00:00"
+            "time": "2025-12-05T03:50:19+00:00"
         },
         {
             "name": "ramphor/rake",
@@ -699,12 +699,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "4e15822bda9cd9c13a2ac4b1b7a9188d164d7cfd"
+                "reference": "80469a22f60a4430145891d4419ad756d7cc4b3e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/4e15822bda9cd9c13a2ac4b1b7a9188d164d7cfd",
-                "reference": "4e15822bda9cd9c13a2ac4b1b7a9188d164d7cfd",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/80469a22f60a4430145891d4419ad756d7cc4b3e",
+                "reference": "80469a22f60a4430145891d4419ad756d7cc4b3e",
                 "shasum": ""
             },
             "require": {
@@ -736,7 +736,7 @@
                 "issues": "https://github.com/ramphor/rake-php/issues",
                 "source": "https://github.com/ramphor/rake-php/tree/v2.x"
             },
-            "time": "2025-07-24T15:09:11+00:00"
+            "time": "2025-12-05T03:50:33+00:00"
         },
         {
             "name": "symfony/clock",
