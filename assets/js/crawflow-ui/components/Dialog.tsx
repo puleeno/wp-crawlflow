@@ -11,7 +11,7 @@ import React, { useState, useCallback, createContext, useContext, ReactNode } fr
 // TYPES
 // ============================================================================
 
-export type DialogType = 'info' | 'warning' | 'error' | 'confirm';
+export type DialogType = 'info' | 'warning' | 'error' | 'confirm' | 'success';
 
 export interface DialogConfig {
   type: DialogType;
@@ -68,6 +68,8 @@ const Dialog: React.FC<DialogProps> = ({ isOpen, config, onClose }) => {
         return { icon: '⚠️', color: 'yellow', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' };
       case 'error':
         return { icon: '❌', color: 'red', bgColor: 'bg-red-50', borderColor: 'border-red-200' };
+      case 'success':
+        return { icon: '✅', color: 'green', bgColor: 'bg-green-50', borderColor: 'border-green-200' };
       case 'confirm':
         return { icon: '❓', color: 'blue', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' };
       default:
@@ -134,6 +136,7 @@ const Dialog: React.FC<DialogProps> = ({ isOpen, config, onClose }) => {
               color === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
               color === 'yellow' ? 'bg-yellow-600 hover:bg-yellow-700' :
               color === 'red' ? 'bg-red-600 hover:bg-red-700' :
+              color === 'green' ? 'bg-green-600 hover:bg-green-700' :
               'bg-gray-600 hover:bg-gray-700'
             }`}
           >
@@ -173,6 +176,7 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({ children }) => {
         title: title || (
           type === 'error' ? 'Error' :
           type === 'warning' ? 'Warning' :
+          type === 'success' ? 'Success' :
           'Information'
         ),
         message,

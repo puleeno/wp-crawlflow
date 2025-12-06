@@ -450,22 +450,34 @@ class CrawlFlowController
             wp_send_json_error('Security check failed');
         }
 
-        $projectData = [
-            'name' => sanitize_text_field($_POST['project_name'] ?? ''),
-            'description' => sanitize_textarea_field($_POST['project_description'] ?? ''),
-            'status' => sanitize_text_field($_POST['status'] ?? 'draft'),
-        ];
-
         // Handle flow-based config from React Flow UI
         // Support both JSON object and stringified JSON
+        $projectDataArray = null;
         if (isset($_POST['project_data'])) {
             if (is_array($_POST['project_data'])) {
-                $projectData['project_data'] = $_POST['project_data'];
+                $projectDataArray = $_POST['project_data'];
             } else {
                 // If it's a string, try to decode it
                 $decoded = json_decode($_POST['project_data'], true);
-                $projectData['project_data'] = ($decoded !== null) ? $decoded : $_POST['project_data'];
+                $projectDataArray = ($decoded !== null) ? $decoded : $_POST['project_data'];
             }
+        }
+
+        // Determine status: if enabled in projectSettings, set to 'active', otherwise use provided status or 'draft'
+        $status = sanitize_text_field($_POST['status'] ?? 'draft');
+        if ($projectDataArray && isset($projectDataArray['projectSettings']['enabled'])) {
+            $status = $projectDataArray['projectSettings']['enabled'] ? 'active' : 'draft';
+        }
+
+        $projectData = [
+            'name' => sanitize_text_field($_POST['project_name'] ?? ''),
+            'description' => sanitize_textarea_field($_POST['project_description'] ?? ''),
+            'status' => $status,
+        ];
+
+        // Set project_data after determining status
+        if ($projectDataArray) {
+            $projectData['project_data'] = $projectDataArray;
         }
 
         // Legacy support: Keep old fields for backward compatibility

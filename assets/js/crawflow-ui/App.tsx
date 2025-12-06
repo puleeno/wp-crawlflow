@@ -950,11 +950,11 @@ const App: React.FC = () => {
     downloadAnchorNode.remove();
   }, [projectSettings, nodes, edges]);
 
-  const importConfiguration = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+  const importConfiguration = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const config = JSON.parse(e.target?.result as string);
           if (config.projectSettings && config.nodes && config.edges) {
@@ -963,16 +963,20 @@ const App: React.FC = () => {
             
             if (!validation.isValid) {
               // Ask user if they want to clean up invalid edges
-              const confirmCleanup = window.confirm(
-                `⚠️ Flow has ${validation.invalidEdges.length} invalid connection(s):\n\n` +
+              const errorMessage = 
+                `Flow has ${validation.invalidEdges.length} invalid connection(s):\n\n` +
                 validation.errors.slice(0, 5).join('\n') +
                 (validation.errors.length > 5 ? `\n... and ${validation.errors.length - 5} more` : '') +
                 `\n\n✅ Click OK to import and automatically remove invalid connections` +
-                `\n❌ Click Cancel to abort import`
+                `\n❌ Click Cancel to abort import`;
+
+              const confirmCleanup = await dialog.showConfirm(
+                errorMessage,
+                '⚠️ Invalid Connections Detected'
               );
 
               if (!confirmCleanup) {
-                alert('Import cancelled.');
+                await dialog.showAlert('Import cancelled.', 'info', 'Import Cancelled');
                 if(event.target) event.target.value = '';
                 return;
               }
@@ -989,11 +993,13 @@ const App: React.FC = () => {
               setSelectedNode(null);
 
               // Show summary after a short delay
-              setTimeout(() => {
-                alert(
-                  `✅ Project imported successfully!\n\n` +
+              setTimeout(async () => {
+                await dialog.showAlert(
+                  `Project imported successfully!\n\n` +
                   `Removed ${validation.invalidEdges.length} invalid connection(s)\n` +
-                  `Kept ${cleanEdges.length} valid connection(s)`
+                  `Kept ${cleanEdges.length} valid connection(s)`,
+                  'success',
+                  '✅ Import Successful'
                 );
               }, 100);
             } else {
@@ -1008,25 +1014,35 @@ const App: React.FC = () => {
               setSelectedNode(null);
 
               if (validation.warnings.length > 0) {
-                setTimeout(() => {
-                  alert(
-                    `✅ Project imported successfully!\n\n` +
+                setTimeout(async () => {
+                  await dialog.showAlert(
+                    `Project imported successfully!\n\n` +
                     `⚠️ Warnings:\n` +
-                    validation.warnings.join('\n')
+                    validation.warnings.join('\n'),
+                    'warning',
+                    '✅ Import Successful'
                   );
                 }, 100);
               } else {
-                setTimeout(() => {
-                  alert('✅ Project imported successfully! All connections are valid.');
+                setTimeout(async () => {
+                  await dialog.showAlert(
+                    'Project imported successfully! All connections are valid.',
+                    'success',
+                    '✅ Import Successful'
+                  );
                 }, 100);
               }
             }
           } else {
-            alert('❌ Invalid configuration file format.');
+            await dialog.showAlert('Invalid configuration file format.', 'error', '❌ Import Error');
           }
         } catch (error) {
           console.error('Import error:', error);
-          alert('❌ Error reading configuration file: ' + (error as Error).message);
+          await dialog.showAlert(
+            'Error reading configuration file: ' + (error as Error).message,
+            'error',
+            '❌ Import Error'
+          );
         }
       };
       reader.readAsText(file);
@@ -1038,7 +1054,7 @@ const App: React.FC = () => {
 
   const saveProject = useCallback(async () => {
     if (!projectSettings.name?.trim()) {
-      alert('Project name is required');
+      await dialog.showAlert('Project name is required', 'warning', 'Validation Error');
       return;
     }
 
@@ -1066,7 +1082,7 @@ const App: React.FC = () => {
       nonce: nonce,
       project_name: projectSettings.name,
       project_description: projectSettings.description || '',
-      status: 'draft',
+      status: projectSettings.enabled ? 'active' : 'draft',
       project_data: {
         projectSettings,
         nodes,
@@ -1097,7 +1113,7 @@ const App: React.FC = () => {
       console.log('CrawlFlow: Save response:', result);
 
       if (result.success) {
-        alert('Project saved successfully!');
+        await dialog.showAlert('Project saved successfully!', 'success', '✅ Save Successful');
         // If new project was created, update the project ID
         if (result.data?.project_id && !projectId) {
           // Update URL or reload page with new project ID
@@ -1112,11 +1128,15 @@ const App: React.FC = () => {
       } else {
         const errorMsg = result.data?.message || result.data || 'Unknown error';
         console.error('CrawlFlow: Save failed:', errorMsg);
-        alert('Error saving project: ' + errorMsg);
+        await dialog.showAlert('Error saving project: ' + errorMsg, 'error', '❌ Save Error');
       }
     } catch (error: any) {
       console.error('CrawlFlow: Save error:', error);
-      alert('Error saving project: ' + (error.message || 'Network error. Please check console for details.'));
+      await dialog.showAlert(
+        'Error saving project: ' + (error.message || 'Network error. Please check console for details.'),
+        'error',
+        '❌ Save Error'
+      );
     }
   }, [projectSettings, nodes, edges]);
 

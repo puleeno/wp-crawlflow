@@ -36,6 +36,81 @@ class CronServiceProvider extends AbstractServiceProvider
         
         // Schedule all active projects on boot (if not already scheduled)
         add_action('init', [$this, 'scheduleActiveProjects'], 20);
+        
+        // Register WP CLI commands
+        if (defined('WP_CLI') && WP_CLI) {
+            $this->registerCliCommands();
+        }
+    }
+
+    /**
+     * Register WP CLI commands
+     */
+    private function registerCliCommands(): void
+    {
+        if (!class_exists('WP_CLI')) {
+            return;
+        }
+
+        $command = new \CrawlFlow\CLI\CrawlFlowCronCommand();
+
+        // Register main command (list)
+        \WP_CLI::add_command('crawlflow cron list', [$command, 'list'], [
+            'shortdesc' => 'List all CrawlFlow projects with their cron schedule status',
+            'synopsis' => [
+                [
+                    'type' => 'flag',
+                    'name' => 'scheduled',
+                    'optional' => true,
+                    'description' => 'Show only scheduled projects',
+                ],
+                [
+                    'type' => 'flag',
+                    'name' => 'active',
+                    'optional' => true,
+                    'description' => 'Show only active projects',
+                ],
+            ],
+        ]);
+
+        // Register schedule command
+        \WP_CLI::add_command('crawlflow cron schedule', [$command, 'schedule'], [
+            'shortdesc' => 'Schedule a project',
+            'synopsis' => [
+                [
+                    'type' => 'positional',
+                    'name' => 'project_id',
+                    'optional' => false,
+                    'description' => 'Project ID to schedule',
+                ],
+            ],
+        ]);
+
+        // Register unschedule command
+        \WP_CLI::add_command('crawlflow cron unschedule', [$command, 'unschedule'], [
+            'shortdesc' => 'Unschedule a project',
+            'synopsis' => [
+                [
+                    'type' => 'positional',
+                    'name' => 'project_id',
+                    'optional' => false,
+                    'description' => 'Project ID to unschedule',
+                ],
+            ],
+        ]);
+
+        // Register run command
+        \WP_CLI::add_command('crawlflow cron run', [$command, 'run'], [
+            'shortdesc' => 'Run a project manually',
+            'synopsis' => [
+                [
+                    'type' => 'positional',
+                    'name' => 'project_id',
+                    'optional' => false,
+                    'description' => 'Project ID to run',
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -43,24 +118,25 @@ class CronServiceProvider extends AbstractServiceProvider
      */
     public function addCustomSchedules(array $schedules): array
     {
+        // Use plain text instead of __() to avoid translation loading too early
         $schedules['every_5_minutes'] = [
             'interval' => 5 * MINUTE_IN_SECONDS,
-            'display' => __('Every 5 Minutes', 'crawlflow'),
+            'display' => 'Every 5 Minutes',
         ];
         
         $schedules['every_15_minutes'] = [
             'interval' => 15 * MINUTE_IN_SECONDS,
-            'display' => __('Every 15 Minutes', 'crawlflow'),
+            'display' => 'Every 15 Minutes',
         ];
         
         $schedules['every_30_minutes'] = [
             'interval' => 30 * MINUTE_IN_SECONDS,
-            'display' => __('Every 30 Minutes', 'crawlflow'),
+            'display' => 'Every 30 Minutes',
         ];
         
         $schedules['every_6_hours'] = [
             'interval' => 6 * HOUR_IN_SECONDS,
-            'display' => __('Every 6 Hours', 'crawlflow'),
+            'display' => 'Every 6 Hours',
         ];
         
         return $schedules;
