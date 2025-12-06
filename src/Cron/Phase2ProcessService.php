@@ -4,6 +4,9 @@ namespace CrawlFlow\Cron;
 
 use CrawlFlow\Admin\ProjectService;
 use CrawlFlow\Reception\Reception;
+use CrawlFlow\Worker\Worker;
+use CrawlFlow\Cron\ParsedItemVersioningService;
+use CrawlFlow\Cron\TrackedWorker;
 use Rake\Rake;
 
 /**
@@ -19,12 +22,18 @@ class Phase2ProcessService
     private ProjectService $projectService;
 
     /**
+     * @var ParsedItemVersioningService
+     */
+    private ParsedItemVersioningService $versioningService;
+
+    /**
      * Constructor
      */
     public function __construct()
     {
         $rake = Rake::getInstance();
         $this->projectService = $rake->make('CrawlFlow\Admin\ProjectService');
+        $this->versioningService = new ParsedItemVersioningService();
     }
 
     /**
@@ -67,8 +76,11 @@ class Phase2ProcessService
             // Create Reception with workers from config
             $reception = new Reception($flowConfig);
 
-            // Process raw items
-            $results = $reception->processRawItems($rawItems);
+            // Process raw items with versioning tracking
+            $results = $this->processRawItemsWithVersioning($rawItems, $reception);
+
+            // Execute complete actions and mark as saved
+            $this->executeCompleteActions($projectId, $results, $flowConfig);
 
             // Detect and save resources
             $resourcesDetected = $this->detectAndSaveResources($projectId, $rawItems, $results);
@@ -112,16 +124,77 @@ class Phase2ProcessService
         // Get items via data sources linked to project
         // Note: dpc_rake_data_origins doesn't have processed_at column, so we get all items
         // In production, you might want to track processed items in a separate table
-        $query = "
-            SELECT o.* 
+        $query = $wpdb->prepare(
+            "SELECT o.* 
             FROM {$originsTable} o
             INNER JOIN {$sourcesTable} s ON o.source_id = s.id
             WHERE s.tooth_id = %d
             ORDER BY o.fetched_at ASC
-            LIMIT 100
-        ";
+            LIMIT 100",
+            $projectId
+        );
 
-        return $wpdb->get_results($wpdb->prepare($query, $projectId), ARRAY_A) ?: [];
+        $results = $wpdb->get_results($query, ARRAY_A);
+        error_log("CrawlFlow Phase 2: Found " . count($results) . " raw items for project {$projectId}");
+        
+        return $results ?: [];
+    }
+
+    /**
+     * Process raw items with versioning tracking
+     */
+    private function processRawItemsWithVersioning(array $rawItems, Reception $reception): array
+    {
+        $results = [];
+
+        foreach ($rawItems as $rawItem) {
+            $originId = (int)($rawItem['id'] ?? 0);
+            
+            if (!$originId) {
+                $results[] = [
+                    'success' => false,
+                    'item_id' => null,
+                    'error' => 'Invalid origin ID',
+                ];
+                continue;
+            }
+
+            // Find appropriate worker
+            $worker = $reception->assignToWorker($rawItem);
+
+            if (!$worker) {
+                $results[] = [
+                    'success' => false,
+                    'item_id' => $originId,
+                    'error' => 'No worker can handle this item',
+                ];
+                continue;
+            }
+
+            try {
+                // Use TrackedWorker to track versions
+                $trackedWorker = new TrackedWorker($worker, $this->versioningService, $originId);
+                $processedData = $trackedWorker->process($rawItem);
+
+                $results[] = [
+                    'success' => $processedData['success'] ?? true,
+                    'item_id' => $originId,
+                    'worker' => $worker->getName(),
+                    'data' => $processedData,
+                ];
+
+            } catch (\Exception $e) {
+                error_log("CrawlFlow Phase 2: Error processing origin {$originId} - " . $e->getMessage());
+                $results[] = [
+                    'success' => false,
+                    'item_id' => $originId,
+                    'worker' => $worker->getName(),
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return $results;
     }
 
     /**
@@ -260,58 +333,154 @@ class Phase2ProcessService
 
     /**
      * Save resource reference
+     * Now uses origin IDs instead of URLs
      */
-    private function saveResourceReference(int $originId, int $resourceId, string $type): void
+    private function saveResourceReference(int $parentOriginId, int $resourceId, string $type): void
     {
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins_references';
         $originsTable = $wpdb->prefix . 'rake_data_origins';
         $sourcesTable = $wpdb->prefix . 'rake_data_sources';
 
-        // Get parent URL from origin
-        $origin = $wpdb->get_row($wpdb->prepare(
-            "SELECT guid FROM {$originsTable} WHERE id = %d",
-            $originId
-        ), ARRAY_A);
-
-        // Get child URL from resource
+        // Get resource URL and find/create child origin
         $resource = $wpdb->get_row($wpdb->prepare(
             "SELECT config FROM {$sourcesTable} WHERE id = %d",
             $resourceId
         ), ARRAY_A);
 
-        if (!$origin || !$resource) {
+        if (!$resource) {
             return;
         }
 
-        $parentUrl = $origin['guid'] ?? '';
         $resourceConfig = json_decode($resource['config'] ?? '{}', true);
         $childUrl = $resourceConfig['url'] ?? '';
 
-        if (empty($parentUrl) || empty($childUrl)) {
+        if (empty($childUrl)) {
             return;
         }
 
-        $parentUrlHash = md5($parentUrl);
-        $childUrlHash = md5($childUrl);
+        // Find or create child origin
+        $childOrigin = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM {$originsTable} WHERE guid = %s",
+            $childUrl
+        ), ARRAY_A);
 
-        // Check if already exists
+        if (!$childOrigin) {
+            // Create child origin if not exists
+            $wpdb->insert($originsTable, [
+                'source_id' => null, // Resource doesn't have source_id
+                'guid' => $childUrl,
+                'raw_data' => '',
+                'fetched_at' => current_time('mysql'),
+            ]);
+            $childOriginId = (int)$wpdb->insert_id;
+        } else {
+            $childOriginId = (int)$childOrigin['id'];
+        }
+
+        // Check if reference already exists
         $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE parent_url_hash = %s AND child_url_hash = %s",
-            $parentUrlHash,
-            $childUrlHash
+            "SELECT id FROM {$table} WHERE parent_origin_id = %d AND child_origin_id = %d",
+            $parentOriginId,
+            $childOriginId
         ));
 
         if (!$existing) {
             $wpdb->insert($table, [
-                'parent_url' => $parentUrl,
-                'parent_url_hash' => $parentUrlHash,
-                'child_url' => $childUrl,
-                'child_url_hash' => $childUrlHash,
+                'parent_origin_id' => $parentOriginId,
+                'child_origin_id' => $childOriginId,
                 'relationship_type' => $type,
-                'source_id' => $originId,
                 'created_at' => current_time('mysql'),
             ]);
+        }
+    }
+
+    /**
+     * Execute complete actions (finish actions) after processing
+     * This includes saving to WordPress (posts, products, etc.) and marking parsed items as saved
+     */
+    private function executeCompleteActions(int $projectId, array $results, array $flowConfig): void
+    {
+        $finishActions = $flowConfig['finishActions'] ?? $flowConfig['completeActions'] ?? [];
+        
+        if (empty($finishActions)) {
+            error_log("CrawlFlow Phase 2: No finish actions configured for project {$projectId}");
+            return;
+        }
+
+        foreach ($results as $result) {
+            if (!($result['success'] ?? false)) {
+                continue; // Skip failed items
+            }
+
+            $originId = (int)($result['item_id'] ?? 0);
+            if (!$originId) {
+                continue;
+            }
+
+            $processedData = $result['data'] ?? [];
+            
+            // Execute each finish action
+            foreach ($finishActions as $action) {
+                $actionType = $action['type'] ?? 'unknown';
+                $actionConfig = $action['config'] ?? [];
+
+                try {
+                    $actionSuccess = $this->executeFinishAction($actionType, $actionConfig, $processedData, $projectId);
+                    
+                    if ($actionSuccess) {
+                        // Mark parsed item as saved (set has_change = false)
+                        $latestVersion = $this->versioningService->getLatestVersion($originId);
+                        if ($latestVersion > 0) {
+                            $this->versioningService->markAsSaved($originId, $latestVersion);
+                            error_log("CrawlFlow Phase 2: Origin {$originId} version {$latestVersion} marked as saved after complete action");
+                        }
+                    }
+                } catch (\Exception $e) {
+                    error_log("CrawlFlow Phase 2: Error executing finish action {$actionType} for origin {$originId} - " . $e->getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Execute a single finish action
+     */
+    private function executeFinishAction(string $actionType, array $config, array $processedData, int $projectId): bool
+    {
+        switch ($actionType) {
+            case 'wordpress_post':
+            case 'save_post':
+                // WordPress post is already saved by WordPressPostProcessor
+                // Just verify it was saved
+                if (isset($processedData['post_id'])) {
+                    $post = get_post($processedData['post_id']);
+                    return $post !== null;
+                }
+                return false;
+
+            case 'woocommerce_product':
+            case 'save_product':
+                // TODO: Implement WooCommerce product saving
+                error_log("CrawlFlow Phase 2: WooCommerce product saving not yet implemented");
+                return false;
+
+            case 'log_summary':
+                error_log(sprintf(
+                    "CrawlFlow: Project %d - Item processed: %s",
+                    $projectId,
+                    json_encode($processedData)
+                ));
+                return true;
+
+            case 'send_notification':
+                // TODO: Implement notification sending
+                error_log("CrawlFlow Phase 2: Notification sending not yet implemented");
+                return false;
+
+            default:
+                error_log("CrawlFlow Phase 2: Unknown finish action type: {$actionType}");
+                return false;
         }
     }
 

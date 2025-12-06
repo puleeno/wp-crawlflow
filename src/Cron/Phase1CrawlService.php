@@ -171,13 +171,20 @@ class Phase1CrawlService
                     $originId = $this->saveToDataOrigins($projectId, $sourceId, $url, $body);
                     $result['items_saved']++;
 
-                    // Extract URLs and save references
+                    // Extract URLs, save to origins, and create references
                     $urls = $this->extractUrls($body, $url);
                     error_log("CrawlFlow Phase 1: Extracted " . count($urls) . " URLs from {$url}");
                     
                     foreach ($urls as $extractedUrl) {
-                        $this->saveReference($originId, $extractedUrl);
-                        $result['references_saved']++;
+                        // Save child URL to origins (if not exists)
+                        // Child URLs don't have source_id yet (will be fetched later)
+                        $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, '');
+                        
+                        // Create reference relationship
+                        if ($childOriginId) {
+                            $this->saveReference($originId, $childOriginId, $extractedUrl);
+                            $result['references_saved']++;
+                        }
                     }
                 } else {
                     $statusCode = $response['status_code'] ?? 'unknown';
@@ -237,29 +244,31 @@ class Phase1CrawlService
 
     /**
      * Save data to rake_data_origins
+     * Returns origin ID (existing or newly created)
      */
     private function saveToDataOrigins(int $projectId, ?int $sourceId, string $guid, string $rawData): int
     {
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins';
 
-        // Check if already exists
+        // Check if already exists (by guid, unique)
         $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE guid = %s AND source_id = %d",
-            $guid,
-            $sourceId ?: 0
+            "SELECT id FROM {$table} WHERE guid = %s",
+            $guid
         ));
 
         if ($existing) {
-            // Update existing
-            $wpdb->update(
-                $table,
-                [
-                    'raw_data' => $rawData,
-                    'fetched_at' => current_time('mysql'),
-                ],
-                ['id' => $existing]
-            );
+            // Update existing if we have new data
+            if (!empty($rawData)) {
+                $wpdb->update(
+                    $table,
+                    [
+                        'raw_data' => $rawData,
+                        'fetched_at' => current_time('mysql'),
+                    ],
+                    ['id' => $existing]
+                );
+            }
             return (int)$existing;
         }
 
@@ -341,42 +350,25 @@ class Phase1CrawlService
 
     /**
      * Save reference to rake_data_origins_references
+     * Now only stores relationship (parent_origin_id, child_origin_id)
      */
-    private function saveReference(int $originId, string $url): void
+    private function saveReference(int $parentOriginId, int $childOriginId, string $url): void
     {
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins_references';
 
-        // Get parent URL from origin
-        $origin = $wpdb->get_row($wpdb->prepare(
-            "SELECT guid FROM {$wpdb->prefix}rake_data_origins WHERE id = %d",
-            $originId
-        ), ARRAY_A);
-
-        if (!$origin) {
-            return;
-        }
-
-        $parentUrl = $origin['guid'] ?? '';
-        $parentUrlHash = md5($parentUrl);
-        $childUrl = $url;
-        $childUrlHash = md5($childUrl);
-
         // Check if already exists
         $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE parent_url_hash = %s AND child_url_hash = %s",
-            $parentUrlHash,
-            $childUrlHash
+            "SELECT id FROM {$table} WHERE parent_origin_id = %d AND child_origin_id = %d",
+            $parentOriginId,
+            $childOriginId
         ));
 
         if (!$existing) {
             $wpdb->insert($table, [
-                'parent_url' => $parentUrl,
-                'parent_url_hash' => $parentUrlHash,
-                'child_url' => $childUrl,
-                'child_url_hash' => $childUrlHash,
+                'parent_origin_id' => $parentOriginId,
+                'child_origin_id' => $childOriginId,
                 'relationship_type' => $this->detectReferenceType($url),
-                'source_id' => $originId,
                 'created_at' => current_time('mysql'),
             ]);
         }
