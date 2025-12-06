@@ -3,6 +3,7 @@
 namespace CrawlFlow\Cron;
 
 use CrawlFlow\Admin\ProjectService;
+use CrawlFlow\Cron\ProjectCacheService;
 use Rake\Rake;
 
 /**
@@ -13,17 +14,16 @@ use Rake\Rake;
 class Phase3ResourcesService
 {
     /**
-     * @var ProjectService
+     * @var ProjectCacheService
      */
-    private ProjectService $projectService;
+    private ProjectCacheService $projectCacheService;
 
     /**
      * Constructor
      */
     public function __construct()
     {
-        $rake = Rake::getInstance();
-        $this->projectService = $rake->make('CrawlFlow\Admin\ProjectService');
+        $this->projectCacheService = new ProjectCacheService();
     }
 
     /**
@@ -37,8 +37,8 @@ class Phase3ResourcesService
         try {
             error_log("CrawlFlow Phase 3: Starting resource processing for project {$projectId}");
 
-            // Load project
-            $project = $this->projectService->getProject($projectId);
+            // Load project (cached)
+            $project = $this->projectCacheService->getProject($projectId);
             if (!$project) {
                 throw new \RuntimeException("Project {$projectId} not found");
             }
@@ -353,8 +353,8 @@ class Phase3ResourcesService
      */
     private function shouldCrawlUrl(int $projectId, string $url): bool
     {
-        // Get project base URL from config
-        $flowConfig = $this->projectService->getFlowConfig($projectId);
+        // Get project base URL from config (cached)
+        $flowConfig = $this->projectCacheService->getFlowConfig($projectId);
         $baseUrl = $flowConfig['projectSettings']['baseUrl'] ?? '';
 
         if (empty($baseUrl)) {

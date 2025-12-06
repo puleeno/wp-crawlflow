@@ -1,7 +1,7 @@
 # WP-CRAWLFLOW - ARCHITECTURE DOCUMENTATION
 
-**Version**: 2.0.0  
-**Last Updated**: December 3, 2025  
+**Version**: 2.1.0  
+**Last Updated**: December 6, 2025  
 **Status**: Production Ready ✅
 
 ---
@@ -57,7 +57,13 @@ Role: Framework providing contracts, managers, execution engine
 
 ---
 
-## 📊 COMPLETE DATA FLOW
+## 📊 COMPLETE DATA FLOW (3-PHASE ARCHITECTURE)
+
+### Overview
+CrawlFlow executes projects in 3 distinct phases, each with separate cron hooks and staggered scheduling:
+- **Phase 1: Crawl** - Data collection and initial storage
+- **Phase 2: Process** - Data processing through workers and processors with versioning
+- **Phase 3: Resources** - Resource downloading, importing, and URL replacement
 
 ### 1. Project Configuration (UI Layer)
 ```
@@ -65,37 +71,72 @@ User creates project in React Flow UI
   ↓
 Project saved to rake_tooths table (config stored as JSON)
   ↓
-Config includes: workers, processors, data sources, finish actions
+Config includes: nodes (start, worker, processor), edges, projectSettings
+  ↓
+CronScheduler schedules 3 separate cron events (one per phase)
+  - crawlflow_phase1_crawl_{hash}
+  - crawlflow_phase2_process_{hash}
+  - crawlflow_phase3_resources_{hash}
 ```
 
-### 2. Data Collection Phase
+### 2. Phase 1: Crawl (Data Collection)
 ```
-Load JSON from rake_tooths
+Phase1CrawlService.execute(projectId)
   ↓
-Init data sources in rake_data_sources (linked to tooth_id)
+Load flow config → Extract data sources (start nodes or rake_data_sources)
   ↓
-Fetch data from sources (URLs, CSV, XML, MySQL, etc.)
+For each data source:
+  ├─ Fetch main URL → Save to rake_data_origins (parent origin)
+  ├─ Extract child URLs from HTML
+  ├─ Save each child URL to rake_data_origins (child origin, source_id = NULL)
+  └─ Create references in rake_data_origins_references
+      (parent_origin_id, child_origin_id, relationship_type)
   ↓
-Save ALL raw data to rake_data_origins (UNIFIED REPOSITORY)
-  → HTML, CSV records, XML objects, MySQL rows all stored here
+Result: Raw data stored in rake_data_origins with relationships
 ```
 
-### 3. Data Processing Phase (Rake Pattern)
+### 3. Phase 2: Process (Data Processing with Versioning)
 ```
-Reception gets data from rake_data_origins by project
+Phase2ProcessService.execute(projectId)
   ↓
-Reception loads Workers from project config
+Get raw items from rake_data_origins (both parent and child origins)
   ↓
-Loop through raw items:
-  ├─ Check detection rules (DOM, URL pattern, content)
-  ├─ Assign to Worker by priority
-  └─ If matched:
-      ├─ Worker extracts data via Parser (implements ParserInterface)
-      ├─ Data flows through Processor Chain (implements ProcessorInterface)
-      ├─ Each processor can transform data
-      └─ Final processor saves to destination
+WorkerCacheService.getReception(projectId, flowConfig)
+  ├─ Convert flow config (nodes/edges) → workers config
+  ├─ Cache Reception instance by project ID
+  └─ Return cached Reception (avoids repeated setup)
   ↓
-Execute Finish Actions (log, notify, etc.)
+For each raw item:
+  ├─ Reception assigns to Worker (by detection rules)
+  ├─ TrackedWorker processes item:
+  │   ├─ Worker extracts data → Save version 1 (has_change=1)
+  │   ├─ Processor 1 processes → Save version 2 (has_change=1)
+  │   ├─ Processor 2 processes → Save version 3 (has_change=1)
+  │   └─ Each version saved to rake_data_parsed_items
+  ├─ Detect resources (images, URLs, files) from parsed data
+  ├─ Save resources to rake_data_sources
+  └─ Create references in rake_data_origins_references
+  ↓
+Execute complete actions (finish actions):
+  ├─ Save to WordPress (posts, products, etc.)
+  └─ markAsSaved() → Set has_change=0, status='processed'
+  ↓
+Result: Parsed data with versioning, resources detected
+```
+
+### 4. Phase 3: Resources (Download & Import)
+```
+Phase3ResourcesService.execute(projectId)
+  ↓
+Get resources from rake_data_sources (type='resource')
+  ↓
+For each resource:
+  ├─ If image: Download → Import to WordPress media library
+  ├─ If file: Download → Save to uploads directory
+  ├─ If URL: Send to rake_data_origins for further processing
+  └─ Replace URLs in parsed items with new imported URLs
+  ↓
+Result: Resources imported, URLs replaced
 ```
 
 ---
@@ -287,13 +328,48 @@ abstract class CrawlFlowServiceProvider implements ServiceProviderInterface
 ### rake_data_origins
 ```sql
 - id: Item identifier
-- source_id: Link to data source
-- guid: Unique identifier for item
+- source_id: Link to data source (can be NULL for child URLs)
+- guid: Unique identifier for item (URL)
 - raw_data: Raw data (HTML, CSV, XML, JSON, etc.)
 - fetched_at: Timestamp
 ```
 
 **Key Concept**: rake_data_origins is the UNIFIED REPOSITORY for all data types
+- Parent origins: Have source_id (linked to rake_data_sources)
+- Child origins: source_id = NULL (extracted from parent URLs)
+
+### rake_data_origins_references
+```sql
+- id: Reference identifier
+- parent_origin_id: Reference to rake_data_origins.id (parent)
+- child_origin_id: Reference to rake_data_origins.id (child)
+- relationship_type: parent_child, category_product, etc.
+- created_at: Timestamp
+```
+
+**Key Concept**: Only manages relationships, not URLs
+- URLs are stored in rake_data_origins (via guid)
+- References link origin IDs together
+
+### rake_data_parsed_items
+```sql
+- id: Parsed item identifier
+- origin_id: Reference to rake_data_origins.id
+- version: Version number (1, 2, 3, ...)
+- processor_type: worker, processor, extractor
+- processor_id: ID/name of processor/worker
+- processor_name: Human-readable name
+- parsed_data: JSON parsed data
+- status: pending, processed, failed, skipped
+- has_change: tinyint(1) - Flag indicating if data has changed and needs saving
+- metadata: JSON metadata (errors, warnings, etc.)
+- created_at, updated_at: Timestamps
+```
+
+**Key Concept**: Versioning system for parsed data
+- Each version tracks which agent (worker/processor) created it
+- has_change flag: true when data changes, false after successful save
+- Allows checking accuracy, statistics, and version management
 
 ---
 
@@ -316,6 +392,25 @@ Pattern: Follows ReceptionInterface concept (no manager needed)
 7. Handle success/error
 8. Execute finish actions
 
+### WorkerCacheService
+```
+Purpose: Cache workers by project ID to avoid repeated query and setup
+Location: CrawlFlow\Cron\WorkerCacheService
+```
+
+**Features**:
+- Caches Reception instances by project ID
+- Caches workers config (converted from flow config)
+- Converts flow config (nodes/edges) → workers config automatically
+- Reduces overhead when processing multiple items in same project
+
+**Usage**:
+```php
+$workerCacheService = new WorkerCacheService();
+$reception = $workerCacheService->getReception($projectId, $flowConfig);
+// Subsequent calls return cached instance
+```
+
 ### Worker
 ```
 Purpose: Process specific type of raw items
@@ -328,6 +423,35 @@ Interface: CrawlFlow\Contracts\WorkerInterface
 2. Extract data via Parser (implements ParserInterface)
 3. Process data through Processor Chain
 4. Return processed result
+
+### TrackedWorker
+```
+Purpose: Wrapper around Worker to track parsed item versions
+Location: CrawlFlow\Cron\TrackedWorker
+```
+
+**Features**:
+- Extends Worker class
+- Automatically saves parsed item versions at each step:
+  - Worker output → Version 1 (has_change=1)
+  - Processor 1 output → Version 2 (has_change=1)
+  - Processor 2 output → Version 3 (has_change=1)
+- Uses ParsedItemVersioningService to save versions
+- Tracks which agent (worker/processor) created each version
+
+### ParsedItemVersioningService
+```
+Purpose: Manage parsed item data with versioning
+Location: CrawlFlow\Cron\ParsedItemVersioningService
+```
+
+**Features**:
+- saveParsedItem(): Creates new version if data changed (has_change=1)
+- markAsSaved(): Sets has_change=0 after successful save
+- getLatestVersion(): Gets latest version number
+- getVersionData(): Gets parsed data for specific version
+- getVersions(): Gets all versions for an origin
+- getStatistics(): Gets statistics for a project
 
 **Detection Rules**:
 - `dom-value`: Check DOM elements (selector, condition)
@@ -582,6 +706,62 @@ class HttpServiceProvider extends CrawlFlowServiceProvider
 ## ⚙️ CONFIGURATION
 
 ### Project Config Structure (JSON in rake_tooths)
+
+**Flow-Based Config** (New - from React Flow UI):
+```json
+{
+  "projectSettings": {
+    "name": "Project Name",
+    "enabled": true,
+    "crawlDelay": 1000,
+    "userAgent": "CrawlFlow/2.0"
+  },
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "start",
+      "data": {
+        "sourceType": "url",
+        "sourceValue": "https://example.com",
+        "urlSettings": {
+          "scope": "entire-website",
+          "whitelistPatterns": ["/products/", "/categories/"]
+        }
+      }
+    },
+    {
+      "id": "worker-product",
+      "type": "worker",
+      "data": {
+        "priority": 10,
+        "detectionRules": [
+          {"type": "url-format", "pattern": "/products/", "condition": "matches"}
+        ],
+        "detectionLogic": "and"
+      }
+    },
+    {
+      "id": "processor-import",
+      "type": "processor",
+      "data": {
+        "processorType": "import_woocommerce_product",
+        "settings": {"product_status": "draft"}
+      }
+    }
+  ],
+  "edges": [
+    {"source": "start-1", "target": "repository"},
+    {"source": "repository", "target": "worker-product"},
+    {"source": "worker-product", "target": "processor-import"}
+  ],
+  "finishActions": [
+    {"type": "log_summary"},
+    {"type": "send_notification"}
+  ]
+}
+```
+
+**Legacy Workers Config** (Still supported):
 ```json
 {
   "workers": [
@@ -611,6 +791,12 @@ class HttpServiceProvider extends CrawlFlowServiceProvider
   ]
 }
 ```
+
+**Flow Config Conversion**:
+- WorkerCacheService automatically converts flow config (nodes/edges) → workers config
+- Worker nodes → Worker configs
+- Processor nodes connected via edges → Processor chains
+- Cached by project ID for performance
 
 ---
 
@@ -645,6 +831,10 @@ Key Test Files:
 - [x] HTTP Client: WordPressHttpClient registered as default
 - [x] Service Providers: All extend CrawlFlowServiceProvider
 - [x] Reception & Worker: Pattern fully implemented
+- [x] 3-Phase Architecture: Phase 1 (Crawl), Phase 2 (Process), Phase 3 (Resources)
+- [x] Parsed Items Versioning: Version tracking with has_change flag
+- [x] Worker Caching: WorkerCacheService caches by project ID
+- [x] Flow Config Conversion: Automatic nodes/edges → workers config
 - [x] Data Flow: 12/12 steps verified
 - [x] Tests: 83+ tests passing
 - [x] Real Data: Posts created successfully

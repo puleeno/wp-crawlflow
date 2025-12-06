@@ -3,6 +3,7 @@
 namespace CrawlFlow\Cron;
 
 use CrawlFlow\Admin\ProjectService;
+use CrawlFlow\Cron\ProjectCacheService;
 use CrawlFlow\DataSources\HttpDataSource;
 use Rake\Rake;
 
@@ -14,17 +15,16 @@ use Rake\Rake;
 class Phase1CrawlService
 {
     /**
-     * @var ProjectService
+     * @var ProjectCacheService
      */
-    private ProjectService $projectService;
+    private ProjectCacheService $projectCacheService;
 
     /**
      * Constructor
      */
     public function __construct()
     {
-        $rake = Rake::getInstance();
-        $this->projectService = $rake->make('CrawlFlow\Admin\ProjectService');
+        $this->projectCacheService = new ProjectCacheService();
     }
 
     /**
@@ -38,14 +38,14 @@ class Phase1CrawlService
         try {
             error_log("CrawlFlow Phase 1: Starting crawl for project {$projectId}");
 
-            // Load project
-            $project = $this->projectService->getProject($projectId);
+            // Load project (cached)
+            $project = $this->projectCacheService->getProject($projectId);
             if (!$project) {
                 throw new \RuntimeException("Project {$projectId} not found");
             }
 
-            // Get flow config
-            $flowConfig = $this->projectService->getFlowConfig($projectId);
+            // Get flow config (cached)
+            $flowConfig = $this->projectCacheService->getFlowConfig($projectId);
             if (!$flowConfig) {
                 throw new \RuntimeException("No flow config for project {$projectId}");
             }

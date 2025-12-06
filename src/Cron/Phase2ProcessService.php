@@ -7,6 +7,8 @@ use CrawlFlow\Reception\Reception;
 use CrawlFlow\Worker\Worker;
 use CrawlFlow\Cron\ParsedItemVersioningService;
 use CrawlFlow\Cron\TrackedWorker;
+use CrawlFlow\Cron\WorkerCacheService;
+use CrawlFlow\Cron\ProjectCacheService;
 use Rake\Rake;
 
 /**
@@ -17,9 +19,9 @@ use Rake\Rake;
 class Phase2ProcessService
 {
     /**
-     * @var ProjectService
+     * @var ProjectCacheService
      */
-    private ProjectService $projectService;
+    private ProjectCacheService $projectCacheService;
 
     /**
      * @var ParsedItemVersioningService
@@ -27,13 +29,18 @@ class Phase2ProcessService
     private ParsedItemVersioningService $versioningService;
 
     /**
+     * @var WorkerCacheService
+     */
+    private WorkerCacheService $workerCacheService;
+
+    /**
      * Constructor
      */
     public function __construct()
     {
-        $rake = Rake::getInstance();
-        $this->projectService = $rake->make('CrawlFlow\Admin\ProjectService');
+        $this->projectCacheService = new ProjectCacheService();
         $this->versioningService = new ParsedItemVersioningService();
+        $this->workerCacheService = new WorkerCacheService();
     }
 
     /**
@@ -47,14 +54,14 @@ class Phase2ProcessService
         try {
             error_log("CrawlFlow Phase 2: Starting processing for project {$projectId}");
 
-            // Load project
-            $project = $this->projectService->getProject($projectId);
+            // Load project (cached)
+            $project = $this->projectCacheService->getProject($projectId);
             if (!$project) {
                 throw new \RuntimeException("Project {$projectId} not found");
             }
 
-            // Get flow config
-            $flowConfig = $this->projectService->getFlowConfig($projectId);
+            // Get flow config (cached)
+            $flowConfig = $this->projectCacheService->getFlowConfig($projectId);
             if (!$flowConfig) {
                 throw new \RuntimeException("No flow config for project {$projectId}");
             }
@@ -73,8 +80,8 @@ class Phase2ProcessService
                 ];
             }
 
-            // Create Reception with workers from config
-            $reception = new Reception($flowConfig);
+            // Get Reception instance (cached by project ID)
+            $reception = $this->workerCacheService->getReception($projectId, $flowConfig);
 
             // Process raw items with versioning tracking
             $results = $this->processRawItemsWithVersioning($rawItems, $reception);
@@ -113,6 +120,7 @@ class Phase2ProcessService
 
     /**
      * Get raw items from rake_data_origins for project
+     * Includes both parent origins (with source_id) and child origins (via references)
      */
     private function getRawItems(int $projectId): array
     {
@@ -120,17 +128,40 @@ class Phase2ProcessService
         
         $originsTable = $wpdb->prefix . 'rake_data_origins';
         $sourcesTable = $wpdb->prefix . 'rake_data_sources';
+        $referencesTable = $wpdb->prefix . 'rake_data_origins_references';
+        $parsedItemsTable = $wpdb->prefix . 'rake_data_parsed_items';
 
-        // Get items via data sources linked to project
-        // Note: dpc_rake_data_origins doesn't have processed_at column, so we get all items
-        // In production, you might want to track processed items in a separate table
+        // Get items that have not been processed yet (no entry in parsed_items for the latest version)
+        // Include both:
+        // 1. Parent origins (with source_id linked to project)
+        // 2. Child origins (via references from parent origins)
         $query = $wpdb->prepare(
-            "SELECT o.* 
+            "SELECT DISTINCT o.* 
             FROM {$originsTable} o
-            INNER JOIN {$sourcesTable} s ON o.source_id = s.id
-            WHERE s.tooth_id = %d
+            LEFT JOIN (
+                SELECT origin_id, MAX(version) as max_version
+                FROM {$parsedItemsTable}
+                GROUP BY origin_id
+            ) AS latest_parsed ON o.id = latest_parsed.origin_id
+            WHERE (
+                -- Parent origins (with source_id)
+                (o.source_id IS NOT NULL AND EXISTS (
+                    SELECT 1 FROM {$sourcesTable} s 
+                    WHERE s.id = o.source_id AND s.tooth_id = %d
+                ))
+                OR
+                -- Child origins (via references)
+                (o.source_id IS NULL AND EXISTS (
+                    SELECT 1 FROM {$referencesTable} r
+                    INNER JOIN {$originsTable} parent ON r.parent_origin_id = parent.id
+                    INNER JOIN {$sourcesTable} s ON parent.source_id = s.id
+                    WHERE r.child_origin_id = o.id AND s.tooth_id = %d
+                ))
+            )
+            AND latest_parsed.origin_id IS NULL -- Only get items that have never been parsed
             ORDER BY o.fetched_at ASC
             LIMIT 100",
+            $projectId,
             $projectId
         );
 
@@ -495,6 +526,7 @@ class Phase2ProcessService
         // You could create a separate tracking table if needed
         error_log("CrawlFlow Phase 2: Origin {$originId} processed (not marked in DB - no processed_at column)");
     }
+
 
     /**
      * Resolve relative URL to absolute

@@ -7,6 +7,8 @@ use CrawlFlow\Flow\FlowService;
 use CrawlFlow\Cron\Phase1CrawlService;
 use CrawlFlow\Cron\Phase2ProcessService;
 use CrawlFlow\Cron\Phase3ResourcesService;
+use CrawlFlow\Cron\ProjectCacheService;
+use CrawlFlow\Cron\WorkerCacheService;
 use Rake\Rake;
 
 /**
@@ -102,9 +104,17 @@ class CronScheduler
         add_action('crawlflow_project_saved', [$this, 'scheduleProject'], 10, 1);
         add_action('crawlflow_project_updated', [$this, 'scheduleProject'], 10, 1);
         
+        // Clear cache on project save/update
+        add_action('crawlflow_project_saved', [$this, 'clearProjectCache'], 5, 1);
+        add_action('crawlflow_project_updated', [$this, 'clearProjectCache'], 5, 1);
+        
         // Unschedule on project delete/deactivate
         add_action('crawlflow_project_deleted', [$this, 'unscheduleProject'], 10, 1);
         add_action('crawlflow_project_deactivated', [$this, 'unscheduleProject'], 10, 1);
+        
+        // Clear cache on project delete/deactivate
+        add_action('crawlflow_project_deleted', [$this, 'clearProjectCache'], 5, 1);
+        add_action('crawlflow_project_deactivated', [$this, 'clearProjectCache'], 5, 1);
     }
 
     /**
@@ -113,9 +123,26 @@ class CronScheduler
      * @param int $projectId Project ID
      * @throws \RuntimeException If scheduling fails
      */
+    /**
+     * Clear project cache
+     * 
+     * @param int $projectId Project ID
+     */
+    public function clearProjectCache(int $projectId): void
+    {
+        $projectCacheService = new ProjectCacheService();
+        $projectCacheService->clearCache($projectId);
+        
+        // Also clear worker cache
+        $workerCacheService = new WorkerCacheService();
+        $workerCacheService->clearCache($projectId);
+    }
+
     public function scheduleProject(int $projectId): void
     {
-        $project = $this->projectService->getProject($projectId);
+        // Use cached project data
+        $projectCacheService = new ProjectCacheService();
+        $project = $projectCacheService->getProject($projectId);
         
         if (!$project) {
             throw new \RuntimeException("Project {$projectId} not found");
@@ -127,8 +154,8 @@ class CronScheduler
             return;
         }
 
-        // Get project settings
-        $flowConfig = $this->projectService->getFlowConfig($projectId);
+        // Get project settings (cached)
+        $flowConfig = $projectCacheService->getFlowConfig($projectId);
         $projectSettings = $flowConfig['projectSettings'] ?? [];
 
         // Check if project is enabled
@@ -299,7 +326,9 @@ class CronScheduler
         try {
             error_log("CrawlFlow Phase 1: Hook triggered for project {$projectId}");
             
-            $project = $this->projectService->getProject($projectId);
+            // Use cached project data
+            $projectCacheService = new ProjectCacheService();
+            $project = $projectCacheService->getProject($projectId);
             if (!$project) {
                 error_log("CrawlFlow Phase 1: Project {$projectId} not found");
                 return;
@@ -372,7 +401,9 @@ class CronScheduler
         try {
             error_log("CrawlFlow Phase 2: Hook triggered for project {$projectId}");
             
-            $project = $this->projectService->getProject($projectId);
+            // Use cached project data
+            $projectCacheService = new ProjectCacheService();
+            $project = $projectCacheService->getProject($projectId);
             if (!$project || $project['status'] !== 'active') {
                 return;
             }
@@ -415,7 +446,9 @@ class CronScheduler
         try {
             error_log("CrawlFlow Phase 3: Hook triggered for project {$projectId}");
             
-            $project = $this->projectService->getProject($projectId);
+            // Use cached project data
+            $projectCacheService = new ProjectCacheService();
+            $project = $projectCacheService->getProject($projectId);
             if (!$project || $project['status'] !== 'active') {
                 return;
             }
