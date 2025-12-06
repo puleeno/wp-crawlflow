@@ -3,9 +3,9 @@
 namespace CrawlFlow\Cron;
 
 use CrawlFlow\Admin\ProjectService;
+use CrawlFlow\Cron\Phase1\DataSourceHandlerFactory;
 use CrawlFlow\Cron\ProjectCacheService;
-use CrawlFlow\DataSources\HttpDataSource;
-use Rake\Rake;
+use Ramphor\Rake\Rake;
 
 /**
  * Phase 1: Crawl Service
@@ -65,10 +65,20 @@ class Phase1CrawlService
             // Process each data source
             foreach ($dataSources as $source) {
                 try {
-                    $sourceResult = $this->processDataSource($projectId, $source);
+                    $sourceResult = $this->processDataSource($projectId, $source, $flowConfig);
                     $results['sources_processed']++;
-                    $results['items_saved'] += $sourceResult['items_saved'];
-                    $results['references_saved'] += $sourceResult['references_saved'];
+                    $results['items_saved'] += $sourceResult['items_saved'] ?? 0;
+                    $results['references_saved'] += $sourceResult['references_saved'] ?? 0;
+                    
+                    // Merge errors if any
+                    if (isset($sourceResult['errors']) && !empty($sourceResult['errors'])) {
+                        foreach ($sourceResult['errors'] as $error) {
+                            $results['errors'][] = [
+                                'source' => $source['name'] ?? 'unknown',
+                                'error' => is_string($error) ? $error : json_encode($error),
+                            ];
+                        }
+                    }
                 } catch (\Exception $e) {
                     $results['errors'][] = [
                         'source' => $source['name'] ?? 'unknown',
@@ -138,260 +148,27 @@ class Phase1CrawlService
     }
 
     /**
-     * Process a data source
+     * Process a data source using appropriate handler
      */
-    private function processDataSource(int $projectId, array $source): array
+    private function processDataSource(int $projectId, array $source, array $flowConfig): array
     {
-        $result = [
-            'items_saved' => 0,
-            'references_saved' => 0,
-        ];
-
         $sourceType = $source['type'] ?? 'url';
-        $sourceConfig = isset($source['config']) ? json_decode($source['config'], true) : [];
-
-        if ($sourceType === 'url' && isset($sourceConfig['url'])) {
-            try {
-                // Get or create source in database
-                $sourceId = $this->ensureDataSourceInDb($projectId, $source);
-                
-                // Fetch data using HttpDataSource
-                $dataSource = new HttpDataSource();
-                
-                $url = $sourceConfig['url'];
-                error_log("CrawlFlow Phase 1: Fetching URL: {$url}");
-                
-                $response = $dataSource->fetch($url);
-
-                if (isset($response['status_code']) && $response['status_code'] === 200) {
-                    $body = $response['body'] ?? '';
-                    error_log("CrawlFlow Phase 1: Fetched " . strlen($body) . " bytes from {$url}");
-                    
-                    // Save to rake_data_origins
-                    $originId = $this->saveToDataOrigins($projectId, $sourceId, $url, $body);
-                    $result['items_saved']++;
-
-                    // Extract URLs, save to origins, and create references
-                    $urls = $this->extractUrls($body, $url);
-                    error_log("CrawlFlow Phase 1: Extracted " . count($urls) . " URLs from {$url}");
-                    
-                    foreach ($urls as $extractedUrl) {
-                        // Save child URL to origins (if not exists)
-                        // Child URLs don't have source_id yet (will be fetched later)
-                        $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, '');
-                        
-                        // Create reference relationship
-                        if ($childOriginId) {
-                            $this->saveReference($originId, $childOriginId, $extractedUrl);
-                            $result['references_saved']++;
-                        }
-                    }
-                } else {
-                    $statusCode = $response['status_code'] ?? 'unknown';
-                    error_log("CrawlFlow Phase 1: Failed to fetch {$url} - Status: {$statusCode}");
-                }
-            } catch (\Exception $e) {
-                error_log("CrawlFlow Phase 1: Error processing source {$source['name']}: " . $e->getMessage());
-                throw $e;
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Ensure data source exists in database
-     */
-    private function ensureDataSourceInDb(int $projectId, array $source): ?int
-    {
-        global $wpdb;
-        $table = $wpdb->prefix . 'rake_data_sources';
-
-        // If source has ID, return it
-        if (isset($source['id']) && $source['id']) {
-            return (int)$source['id'];
-        }
-
-        // Check if source already exists
-        $sourceConfig = isset($source['config']) ? json_decode($source['config'], true) : [];
-        $url = $sourceConfig['url'] ?? '';
         
-        if ($url) {
-            $existing = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM {$table} WHERE tooth_id = %d AND type = 'url' AND config LIKE %s",
-                $projectId,
-                '%' . $wpdb->esc_like($url) . '%'
-            ));
-
-            if ($existing) {
-                return (int)$existing;
-            }
-
-            // Create new source
-            $wpdb->insert($table, [
-                'tooth_id' => $projectId,
-                'type' => $source['type'] ?? 'url',
-                'name' => $source['name'] ?? 'Data Source',
-                'config' => $source['config'] ?? json_encode([]),
-                'created_at' => current_time('mysql'),
-            ]);
-
-            return $wpdb->insert_id ? (int)$wpdb->insert_id : null;
-        }
-
-        return null;
-    }
-
-    /**
-     * Save data to rake_data_origins
-     * Returns origin ID (existing or newly created)
-     */
-    private function saveToDataOrigins(int $projectId, ?int $sourceId, string $guid, string $rawData): int
-    {
-        global $wpdb;
-        $table = $wpdb->prefix . 'rake_data_origins';
-
-        // Check if already exists (by guid, unique)
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE guid = %s",
-            $guid
-        ));
-
-        if ($existing) {
-            // Update existing if we have new data
-            if (!empty($rawData)) {
-                $wpdb->update(
-                    $table,
-                    [
-                        'raw_data' => $rawData,
-                        'fetched_at' => current_time('mysql'),
-                    ],
-                    ['id' => $existing]
-                );
-            }
-            return (int)$existing;
-        }
-
-        // Insert new
-        $wpdb->insert($table, [
-            'source_id' => $sourceId,
-            'guid' => $guid,
-            'raw_data' => $rawData,
-            'fetched_at' => current_time('mysql'),
-        ]);
-
-        return (int)$wpdb->insert_id;
-    }
-
-    /**
-     * Extract URLs from HTML content
-     */
-    private function extractUrls(string $html, string $baseUrl): array
-    {
-        $urls = [];
-        $dom = new \DOMDocument();
+        // Get handler for this source type
+        $handler = DataSourceHandlerFactory::getHandler($sourceType);
         
-        @$dom->loadHTML($html);
-        $xpath = new \DOMXPath($dom);
-        
-        // Extract all links
-        $links = $xpath->query('//a[@href]');
-        foreach ($links as $link) {
-            $href = $link->getAttribute('href');
-            $absoluteUrl = $this->resolveUrl($baseUrl, $href);
-            if ($absoluteUrl && !in_array($absoluteUrl, $urls)) {
-                $urls[] = $absoluteUrl;
-            }
+        if (!$handler) {
+            error_log("CrawlFlow Phase 1: No handler available for source type: {$sourceType}");
+            return [
+                'items_saved' => 0,
+                'references_saved' => 0,
+                'errors' => ["No handler available for source type: {$sourceType}"],
+            ];
         }
 
-        // Extract images
-        $images = $xpath->query('//img[@src]');
-        foreach ($images as $img) {
-            $src = $img->getAttribute('src');
-            $absoluteUrl = $this->resolveUrl($baseUrl, $src);
-            if ($absoluteUrl && !in_array($absoluteUrl, $urls)) {
-                $urls[] = $absoluteUrl;
-            }
-        }
-
-        return $urls;
+        // Delegate to handler
+        return $handler->process($projectId, $source, $flowConfig);
     }
 
-    /**
-     * Resolve relative URL to absolute
-     */
-    private function resolveUrl(string $baseUrl, string $url): ?string
-    {
-        if (empty($url) || $url === '#') {
-            return null;
-        }
-
-        // Already absolute
-        if (preg_match('/^https?:\/\//', $url)) {
-            return $url;
-        }
-
-        // Resolve relative URL
-        $parsed = parse_url($baseUrl);
-        $base = $parsed['scheme'] . '://' . $parsed['host'];
-        if (isset($parsed['port'])) {
-            $base .= ':' . $parsed['port'];
-        }
-        $basePath = dirname($parsed['path'] ?? '/');
-
-        if (strpos($url, '/') === 0) {
-            // Absolute path
-            return $base . $url;
-        }
-
-        // Relative path
-        return $base . $basePath . '/' . ltrim($url, '/');
-    }
-
-    /**
-     * Save reference to rake_data_origins_references
-     * Now only stores relationship (parent_origin_id, child_origin_id)
-     */
-    private function saveReference(int $parentOriginId, int $childOriginId, string $url): void
-    {
-        global $wpdb;
-        $table = $wpdb->prefix . 'rake_data_origins_references';
-
-        // Check if already exists
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE parent_origin_id = %d AND child_origin_id = %d",
-            $parentOriginId,
-            $childOriginId
-        ));
-
-        if (!$existing) {
-            $wpdb->insert($table, [
-                'parent_origin_id' => $parentOriginId,
-                'child_origin_id' => $childOriginId,
-                'relationship_type' => $this->detectReferenceType($url),
-                'created_at' => current_time('mysql'),
-            ]);
-        }
-    }
-
-    /**
-     * Detect reference type (url, image, file)
-     */
-    private function detectReferenceType(string $url): string
-    {
-        $extension = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
-        
-        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
-        $fileExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'];
-
-        if (in_array($extension, $imageExtensions)) {
-            return 'image';
-        }
-        if (in_array($extension, $fileExtensions)) {
-            return 'file';
-        }
-
-        return 'url';
-    }
 }
 
