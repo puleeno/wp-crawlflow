@@ -443,10 +443,15 @@ class CrawlFlowController
      */
     public function handleSaveProject(): void
     {
+        // Enable error logging for debugging
+        error_log('CrawlFlow: handleSaveProject called');
+        error_log('CrawlFlow: POST data keys: ' . implode(', ', array_keys($_POST)));
+        
         // JSON is already parsed in parseJsonRequest() hook (runs on 'init')
         // No need to parse again here
 
         if (!\wp_verify_nonce($_POST['nonce'] ?? '', 'crawlflow_admin_nonce')) {
+            error_log('CrawlFlow: Security check failed');
             wp_send_json_error('Security check failed');
         }
 
@@ -454,13 +459,35 @@ class CrawlFlowController
         // Support both JSON object and stringified JSON
         $projectDataArray = null;
         if (isset($_POST['project_data'])) {
+            error_log('CrawlFlow: project_data is set, type: ' . gettype($_POST['project_data']));
             if (is_array($_POST['project_data'])) {
                 $projectDataArray = $_POST['project_data'];
+                error_log('CrawlFlow: project_data is array, nodes count: ' . (isset($projectDataArray['nodes']) ? count($projectDataArray['nodes']) : 0));
+                
+                // Debug: Log worker nodes
+                if (isset($projectDataArray['nodes']) && is_array($projectDataArray['nodes'])) {
+                    $workerNodes = array_filter($projectDataArray['nodes'], function($node) {
+                        return ($node['type'] ?? '') === 'worker';
+                    });
+                    foreach ($workerNodes as $workerNode) {
+                        $nodeId = $workerNode['id'] ?? 'unknown';
+                        $nodeData = $workerNode['data'] ?? [];
+                        error_log("CrawlFlow: Worker node {$nodeId} - has parser: " . (isset($nodeData['parser']) ? 'yes' : 'no'));
+                        if (isset($nodeData['parser'])) {
+                            error_log("CrawlFlow: Worker node {$nodeId} parser: " . json_encode($nodeData['parser']));
+                        }
+                    }
+                }
             } else {
                 // If it's a string, try to decode it
                 $decoded = json_decode($_POST['project_data'], true);
+                if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+                    error_log('CrawlFlow: JSON decode error: ' . json_last_error_msg());
+                }
                 $projectDataArray = ($decoded !== null) ? $decoded : $_POST['project_data'];
             }
+        } else {
+            error_log('CrawlFlow: project_data is not set in POST');
         }
 
         // Determine status: if enabled in projectSettings, set to 'active', otherwise use provided status or 'draft'
@@ -496,23 +523,30 @@ class CrawlFlowController
         }
 
         $projectId = (int) ($_POST['project_id'] ?? 0);
+        error_log('CrawlFlow: Project ID: ' . $projectId);
 
         if ($projectId) {
             // Update existing project
+            error_log('CrawlFlow: Updating project ' . $projectId);
             $result = $this->projectService->updateProject($projectId, $projectData);
             $success = $result;
+            error_log('CrawlFlow: Update result: ' . ($success ? 'success' : 'failed'));
         } else {
             // Create new project
+            error_log('CrawlFlow: Creating new project');
             $result = $this->projectService->createProject($projectData);
             $success = $result > 0;
+            error_log('CrawlFlow: Create result: ' . ($success ? 'success (ID: ' . $result . ')' : 'failed'));
         }
 
         if ($success) {
+            error_log('CrawlFlow: Project saved successfully');
             wp_send_json_success([
                 'message' => 'Project saved successfully',
                 'project_id' => $projectId ?: $result,
             ]);
         } else {
+            error_log('CrawlFlow: Failed to save project');
             wp_send_json_error('Failed to save project');
         }
     }

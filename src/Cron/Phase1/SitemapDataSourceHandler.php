@@ -2,7 +2,7 @@
 
 namespace CrawlFlow\Cron\Phase1;
 
-use CrawlFlow\DataSource\HttpDataSource;
+use CrawlFlow\DataSources\HttpDataSource;
 
 /**
  * Sitemap Data Source Handler

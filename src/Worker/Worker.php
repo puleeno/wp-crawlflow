@@ -86,7 +86,8 @@ class Worker implements WorkerInterface
         $results = [];
 
         foreach ($this->detectionRules as $rule) {
-            $ruleResult = $this->checkDetectionRule($rule, $rawData);
+            // Pass both rawData and rawItem to checkDetectionRule for URL pattern matching
+            $ruleResult = $this->checkDetectionRule($rule, $rawData, $rawItem);
             $results[] = $ruleResult;
         }
 
@@ -101,7 +102,7 @@ class Worker implements WorkerInterface
     /**
      * Check single detection rule
      */
-    private function checkDetectionRule(array $rule, $rawData): bool
+    private function checkDetectionRule(array $rule, $rawData, array $rawItem = []): bool
     {
         $type = $rule['type'] ?? 'dom-value';
         $selector = $rule['selector'] ?? '';
@@ -113,7 +114,8 @@ class Worker implements WorkerInterface
                 return $this->checkDomRule($selector, $condition, $value, $rawData);
 
             case 'url-pattern':
-                return $this->checkUrlPattern($rule, $rawData);
+            case 'url-format': // Alias for url-pattern
+                return $this->checkUrlPattern($rule, $rawData, $rawItem);
 
             case 'content-contains':
                 return $this->checkContentContains($value, $rawData);
@@ -163,23 +165,143 @@ class Worker implements WorkerInterface
 
     /**
      * Check URL pattern rule
+     * Checks URL pattern against rawItem['guid'] (the URL of the item)
      */
-    private function checkUrlPattern(array $rule, $rawData): bool
+    private function checkUrlPattern(array $rule, $rawData, array $rawItem = []): bool
     {
-        $url = '';
+        // Get URL from rawItem['guid']
+        $url = $rawItem['guid'] ?? '';
         
-        if (is_array($rawData) && isset($rawData['url'])) {
-            $url = $rawData['url'];
-        } elseif (is_string($rawData) && filter_var($rawData, FILTER_VALIDATE_URL)) {
-            $url = $rawData;
+        if (empty($url)) {
+            // Fallback: try to get from rawData if it's an array
+            if (is_array($rawData)) {
+                $url = $rawData['guid'] ?? $rawData['url'] ?? '';
+            } elseif (is_string($rawData) && filter_var($rawData, FILTER_VALIDATE_URL)) {
+                $url = $rawData;
+            }
         }
 
         if (empty($url)) {
+            error_log("CrawlFlow Worker: checkUrlPattern - No URL found");
             return false;
         }
 
         $pattern = $rule['pattern'] ?? '';
-        return !empty($pattern) && preg_match($pattern, $url);
+        if (empty($pattern)) {
+            error_log("CrawlFlow Worker: checkUrlPattern - No pattern in rule");
+            return false;
+        }
+        
+        // Normalize pattern (handle excessive escaping)
+        $normalizedPattern = $this->normalizeRegexPattern($pattern);
+        if (!$normalizedPattern) {
+            error_log("CrawlFlow Worker: checkUrlPattern - Failed to normalize pattern: {$pattern}");
+            return false;
+        }
+        
+        $match = @preg_match($normalizedPattern, $url);
+        $condition = $rule['condition'] ?? 'matches';
+        
+        error_log("CrawlFlow Worker: checkUrlPattern - Original pattern: {$pattern}, Normalized: {$normalizedPattern}, URL: {$url}, Match: " . ($match === 1 ? 'YES' : 'NO'));
+        
+        if ($condition === 'not-matches') {
+            return $match !== 1;
+        }
+        
+        return $match === 1;
+    }
+    
+    /**
+     * Normalize regex pattern (similar to Phase1 handler)
+     */
+    private function normalizeRegexPattern(string $pattern): ?string
+    {
+        if (empty($pattern)) {
+            return null;
+        }
+        
+        // Remove excessive escaping - replace multiple backslashes with single backslash
+        // Use a loop to handle deeply nested escaping
+        $maxIterations = 10;
+        $iteration = 0;
+        while ($iteration < $maxIterations) {
+            $newPattern = preg_replace('/\\\\+/', '\\', $pattern);
+            if ($newPattern === $pattern) {
+                break;
+            }
+            $pattern = $newPattern;
+            $iteration++;
+        }
+        
+        // If pattern already has delimiters (starts with /), check if slashes inside need escaping
+        if (strpos($pattern, '/') === 0) {
+            $lastSlashPos = strrpos($pattern, '/');
+            
+            // If there's a last slash and it's not the first character
+            if ($lastSlashPos !== false && $lastSlashPos > 0) {
+                $afterLastSlash = substr($pattern, $lastSlashPos + 1);
+                
+                // Check if after last slash is flags (only letters) or empty
+                if (empty($afterLastSlash) || preg_match('/^[imsxADSUXJu]+$/', $afterLastSlash)) {
+                    $flags = $afterLastSlash;
+                    // Extract pattern between first / and last /
+                    $actualPattern = substr($pattern, 1, $lastSlashPos - 1);
+                    
+                    // Escape unescaped slashes in the pattern (but not already escaped ones)
+                    // First normalize any multiple backslashes before slash
+                    $actualPattern = preg_replace('/\\\\+\//', '\\/', $actualPattern);
+                    // Then escape any remaining unescaped slashes
+                    $actualPattern = preg_replace('/(?<!\\\\)\//', '\\/', $actualPattern);
+                    
+                    $normalizedPattern = '/' . $actualPattern . '/' . $flags;
+                    
+                    // Debug: log the normalization
+                    error_log("CrawlFlow Worker: normalizeRegexPattern - Pattern: {$pattern}, Extracted: " . substr($pattern, 1, $lastSlashPos - 1) . ", After escape: {$actualPattern}, Final: {$normalizedPattern}");
+                    
+                    // Test if pattern is valid
+                    if (@preg_match($normalizedPattern, '') !== false) {
+                        return $normalizedPattern;
+                    }
+                } else {
+                    // Pattern doesn't end with flags, so the last slash is part of the pattern
+                    // Extract everything after first / as the pattern
+                    $actualPattern = substr($pattern, 1);
+                    
+                    // Escape unescaped slashes in the pattern
+                    $actualPattern = preg_replace('/\\\\+\//', '\\/', $actualPattern);
+                    $actualPattern = preg_replace('/(?<!\\\\)\//', '\\/', $actualPattern);
+                    
+                    $normalizedPattern = '/' . $actualPattern . '/';
+                    
+                    error_log("CrawlFlow Worker: normalizeRegexPattern - Pattern (no flags): {$pattern}, After escape: {$actualPattern}, Final: {$normalizedPattern}");
+                    
+                    // Test if pattern is valid
+                    if (@preg_match($normalizedPattern, '') !== false) {
+                        return $normalizedPattern;
+                    }
+                }
+            }
+        }
+        
+        // If pattern looks like it has delimiters but is malformed, try to fix
+        if (strpos($pattern, '/') === 0 && strrpos($pattern, '/') !== false) {
+            $lastSlash = strrpos($pattern, '/');
+            $actualPattern = substr($pattern, 1, $lastSlash - 1);
+            $flags = substr($pattern, $lastSlash + 1);
+            
+            // Escape unescaped slashes
+            $actualPattern = preg_replace('/(?<!\\\\)\//', '\\/', $actualPattern);
+            
+            // Validate the actual pattern part
+            if (@preg_match('/' . $actualPattern . '/', '') !== false) {
+                return '/' . $actualPattern . '/' . $flags;
+            }
+        }
+        
+        // Otherwise, treat as simple string pattern
+        // Escape special regex chars and add delimiters
+        $escaped = preg_quote($pattern, '/');
+        return '/' . $escaped . '/';
     }
 
     /**
@@ -329,7 +451,39 @@ class Worker implements WorkerInterface
                 return $dataItem; // Pass through for now
 
             default:
+                // Try to get processor from ProcessorManager
+                if (class_exists('\Rake\Manager\ProcessorManager')) {
+                    // Load processor classes if needed
+                    $processorPath = WP_PLUGIN_DIR . '/wp-crawlflow/vendor/puleeno/rake-wordpress-adapter/src/Processor/';
+                    $processorsToLoad = [
+                        'import_woocommerce_product_category' => 'ImportWooCommerceProductCategoryProcessor.php',
+                        'import_woocommerce_product' => 'ImportWooCommerceProductProcessor.php',
+                        'scan_category_pages' => 'ScanCategoryPagesProcessor.php',
+                        'collect_resources' => 'CollectResourcesProcessor.php',
+                    ];
+                    
+                    if (isset($processorsToLoad[$type]) && file_exists($processorPath . $processorsToLoad[$type])) {
+                        require_once $processorPath . $processorsToLoad[$type];
+                    }
+                    
+                    // Trigger hook to register processors if not already done
+                    if (!did_action('crawlflow_register_processors')) {
+                        do_action('crawlflow_register_processors');
+                    }
+                    
+                    if (\Rake\Manager\ProcessorManager::has($type)) {
+                        $settings = $processorConfig['settings'] ?? [];
+                        $processorManager = new \Rake\Manager\ProcessorManager();
+                        $processor = $processorManager->getProcessor($type, $settings);
+                        
+                        if ($processor) {
+                            return $processor->process($dataItem);
+                        }
+                    }
+                }
+                
                 // Unknown processor, pass through
+                error_log("CrawlFlow Worker: Unknown processor type '{$type}', passing through");
                 return $dataItem;
         }
     }

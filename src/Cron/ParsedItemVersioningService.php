@@ -190,7 +190,11 @@ class ParsedItemVersioningService
             }
         }
 
-        return json_encode($cleaned, JSON_UNESCAPED_UNICODE | JSON_SORT_KEYS);
+        $flags = JSON_UNESCAPED_UNICODE;
+        if (defined('JSON_SORT_KEYS')) {
+            $flags |= JSON_SORT_KEYS;
+        }
+        return json_encode($cleaned, $flags);
     }
 
     /**

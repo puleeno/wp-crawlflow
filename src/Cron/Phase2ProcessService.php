@@ -3,13 +3,15 @@
 namespace CrawlFlow\Cron;
 
 use CrawlFlow\Admin\ProjectService;
-use CrawlFlow\Reception\Reception;
-use CrawlFlow\Worker\Worker;
 use CrawlFlow\Cron\ParsedItemVersioningService;
+use CrawlFlow\Cron\ProjectCacheService;
 use CrawlFlow\Cron\TrackedWorker;
 use CrawlFlow\Cron\WorkerCacheService;
-use CrawlFlow\Cron\ProjectCacheService;
-use Rake\Rake;
+use CrawlFlow\DataSources\HttpDataSource;
+use CrawlFlow\Flow\FlowService;
+use CrawlFlow\Reception\Reception;
+use CrawlFlow\Worker\Worker;
+use Ramphor\Rake\Rake;
 
 /**
  * Phase 2: Process Service
@@ -160,7 +162,7 @@ class Phase2ProcessService
             )
             AND latest_parsed.origin_id IS NULL -- Only get items that have never been parsed
             ORDER BY o.fetched_at ASC
-            LIMIT 100",
+            LIMIT 2",
             $projectId,
             $projectId
         );
@@ -190,6 +192,60 @@ class Phase2ProcessService
                 continue;
             }
 
+            // Check if item needs to be fetched first (crawled=0 or no raw_data)
+            $crawled = (int)($rawItem['crawled'] ?? 0);
+            $rawData = $rawItem['raw_data'] ?? '';
+            $guid = $rawItem['guid'] ?? '';
+            
+            // Skip image URLs and other resources - they should be handled in Phase 3
+            if (!empty($guid) && $this->isResourceUrl($guid)) {
+                error_log("CrawlFlow Phase 2: Skipping resource URL: {$guid}");
+                $results[] = [
+                    'success' => false,
+                    'item_id' => $originId,
+                    'error' => 'Resource URL (should be handled in Phase 3)',
+                ];
+                continue;
+            }
+            
+            if ($crawled === 0 || empty($rawData)) {
+                // Fetch raw_data before processing
+                if (!empty($guid) && filter_var($guid, FILTER_VALIDATE_URL)) {
+                    error_log("CrawlFlow Phase 2: Fetching raw_data for origin {$originId} (URL: {$guid})");
+                    $fetched = $this->fetchRawDataForOrigin($originId, $guid);
+                    if ($fetched) {
+                        // Reload rawItem with fresh data
+                        $rawItem = $this->reloadRawItem($originId);
+                        if (!$rawItem) {
+                            $results[] = [
+                                'success' => false,
+                                'item_id' => $originId,
+                                'error' => 'Failed to reload item after fetch',
+                            ];
+                            continue;
+                        }
+                        error_log("CrawlFlow Phase 2: Successfully fetched raw_data for origin {$originId}");
+                    } else {
+                        $results[] = [
+                            'success' => false,
+                            'item_id' => $originId,
+                            'error' => 'Failed to fetch raw_data',
+                        ];
+                        continue;
+                    }
+                } else {
+                    $results[] = [
+                        'success' => false,
+                        'item_id' => $originId,
+                        'error' => 'Invalid URL for fetching',
+                    ];
+                    continue;
+                }
+            }
+
+            // Debug: Log rawItem structure
+            error_log("CrawlFlow Phase 2: Processing origin {$originId}, guid: " . ($rawItem['guid'] ?? 'NOT SET') . ", keys: " . implode(', ', array_keys($rawItem)));
+            
             // Find appropriate worker
             $worker = $reception->assignToWorker($rawItem);
 
@@ -226,6 +282,88 @@ class Phase2ProcessService
         }
 
         return $results;
+    }
+
+    /**
+     * Fetch raw_data for an origin that hasn't been crawled yet
+     */
+    private function fetchRawDataForOrigin(int $originId, string $url): bool
+    {
+        try {
+            $dataSource = new HttpDataSource();
+            $response = $dataSource->fetch($url);
+            
+            if (isset($response['status_code']) && $response['status_code'] === 200) {
+                $rawData = $response['body'] ?? '';
+                
+                // Update origin with fetched data
+                global $wpdb;
+                $table = $wpdb->prefix . 'rake_data_origins';
+                $now = current_time('mysql');
+                
+                $updated = $wpdb->update(
+                    $table,
+                    [
+                        'raw_data' => $rawData,
+                        'fetched_at' => $now,
+                        'updated_at' => $now,
+                        'crawled' => 1,
+                    ],
+                    ['id' => $originId],
+                    ['%s', '%s', '%s', '%d'],
+                    ['%d']
+                );
+                
+                return $updated !== false;
+            } else {
+                error_log("CrawlFlow Phase 2: Failed to fetch {$url} - Status: " . ($response['status_code'] ?? 'unknown'));
+                return false;
+            }
+        } catch (\Exception $e) {
+            error_log("CrawlFlow Phase 2: Exception fetching {$url}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Reload raw item from database after fetching
+     */
+    private function reloadRawItem(int $originId): ?array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_data_origins';
+        
+        $item = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $originId),
+            ARRAY_A
+        );
+        
+        return $item ?: null;
+    }
+
+    /**
+     * Check if URL is a resource (image, file, etc.) that should be handled in Phase 3
+     */
+    private function isResourceUrl(string $url): bool
+    {
+        $resourceExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'zip', 'doc', 'docx', 'xls', 'xlsx'];
+        $path = parse_url($url, PHP_URL_PATH);
+        if ($path) {
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            if (in_array($extension, $resourceExtensions)) {
+                return true;
+            }
+        }
+        
+        // Check for common resource paths
+        $resourcePaths = ['/tmp/', '/images/', '/img/', '/assets/', '/static/', '/media/', '/uploads/'];
+        foreach ($resourcePaths as $resourcePath) {
+            if (strpos($url, $resourcePath) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -346,11 +484,29 @@ class Phase2ProcessService
             return (int)$existing;
         }
 
+        // Generate resource name from URL
+        $urlPath = parse_url($resource['url'], PHP_URL_PATH);
+        $resourceName = 'Resource';
+        if ($urlPath !== null && $urlPath !== '') {
+            $basename = basename($urlPath);
+            if ($basename !== '' && $basename !== '/') {
+                $resourceName = $basename;
+            } else {
+                // If path is just '/', use hostname
+                $host = parse_url($resource['url'], PHP_URL_HOST);
+                $resourceName = $host ?: 'Resource';
+            }
+        } else {
+            // No path, use hostname
+            $host = parse_url($resource['url'], PHP_URL_HOST);
+            $resourceName = $host ?: 'Resource';
+        }
+
         // Insert new resource
         $wpdb->insert($table, [
             'tooth_id' => $projectId,
             'type' => 'resource',
-            'name' => basename(parse_url($resource['url'], PHP_URL_PATH)) ?: 'Resource',
+            'name' => $resourceName,
             'config' => json_encode([
                 'url' => $resource['url'],
                 'resource_type' => $resource['type'],

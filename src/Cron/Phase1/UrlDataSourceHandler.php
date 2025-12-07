@@ -2,7 +2,7 @@
 
 namespace CrawlFlow\Cron\Phase1;
 
-use CrawlFlow\DataSource\HttpDataSource;
+use CrawlFlow\DataSources\HttpDataSource;
 
 /**
  * URL Data Source Handler
@@ -46,6 +46,7 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
             $dataSource = new HttpDataSource();
             
             $url = $sourceConfig['url'];
+            error_log("CrawlFlow Phase 1 (URL): Handler started for URL: {$url}");
             error_log("CrawlFlow Phase 1 (URL): Fetching URL: {$url}");
             
             $response = $dataSource->fetch($url);
@@ -66,16 +67,40 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                 $urls = $this->extractUrls($body, $url, $urlSettings);
                 error_log("CrawlFlow Phase 1 (URL): Extracted " . count($urls) . " URLs from {$url} (after filtering)");
                 
-                foreach ($urls as $extractedUrl) {
-                    // Save child URL to origins (if not exists)
-                    // Child URLs don't have source_id yet (will be fetched later)
-                    $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, '');
+                // Fetch raw_data for child URLs (limit to avoid timeout)
+                $urlsToFetch = array_slice($urls, 0, 50); // Limit to 50 URLs per run
+                $fetchedCount = 0;
+                
+                foreach ($urlsToFetch as $extractedUrl) {
+                    // Try to fetch raw_data for this URL
+                    $childRawData = '';
+                    try {
+                        $childResponse = $dataSource->fetch($extractedUrl);
+                        if (isset($childResponse['status_code']) && $childResponse['status_code'] === 200) {
+                            $childRawData = $childResponse['body'] ?? '';
+                            $fetchedCount++;
+                            if ($fetchedCount <= 5) {
+                                error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($childRawData) . " bytes from {$extractedUrl}");
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        error_log("CrawlFlow Phase 1 (URL): Failed to fetch {$extractedUrl}: " . $e->getMessage());
+                    }
+                    
+                    // Save child URL to origins (with raw_data if fetched)
+                    $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, $childRawData);
                     
                     // Create reference relationship
                     if ($childOriginId) {
                         $this->saveReference($originId, $childOriginId, 'child');
                         $result['references_saved']++;
                     }
+                }
+                
+                if (count($urls) > 50) {
+                    error_log("CrawlFlow Phase 1 (URL): Fetched " . $fetchedCount . " URLs (limited to 50, " . (count($urls) - 50) . " remaining)");
+                } else {
+                    error_log("CrawlFlow Phase 1 (URL): Fetched " . $fetchedCount . " URLs out of " . count($urls));
                 }
             } else {
                 $statusCode = $response['status_code'] ?? 'unknown';
@@ -119,39 +144,85 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
         error_log("CrawlFlow Phase 1 (URL): Found {$totalLinks} links in HTML");
         error_log("CrawlFlow Phase 1 (URL): Whitelist patterns: " . json_encode($whitelistPatterns));
         error_log("CrawlFlow Phase 1 (URL): Exclude patterns: " . json_encode($excludePatterns));
+        error_log("CrawlFlow Phase 1 (URL): Domain policy: {$domainPolicy}");
+        
+        $sampleUrls = [];
+        $filteredReasons = ['no_absolute' => 0, 'duplicate' => 0, 'exclude_extension' => 0, 'exclude_pattern' => 0, 'whitelist_mismatch' => 0, 'domain_policy' => 0];
         
         foreach ($links as $link) {
             $href = $link->getAttribute('href');
             $absoluteUrl = $this->resolveUrl($baseUrl, $href);
             
             if (!$absoluteUrl) {
+                $filteredReasons['no_absolute']++;
+                if (count($sampleUrls) < 5) {
+                    $sampleUrls[] = ['href' => $href, 'reason' => 'no_absolute'];
+                }
                 continue;
             }
             
             // Skip duplicates
             if (in_array($absoluteUrl, $urls)) {
                 $duplicateCount++;
+                $filteredReasons['duplicate']++;
                 continue;
             }
             
-            // Apply filters
-            if (!$this->shouldIncludeUrl($absoluteUrl, $excludeExtensions, $excludePatterns, $whitelistPatterns, $domainPolicy, $domainWhitelist, $baseUrl)) {
+            // Apply filters with detailed logging
+            $includeResult = $this->shouldIncludeUrl($absoluteUrl, $excludeExtensions, $excludePatterns, $whitelistPatterns, $domainPolicy, $domainWhitelist, $baseUrl);
+            if (!$includeResult) {
                 $filteredCount++;
+                // Try to determine why it was filtered
+                $path = parse_url($absoluteUrl, PHP_URL_PATH);
+                $extension = $path ? strtolower(pathinfo($path, PATHINFO_EXTENSION)) : '';
+                if (in_array($extension, $excludeExtensions)) {
+                    $filteredReasons['exclude_extension']++;
+                } else {
+                    // Check patterns
+                    $matchedExclude = false;
+                    foreach ($excludePatterns as $pattern) {
+                        $normalizedPattern = $this->normalizeRegexPattern($pattern);
+                        if ($normalizedPattern && @preg_match($normalizedPattern, $absoluteUrl)) {
+                            $matchedExclude = true;
+                            break;
+                        }
+                    }
+                    if ($matchedExclude) {
+                        $filteredReasons['exclude_pattern']++;
+                    } elseif (!empty($whitelistPatterns)) {
+                        $filteredReasons['whitelist_mismatch']++;
+                    } else {
+                        $filteredReasons['domain_policy']++;
+                    }
+                }
+                if (count($sampleUrls) < 10) {
+                    $sampleUrls[] = ['url' => $absoluteUrl, 'reason' => 'filtered'];
+                }
                 continue;
             }
             
             $urls[] = $absoluteUrl;
+            if (count($urls) <= 5) {
+                error_log("CrawlFlow Phase 1 (URL): Accepted URL: {$absoluteUrl}");
+            }
         }
         
         error_log("CrawlFlow Phase 1 (URL): Extracted {$totalLinks} links, filtered {$filteredCount}, duplicates {$duplicateCount}, kept " . count($urls));
+        error_log("CrawlFlow Phase 1 (URL): Filter reasons: " . json_encode($filteredReasons));
+        if (!empty($sampleUrls)) {
+            error_log("CrawlFlow Phase 1 (URL): Sample filtered URLs: " . json_encode(array_slice($sampleUrls, 0, 5)));
+        }
 
-        // Extract images
+        // Extract images (but apply same filters)
         $images = $xpath->query('//img[@src]');
         foreach ($images as $img) {
             $src = $img->getAttribute('src');
             $absoluteUrl = $this->resolveUrl($baseUrl, $src);
             if ($absoluteUrl && !in_array($absoluteUrl, $urls)) {
-                $urls[] = $absoluteUrl;
+                // Apply same filters to images
+                if ($this->shouldIncludeUrl($absoluteUrl, $excludeExtensions, $excludePatterns, $whitelistPatterns, $domainPolicy, $domainWhitelist, $baseUrl)) {
+                    $urls[] = $absoluteUrl;
+                }
             }
         }
 
@@ -243,8 +314,26 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
         }
         
         // Remove excessive escaping (from JSON storage - multiple backslashes)
-        // Replace multiple backslashes with single backslash
-        $pattern = preg_replace('/\\\\+/', '\\', $pattern);
+        // JSON stores backslashes as "\\" which becomes "\" when decoded
+        // But if stored with double escaping, we get "\\\\" which becomes "\\"
+        // Keep reducing until we have reasonable escaping
+        $originalPattern = $pattern;
+        $maxIterations = 20; // Increase for deeply nested escaping
+        $iteration = 0;
+        
+        while ($iteration < $maxIterations) {
+            $newPattern = stripslashes($pattern);
+            if ($newPattern === $pattern) {
+                break; // No more backslashes to remove
+            }
+            $pattern = $newPattern;
+            $iteration++;
+        }
+        
+        // If still has excessive backslashes, try regex replace
+        if (preg_match('/\\\\{4,}/', $pattern)) {
+            $pattern = preg_replace('/\\\\+/', '\\', $pattern);
+        }
         
         // If pattern already has delimiters, validate and return
         if (preg_match('/^\/.+\/[imsxADSUXJu]*$/', $pattern)) {

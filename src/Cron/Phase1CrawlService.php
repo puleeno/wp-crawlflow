@@ -63,9 +63,12 @@ class Phase1CrawlService
             ];
 
             // Process each data source
+            error_log("CrawlFlow Phase 1: Found " . count($dataSources) . " data sources to process");
             foreach ($dataSources as $source) {
                 try {
+                    error_log("CrawlFlow Phase 1: Processing source type: " . ($source['type'] ?? 'unknown'));
                     $sourceResult = $this->processDataSource($projectId, $source, $flowConfig);
+                    error_log("CrawlFlow Phase 1: Source result: " . json_encode($sourceResult));
                     $results['sources_processed']++;
                     $results['items_saved'] += $sourceResult['items_saved'] ?? 0;
                     $results['references_saved'] += $sourceResult['references_saved'] ?? 0;
@@ -119,15 +122,27 @@ class Phase1CrawlService
                 $nodeData = $node['data'] ?? [];
                 
                 // Check for URL source
-                if (isset($nodeData['url']) && !empty($nodeData['url'])) {
+                $sourceUrl = $nodeData['sourceValue'] ?? $nodeData['url'] ?? null;
+                if (empty($sourceUrl) && isset($nodeData['sourceType']) && $nodeData['sourceType'] === 'url') {
+                    $sourceUrl = $nodeData['sourceValue'] ?? null;
+                }
+                
+                if (!empty($sourceUrl)) {
+                    // Get URL settings from nodeData
+                    $urlSettings = $nodeData['urlSettings'] ?? [];
+                    
                     $sources[] = [
                         'id' => null, // New source from flow config
-                        'type' => 'url',
-                        'name' => $nodeData['label'] ?? $nodeData['url'] ?? 'Data Source',
+                        'type' => $nodeData['sourceType'] ?? 'url',
+                        'name' => $nodeData['label'] ?? $sourceUrl ?? 'Data Source',
                         'config' => json_encode([
-                            'url' => $nodeData['url'],
-                            'scope' => $nodeData['scope'] ?? 'current-url',
-                            'domainWhitelist' => $nodeData['domainWhitelist'] ?? [],
+                            'url' => $sourceUrl,
+                            'scope' => $urlSettings['scope'] ?? $nodeData['scope'] ?? 'current-url',
+                            'domainWhitelist' => $urlSettings['domainWhitelist'] ?? $nodeData['domainWhitelist'] ?? [],
+                            'excludeExtensions' => $urlSettings['excludeExtensions'] ?? [],
+                            'excludePatterns' => $urlSettings['excludePatterns'] ?? [],
+                            'whitelistPatterns' => $urlSettings['whitelistPatterns'] ?? [],
+                            'domainPolicy' => $urlSettings['domainPolicy'] ?? 'all',
                         ]),
                     ];
                 }
@@ -153,6 +168,7 @@ class Phase1CrawlService
     private function processDataSource(int $projectId, array $source, array $flowConfig): array
     {
         $sourceType = $source['type'] ?? 'url';
+        error_log("CrawlFlow Phase 1: Getting handler for source type: {$sourceType}");
         
         // Get handler for this source type
         $handler = DataSourceHandlerFactory::getHandler($sourceType);
@@ -166,8 +182,11 @@ class Phase1CrawlService
             ];
         }
 
+        error_log("CrawlFlow Phase 1: Handler found: " . get_class($handler));
         // Delegate to handler
-        return $handler->process($projectId, $source, $flowConfig);
+        $result = $handler->process($projectId, $source, $flowConfig);
+        error_log("CrawlFlow Phase 1: Handler returned: " . json_encode($result));
+        return $result;
     }
 
 }

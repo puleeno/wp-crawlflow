@@ -287,12 +287,46 @@ class ProjectService
 
         // Handle flow config (new Flow-Based Architecture)
         $config = $this->prepareFlowConfig($projectData);
+        
+        // Clean config before encoding - remove null/undefined values that could cause JSON errors
+        $config = $this->cleanConfigForJson($config);
+        
+        // Debug: Log config structure before encoding
+        error_log('CrawlFlow: Config nodes count: ' . (isset($config['nodes']) ? count($config['nodes']) : 0));
+        if (isset($config['nodes']) && is_array($config['nodes'])) {
+            $workerNodes = array_filter($config['nodes'], function($node) {
+                return ($node['type'] ?? '') === 'worker';
+            });
+            foreach ($workerNodes as $workerNode) {
+                $nodeId = $workerNode['id'] ?? 'unknown';
+                $nodeData = $workerNode['data'] ?? [];
+                error_log("CrawlFlow: Worker node {$nodeId} in config - has parser: " . (isset($nodeData['parser']) ? 'yes' : 'no'));
+            }
+        }
+
+        $jsonConfig = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        
+        if ($jsonConfig === false) {
+            error_log('CrawlFlow: Failed to encode config to JSON: ' . json_last_error_msg());
+            error_log('CrawlFlow: JSON error code: ' . json_last_error());
+            error_log('CrawlFlow: Problematic config structure: ' . print_r($config, true));
+            return false;
+        }
+        
+        // Log JSON size for debugging
+        $jsonSize = strlen($jsonConfig);
+        error_log('CrawlFlow: JSON config size: ' . $jsonSize . ' bytes (' . round($jsonSize / 1024, 2) . ' KB)');
+        
+        // Check if JSON is too large (should not happen with LONGTEXT, but log for monitoring)
+        if ($jsonSize > 1048576) { // 1MB
+            error_log('CrawlFlow: WARNING - JSON config is very large: ' . round($jsonSize / 1024 / 1024, 2) . ' MB');
+        }
 
         $data = [
             'name' => sanitize_text_field($projectData['name'] ?? ''),
             'description' => sanitize_textarea_field($projectData['description'] ?? ''),
             'status' => sanitize_text_field($projectData['status'] ?? 'draft'),
-            'config' => json_encode($config),
+            'config' => $jsonConfig,
             'updated_at' => current_time('mysql'),
         ];
 
@@ -302,7 +336,50 @@ class ProjectService
             ['id' => $projectId]
         );
 
+        if ($result === false) {
+            error_log('CrawlFlow: Database update failed: ' . $wpdb->last_error);
+        }
+
         return $result !== false;
+    }
+    
+    /**
+     * Clean config array to remove values that could cause JSON encoding issues
+     */
+    private function cleanConfigForJson($data)
+    {
+        if (is_array($data)) {
+            $cleaned = [];
+            foreach ($data as $key => $value) {
+                // Skip null and undefined-like values
+                if ($value === null || $value === 'undefined') {
+                    continue;
+                }
+                
+                // Recursively clean nested arrays/objects
+                if (is_array($value) || is_object($value)) {
+                    $cleaned[$key] = $this->cleanConfigForJson($value);
+                } else {
+                    $cleaned[$key] = $value;
+                }
+            }
+            return $cleaned;
+        } elseif (is_object($data)) {
+            $cleaned = new \stdClass();
+            foreach ($data as $key => $value) {
+                if ($value === null || $value === 'undefined') {
+                    continue;
+                }
+                if (is_array($value) || is_object($value)) {
+                    $cleaned->$key = $this->cleanConfigForJson($value);
+                } else {
+                    $cleaned->$key = $value;
+                }
+            }
+            return $cleaned;
+        }
+        
+        return $data;
     }
 
     /**

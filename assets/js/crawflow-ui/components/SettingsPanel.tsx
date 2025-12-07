@@ -501,11 +501,11 @@ const HTMLDataExtractorSettings: React.FC<{
     };
 
     const togglePreset = (presetKey: string) => {
-        const currentPresets = data.presets || [];
+        const currentPresets: PresetType[] = Array.isArray(data.presets) ? data.presets : [];
         const preset = PRESETS[presetKey]?.html;
         if (!preset) return;
 
-        const isCurrentlySelected = currentPresets.includes(presetKey as any);
+        const isCurrentlySelected = currentPresets.includes(presetKey as PresetType);
         
         let newRules = [...(data.customRules || [])];
 
@@ -513,14 +513,14 @@ const HTMLDataExtractorSettings: React.FC<{
             // Deselecting: remove this preset's rules
             const presetRuleIds = new Set(preset.rules.map(r => r.id));
             newRules = newRules.filter(r => !presetRuleIds.has(r.id));
-            const newPresets = currentPresets.filter(p => p !== (presetKey as any));
+            const newPresets = currentPresets.filter(p => p !== presetKey);
             onUpdate({ ...data, presets: newPresets, customRules: newRules });
         } else {
             // Selecting: add this preset's rules (if not already present by ID)
             const existingRuleIds = new Set(newRules.map(r => r.id));
             const rulesToAdd = preset.rules.filter(r => !existingRuleIds.has(r.id));
             newRules = [...newRules, ...rulesToAdd];
-            const newPresets = [...currentPresets, presetKey as any];
+            const newPresets: PresetType[] = [...currentPresets, presetKey as PresetType];
             onUpdate({ ...data, presets: newPresets, customRules: newRules });
         }
     };
@@ -536,6 +536,64 @@ const HTMLDataExtractorSettings: React.FC<{
         return ids;
     }, [data.presets]);
     
+    /**
+     * Inject <base> tag into HTML with the domain from the URL
+     */
+    const injectBaseTag = (html: string, url: string): string => {
+        try {
+            const urlObj = new URL(url);
+            // Create base URL (scheme + host + path directory, not filename)
+            // urlObj.host already includes port if present
+            let baseUrl = `${urlObj.protocol}//${urlObj.host}`;
+            
+            // Add path (directory part, not filename)
+            if (urlObj.pathname) {
+                const path = urlObj.pathname;
+                // Remove filename if exists (check if last segment has extension)
+                const pathParts = path.split('/').filter(p => p);
+                if (pathParts.length > 0) {
+                    const lastPart = pathParts[pathParts.length - 1];
+                    // If last part looks like a filename (has extension), remove it
+                    if (lastPart.includes('.') && !lastPart.startsWith('.')) {
+                        pathParts.pop();
+                    }
+                }
+                const dirPath = '/' + pathParts.join('/');
+                baseUrl += dirPath.endsWith('/') ? dirPath : dirPath + '/';
+            } else {
+                baseUrl += '/';
+            }
+            
+            const baseTag = `<base href="${baseUrl}">`;
+            
+            // Check if base tag already exists
+            if (html.toLowerCase().includes('<base')) {
+                // Replace existing base tag
+                return html.replace(/<base[^>]*>/i, baseTag);
+            }
+            
+            // Try to inject into <head>
+            const headMatch = html.match(/<head[^>]*>/i);
+            if (headMatch && headMatch.index !== undefined) {
+                const insertPos = headMatch.index + headMatch[0].length;
+                return html.slice(0, insertPos) + '\n    ' + baseTag + '\n' + html.slice(insertPos);
+            }
+            
+            // Try to inject after <html> tag
+            const htmlMatch = html.match(/<html[^>]*>/i);
+            if (htmlMatch && htmlMatch.index !== undefined) {
+                const insertPos = htmlMatch.index + htmlMatch[0].length;
+                return html.slice(0, insertPos) + '\n' + baseTag + '\n' + html.slice(insertPos);
+            }
+            
+            // If no head or html tag, prepend to body
+            return baseTag + '\n' + html;
+        } catch (error) {
+            console.error("Failed to inject base tag:", error);
+            return html;
+        }
+    };
+
     const handleFetchHtml = async () => {
         if (!data.inspectorUrl) {
             onUpdate({ ...data, inspectorError: 'Please enter a URL to inspect.' });
@@ -550,7 +608,10 @@ const HTMLDataExtractorSettings: React.FC<{
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const htmlContent = await response.text();
+            let htmlContent = await response.text();
+            
+            // Inject <base> tag before loading into inspector
+            htmlContent = injectBaseTag(htmlContent, data.inspectorUrl);
             
             onUpdate({ ...data, inspectorLoading: false, inspectorHtmlContent: htmlContent });
             props.onShowInspector(htmlContent);

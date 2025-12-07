@@ -1085,7 +1085,17 @@ const App: React.FC = () => {
       status: projectSettings.enabled ? 'active' : 'draft',
       project_data: {
         projectSettings,
-        nodes,
+        nodes: nodes.map(node => ({
+          ...node,
+          data: node.data ? {
+            ...node.data,
+            // Ensure presets is always a valid array (remove undefined/null)
+            presets: Array.isArray(node.data.presets) ? node.data.presets.filter(p => p != null) : [],
+            // Ensure customRules/mappings are arrays
+            customRules: Array.isArray(node.data.customRules) ? node.data.customRules : [],
+            mappings: Array.isArray(node.data.mappings) ? node.data.mappings : [],
+          } : node.data,
+        })),
         edges,
       },
     };
@@ -1096,6 +1106,35 @@ const App: React.FC = () => {
 
     try {
       console.log('CrawlFlow: Saving project...', { projectId, projectName: projectSettings.name });
+      console.log('CrawlFlow: Payload nodes count:', nodes.length);
+      
+      // Debug: Log worker nodes and their parser config
+      const workerNodes = nodes.filter(n => n.type === 'worker');
+      console.log('CrawlFlow: Worker nodes:', workerNodes.map(n => ({
+        id: n.id,
+        hasParser: !!(n.data as any)?.parser,
+        parserConfig: (n.data as any)?.parser,
+        customRules: (n.data as any)?.customRules,
+        allDataKeys: Object.keys(n.data || {})
+      })));
+      
+      // Debug: Log html-data-extractor nodes
+      const extractorNodes = nodes.filter(n => n.type === 'html-data-extractor');
+      console.log('CrawlFlow: HTML Data Extractor nodes:', extractorNodes.map(n => ({
+        id: n.id,
+        customRules: (n.data as any)?.customRules,
+        presets: (n.data as any)?.presets
+      })));
+      
+      // Debug: Validate JSON before sending
+      try {
+        const testJson = JSON.stringify(payload);
+        console.log('CrawlFlow: Payload JSON size:', testJson.length, 'bytes');
+      } catch (jsonError: any) {
+        console.error('CrawlFlow: JSON stringify error:', jsonError);
+        console.error('CrawlFlow: Problematic payload:', payload);
+        throw new Error('Failed to serialize payload: ' + jsonError.message);
+      }
       
       const response = await fetch(ajaxUrl, {
         method: 'POST',
@@ -1111,6 +1150,7 @@ const App: React.FC = () => {
 
       const result = await response.json();
       console.log('CrawlFlow: Save response:', result);
+      console.log('CrawlFlow: Response status:', response.status, response.statusText);
 
       if (result.success) {
         await dialog.showAlert('Project saved successfully!', 'success', '✅ Save Successful');

@@ -51,6 +51,10 @@ class TrackedWorker
         } else {
             // No extractor - save raw data as version 1
             $rawData = $this->getRawData($rawItem);
+            // Ensure rawData is an array
+            if (!is_array($rawData)) {
+                $rawData = ['raw_data' => $rawData];
+            }
             $this->versioningService->saveParsedItem(
                 $this->originId,
                 $rawData,
@@ -147,18 +151,27 @@ class TrackedWorker
     }
 
     /**
-     * Get raw data
+     * Get raw data - always returns array
      */
-    private function getRawData(array $rawItem)
+    private function getRawData(array $rawItem): array
     {
         if (isset($rawItem['raw_data'])) {
             if (is_string($rawItem['raw_data'])) {
                 $decoded = json_decode($rawItem['raw_data'], true);
-                return $decoded ?? $rawItem['raw_data'];
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+                // If decoded is not array, wrap in array
+                return ['raw_data' => $rawItem['raw_data']];
             }
-            return $rawItem['raw_data'];
+            if (is_array($rawItem['raw_data'])) {
+                return $rawItem['raw_data'];
+            }
+            // If raw_data is not array, wrap it
+            return ['raw_data' => $rawItem['raw_data']];
         }
-        return $rawItem;
+        // Return rawItem as is (should be array)
+        return is_array($rawItem) ? $rawItem : ['raw_item' => $rawItem];
     }
 
     /**
