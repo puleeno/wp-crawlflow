@@ -33,14 +33,17 @@ class HtmlDataExtractor implements ParserInterface
             $name = $rule['name'] ?? 'field';
             $selector = $rule['selector'] ?? '';
             $extractType = $rule['extract'] ?? 'text';
-            $multiple = $rule['multiple'] ?? false;
+            $multiple = $rule['extractMultiple'] ?? $rule['multiple'] ?? false;
 
             if (empty($selector)) {
                 continue;
             }
 
             try {
-                if ($multiple) {
+                // Special handling for breadcrumbs: extract both text and href
+                if ($name === 'breadcrumbs' && $multiple) {
+                    $results[$name] = $this->extractBreadcrumbs($selector);
+                } elseif ($multiple) {
                     $results[$name] = $this->extractMultiple($selector, $extractType);
                 } else {
                     $results[$name] = $this->extractSingle($selector, $extractType);
@@ -65,6 +68,52 @@ class HtmlDataExtractor implements ParserInterface
         }
 
         return $this->extractFromElement($element->first(), $extractType);
+    }
+
+    /**
+     * Extract breadcrumbs as array of {text => guid}
+     */
+    private function extractBreadcrumbs(string $selector): array
+    {
+        $elements = $this->crawler->filter($selector);
+        $results = [];
+
+        $elements->each(function (Crawler $element) use (&$results) {
+            $text = trim($element->text());
+            $href = $element->attr('href') ?? '';
+            
+            // Convert relative URLs to absolute if needed
+            if (!empty($href) && !preg_match('/^https?:\/\//', $href)) {
+                // Try to get base URL from current page context
+                $baseUrl = $this->getBaseUrl();
+                if ($baseUrl) {
+                    $href = rtrim($baseUrl, '/') . '/' . ltrim($href, '/');
+                }
+            }
+            
+            if (!empty($text)) {
+                $results[] = [
+                    'text' => $text,
+                    'guid' => $href ?: $text, // Use text as guid if no href
+                ];
+            }
+        });
+
+        return $results;
+    }
+    
+    /**
+     * Get base URL from crawler context
+     */
+    private function getBaseUrl(): ?string
+    {
+        // Try to extract base URL from HTML
+        $baseTag = $this->crawler->filter('base[href]');
+        if ($baseTag->count() > 0) {
+            return $baseTag->attr('href');
+        }
+        
+        return null;
     }
 
     /**

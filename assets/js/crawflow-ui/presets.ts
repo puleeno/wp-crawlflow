@@ -20,6 +20,7 @@ export const PRESETS: Record<string, Preset> = {
         { id: 'preset-ecom-html-3', name: 'sku', extractFrom: 'html-element', selector: '.sku, .product-sku', extract: 'text' },
         { id: 'preset-ecom-html-4', name: 'description', extractFrom: 'html-element', selector: '.description, .product-description', extract: 'html' },
         { id: 'preset-ecom-html-5', name: 'image_url', extractFrom: 'html-element', selector: '.product-image img, .main-image img', extract: 'attribute', attribute: 'src' },
+        { id: 'preset-ecom-html-6', name: 'gallery_images', extractFrom: 'html-element', selector: '.product-gallery img, .gallery img, .product-images img, .thumbnails img', extract: 'attribute', attribute: 'src', extractMultiple: true },
       ]
     },
     json: {
@@ -29,6 +30,9 @@ export const PRESETS: Record<string, Preset> = {
         { id: 'preset-ecom-json-3', path: '$.sku', fieldName: 'sku' },
         { id: 'preset-ecom-json-4', path: '$.description', fieldName: 'description' },
         { id: 'preset-ecom-json-5', path: '$.image', fieldName: 'image_url' },
+        { id: 'preset-ecom-json-6', path: '$.gallery_images', fieldName: 'gallery_images' },
+        { id: 'preset-ecom-json-7', path: '$.images', fieldName: 'gallery_images' },
+        { id: 'preset-ecom-json-8', path: '$.product_images', fieldName: 'gallery_images' },
       ]
     },
     csv: {
@@ -38,6 +42,7 @@ export const PRESETS: Record<string, Preset> = {
             { id: 'preset-ecom-csv-3', source: 'sku', fieldName: 'sku' },
             { id: 'preset-ecom-csv-4', source: 'description', fieldName: 'description' },
             { id: 'preset-ecom-csv-5', source: 'image_url', fieldName: 'image_url' },
+            { id: 'preset-ecom-csv-6', source: 'gallery_images', fieldName: 'gallery_images' },
         ]
     },
     xml: {
@@ -47,6 +52,8 @@ export const PRESETS: Record<string, Preset> = {
             { id: 'preset-ecom-xml-3', path: '/product/sku', fieldName: 'sku' },
             { id: 'preset-ecom-xml-4', path: '/product/description', fieldName: 'description' },
             { id: 'preset-ecom-xml-5', path: '/product/imageURL', fieldName: 'image_url' },
+            { id: 'preset-ecom-xml-6', path: '/product/gallery_images/image', fieldName: 'gallery_images' },
+            { id: 'preset-ecom-xml-7', path: '/product/images/image', fieldName: 'gallery_images' },
         ]
     },
     mysql: {
@@ -56,6 +63,7 @@ export const PRESETS: Record<string, Preset> = {
             { id: 'preset-ecom-mysql-3', source: 'product_sku', fieldName: 'sku' },
             { id: 'preset-ecom-mysql-4', source: 'product_desc', fieldName: 'description' },
             { id: 'preset-ecom-mysql-5', source: 'main_image', fieldName: 'image_url' },
+            { id: 'preset-ecom-mysql-6', source: 'gallery_images', fieldName: 'gallery_images' },
         ]
     }
   },
@@ -248,6 +256,35 @@ export const PRESETS: Record<string, Preset> = {
           { id: 'preset-og-mysql-4', source: 'og_url', fieldName: 'og_url' },
           { id: 'preset-og-mysql-5', source: 'og_image', fieldName: 'og_image' },
           { id: 'preset-og-mysql-6', source: 'og_site_name', fieldName: 'og_site_name' },
+      ]
+    }
+  },
+  'breadcrumbs': {
+    name: 'Breadcrumbs',
+    html: {
+      rules: [
+        { id: 'preset-breadcrumb-html-1', name: 'breadcrumbs', extractFrom: 'html-element', selector: 'nav.breadcrumb a, .breadcrumbs a, #breadcrumbs a, ol.breadcrumb a, ul.breadcrumb a, nav[aria-label="Breadcrumb"] a', extract: 'text', extractMultiple: true },
+      ]
+    },
+    json: {
+      mappings: [
+        { id: 'preset-breadcrumb-json-1', path: '$.breadcrumbList.itemListElement[*]', fieldName: 'breadcrumbs' },
+        { id: 'preset-breadcrumb-json-2', path: '$.breadcrumbs', fieldName: 'breadcrumbs' },
+      ]
+    },
+    csv: {
+      mappings: [
+        { id: 'preset-breadcrumb-csv-1', source: 'breadcrumbs', fieldName: 'breadcrumbs' },
+      ]
+    },
+    xml: {
+      mappings: [
+        { id: 'preset-breadcrumb-xml-1', path: '/page/breadcrumbs/item', fieldName: 'breadcrumbs' },
+      ]
+    },
+    mysql: {
+      mappings: [
+        { id: 'preset-breadcrumb-mysql-1', source: 'breadcrumbs', fieldName: 'breadcrumbs' },
       ]
     }
   }

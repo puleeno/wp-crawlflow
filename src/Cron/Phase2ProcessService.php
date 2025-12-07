@@ -77,6 +77,8 @@ class Phase2ProcessService
                     'project_id' => $projectId,
                     'phase' => 'process',
                     'items_processed' => 0,
+                    'items_success' => 0,
+                    'items_failed' => 0,
                     'resources_detected' => 0,
                     'errors' => [],
                 ];
@@ -152,26 +154,44 @@ class Phase2ProcessService
                     WHERE s.id = o.source_id AND s.tooth_id = %d
                 ))
                 OR
-                -- Child origins (via references)
+                -- Child origins (via references) - check if can trace back to origin with source_id
                 (o.source_id IS NULL AND EXISTS (
                     SELECT 1 FROM {$referencesTable} r
                     INNER JOIN {$originsTable} parent ON r.parent_origin_id = parent.id
-                    INNER JOIN {$sourcesTable} s ON parent.source_id = s.id
-                    WHERE r.child_origin_id = o.id AND s.tooth_id = %d
+                    WHERE r.child_origin_id = o.id
+                    AND (
+                        -- Direct parent has source_id
+                        (parent.source_id IS NOT NULL AND EXISTS (
+                            SELECT 1 FROM {$sourcesTable} s 
+                            WHERE s.id = parent.source_id AND s.tooth_id = %d
+                        ))
+                        OR
+                        -- Parent is also a child, check if its parent has source_id
+                        (parent.source_id IS NULL AND EXISTS (
+                            SELECT 1 FROM {$referencesTable} r2
+                            INNER JOIN {$originsTable} parent2 ON r2.parent_origin_id = parent2.id
+                            INNER JOIN {$sourcesTable} s2 ON parent2.source_id = s2.id
+                            WHERE r2.child_origin_id = parent.id AND s2.tooth_id = %d
+                        ))
+                    )
                 ))
             )
-            AND (o.crawled = 0 OR o.crawled IS NULL) -- Only get items that haven't been crawled
+            AND o.crawled = 1 -- Only get items that have been crawled (have raw_data)
             AND latest_parsed.origin_id IS NULL -- Only get items that have never been parsed
-            ORDER BY o.fetched_at ASC
+            ORDER BY 
+                CASE WHEN o.source_id IS NULL THEN 0 ELSE 1 END, -- Prioritize child origins (products/categories) over parent origins
+                o.fetched_at ASC
             LIMIT 2",
+            $projectId,
             $projectId,
             $projectId
         );
 
         $results = $wpdb->get_results($query, ARRAY_A);
-        error_log("CrawlFlow Phase 2: Found " . count($results) . " raw items for project {$projectId}");
+        $count = is_array($results) ? count($results) : 0;
+        error_log("CrawlFlow Phase 2: Found {$count} raw items for project {$projectId}");
         
-        return $results ?: [];
+        return is_array($results) ? $results : [];
     }
 
     /**

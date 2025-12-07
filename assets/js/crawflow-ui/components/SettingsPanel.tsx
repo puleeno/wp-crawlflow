@@ -1308,6 +1308,19 @@ const ProcessorNodeSettings: React.FC<{
                                     />
                                 )}
                                 
+                                {field.type === 'json-preview' && (
+                                    <div className="mt-2">
+                                        <div className="bg-gray-50 border border-gray-200 rounded-md overflow-hidden">
+                                            <div className="bg-gray-100 px-3 py-2 border-b border-gray-200">
+                                                <span className="text-xs font-medium text-gray-700">JSON Preview (Read-only)</span>
+                                            </div>
+                                            <pre className="p-4 text-xs overflow-x-auto font-mono text-gray-800" style={{ maxHeight: '400px', overflowY: 'auto', margin: 0 }}>
+                                                {field.value || '{}'}
+                                            </pre>
+                                        </div>
+                                    </div>
+                                )}
+                                
                                 {field.description && (
                                     <p className="text-xs text-gray-500 mt-1">{field.description}</p>
                                 )}
