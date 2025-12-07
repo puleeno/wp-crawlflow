@@ -371,7 +371,7 @@ class Phase3ResourcesService
     /**
      * Send URL to rake_data_origins for Phase 1 processing
      */
-    private function sendUrlToDataOrigins(int $projectId, string $url): ?int
+    private function sendUrlToDataOrigins(int $projectId, string $url, ?string $processorId = null): ?int
     {
         global $wpdb;
         $originsTable = $wpdb->prefix . 'rake_data_origins';
@@ -400,8 +400,7 @@ class Phase3ResourcesService
 
         // Check if already in origins
         $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$originsTable} WHERE source_id = %d AND guid = %s",
-            $sourceId,
+            "SELECT id FROM {$originsTable} WHERE guid = %s",
             $url
         ));
 
@@ -409,12 +408,14 @@ class Phase3ResourcesService
             return (int)$existing;
         }
 
-        // Insert to origins (will be fetched in Phase 1)
+        // Insert to origins (from processor, will be fetched in Phase 1)
         $wpdb->insert($originsTable, [
             'source_id' => $sourceId,
             'guid' => $url,
             'raw_data' => '',
             'fetched_at' => null,
+            'source_type' => 'processor',
+            'processor_id' => $processorId ?? 'phase3_resources',
         ]);
 
         return $wpdb->insert_id ? (int)$wpdb->insert_id : null;

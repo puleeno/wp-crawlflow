@@ -119,6 +119,8 @@ abstract class AbstractDataSourceHandler
             'updated_at' => $now,
             'crawled' => $crawled,
             'metadata' => $metadataJson,
+            'source_type' => 'data_source',
+            'processor_id' => null, // Data source doesn't have processor_id
         ]);
 
         return (int)$wpdb->insert_id;

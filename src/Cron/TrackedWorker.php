@@ -39,6 +39,11 @@ class TrackedWorker
             $extractMethod->setAccessible(true);
             $extractedData = $extractMethod->invoke($this->worker, $rawItem);
             
+            // Always add URL from guid for processors that need it
+            if (isset($rawItem['guid']) && !empty($rawItem['guid'])) {
+                $extractedData['url'] = $rawItem['guid'];
+            }
+            
             // Save version 1: extracted data from worker
             $this->versioningService->saveParsedItem(
                 $this->originId,

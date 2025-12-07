@@ -378,12 +378,20 @@ class Worker implements WorkerInterface
         // Extract using rules from parser config
         $rules = $this->parserConfig['rules'] ?? $this->parserConfig['customRules'] ?? [];
 
+        $extractedData = [];
         if (empty($rules)) {
             // Use blog post preset as default
-            return $extractor->extractBlogPosts($rawData)[0] ?? [];
+            $extractedData = $extractor->extractBlogPosts($rawData)[0] ?? [];
+        } else {
+            $extractedData = $extractor->extract($rawData, $rules);
         }
 
-        return $extractor->extract($rawData, $rules);
+        // Always add URL from guid for processors that need it
+        if (isset($rawItem['guid']) && !empty($rawItem['guid'])) {
+            $extractedData['url'] = $rawItem['guid'];
+        }
+
+        return $extractedData;
     }
 
     /**

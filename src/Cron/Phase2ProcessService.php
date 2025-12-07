@@ -161,7 +161,9 @@ class Phase2ProcessService
                 ))
             )
             AND latest_parsed.origin_id IS NULL -- Only get items that have never been parsed
-            ORDER BY o.fetched_at ASC
+            ORDER BY 
+                CASE WHEN o.guid LIKE '%products_detail%' THEN 0 ELSE 1 END, -- Prioritize product URLs
+                o.fetched_at ASC
             LIMIT 2",
             $projectId,
             $projectId
@@ -389,6 +391,9 @@ class Phase2ProcessService
 
             $processedData = $result['data'] ?? [];
             
+            // Get processor_id from result (usually 'collect_resources' or worker name)
+            $processorId = $result['processor_id'] ?? $result['worker'] ?? 'collect_resources';
+            
             // Extract resources from processed data
             $resources = $this->extractResources($processedData, $rawItem);
 
@@ -397,8 +402,8 @@ class Phase2ProcessService
                 $resourceId = $this->saveResource($projectId, $resource);
                 
                 if ($resourceId) {
-                    // Save reference link
-                    $this->saveResourceReference($rawItem['id'], $resourceId, $resource['type']);
+                    // Save reference link with processor_id
+                    $this->saveResourceReference($rawItem['id'], $resourceId, $resource['type'], $processorId);
                     $resourcesCount++;
                 }
             }
@@ -522,7 +527,7 @@ class Phase2ProcessService
      * Save resource reference
      * Now uses origin IDs instead of URLs
      */
-    private function saveResourceReference(int $parentOriginId, int $resourceId, string $type): void
+    private function saveResourceReference(int $parentOriginId, int $resourceId, string $type, ?string $processorId = null): void
     {
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins_references';
@@ -553,12 +558,14 @@ class Phase2ProcessService
         ), ARRAY_A);
 
         if (!$childOrigin) {
-            // Create child origin if not exists
+            // Create child origin if not exists (from processor)
             $wpdb->insert($originsTable, [
                 'source_id' => null, // Resource doesn't have source_id
                 'guid' => $childUrl,
                 'raw_data' => '',
                 'fetched_at' => current_time('mysql'),
+                'source_type' => 'processor',
+                'processor_id' => $processorId,
             ]);
             $childOriginId = (int)$wpdb->insert_id;
         } else {
