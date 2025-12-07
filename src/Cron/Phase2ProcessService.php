@@ -160,10 +160,9 @@ class Phase2ProcessService
                     WHERE r.child_origin_id = o.id AND s.tooth_id = %d
                 ))
             )
+            AND (o.crawled = 0 OR o.crawled IS NULL) -- Only get items that haven't been crawled
             AND latest_parsed.origin_id IS NULL -- Only get items that have never been parsed
-            ORDER BY 
-                CASE WHEN o.guid LIKE '%products_detail%' THEN 0 ELSE 1 END, -- Prioritize product URLs
-                o.fetched_at ASC
+            ORDER BY o.fetched_at ASC
             LIMIT 2",
             $projectId,
             $projectId

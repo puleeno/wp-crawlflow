@@ -178,7 +178,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
             INNER JOIN {$referencesTable} r ON o.id = r.child_origin_id
             WHERE r.parent_origin_id = %d 
             AND JSON_EXTRACT(o.metadata, '$.type') = 'sitemap'
-            AND o.crawled = 0
+            AND (o.crawled = 0 OR o.crawled IS NULL)
             LIMIT 100",
             $parentOriginId
         ), ARRAY_A);
