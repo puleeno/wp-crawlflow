@@ -20,12 +20,22 @@ if ($wpTestsDir && file_exists($wpTestsDir . '/includes/functions.php')) {
     // Manually load the plugin
     tests_add_filter('muplugins_loaded', function() {
         require CRAWLFLOW_PLUGIN_DIR . 'wp-crawlflow.php';
+        // Load dentalpart plugin processors
+        $dentalpartPlugin = dirname(CRAWLFLOW_PLUGIN_DIR) . '/wp-crawlflow-dentalpart/wp-crawlflow-dentalpart.php';
+        if (file_exists($dentalpartPlugin)) {
+            require_once $dentalpartPlugin;
+        }
     });
     
     require $wpTestsDir . '/includes/bootstrap.php';
 } else {
     // Mock WordPress functions for unit tests
     require_once __DIR__ . '/mocks/wordpress-functions.php';
+    // Load dentalpart processor for unit tests
+    $dentalpartProcessor = dirname(__DIR__) . '/../wp-crawlflow-dentalpart/src/Processor/SetCategoryParentFromBreadcrumbsProcessor.php';
+    if (file_exists($dentalpartProcessor)) {
+        require_once $dentalpartProcessor;
+    }
 }
 
 // Test helper functions

@@ -1,7 +1,7 @@
 # WP-CRAWLFLOW - ARCHITECTURE DOCUMENTATION
 
 **Version**: 2.1.0  
-**Last Updated**: December 6, 2025  
+**Last Updated**: December 7, 2025  
 **Status**: Production Ready ✅
 
 ---
@@ -169,6 +169,13 @@ interface ProcessorInterface
 
 **Implementations**:
 - `WordPressPostProcessor` (wp-crawlflow)
+- `ImportWooCommerceProductCategoryProcessor` (rake-wordpress-adapter)
+- `ImportWooCommerceProductProcessor` (rake-wordpress-adapter)
+- `ScanCategoryPagesProcessor` (rake-wordpress-adapter)
+- `CollectResourcesProcessor` (rake-wordpress-adapter)
+- `GetProductPricesProcessor` (wp-crawlflow-dentalpart)
+- `MapProductCategoriesProcessor` (wp-crawlflow-dentalpart)
+- `SetCategoryParentFromBreadcrumbsProcessor` (wp-crawlflow-dentalpart)
 - Custom processors as needed
 
 ### 3. HttpClientInterface
@@ -804,15 +811,17 @@ class HttpServiceProvider extends CrawlFlowServiceProvider
 
 ### Test Coverage
 ```
-Unit Tests:         35+ tests ✅
-Integration Tests:  48+ tests ✅
-Total:             83+ tests ✅
+Unit Tests:         42+ tests ✅
+Integration Tests:  50+ tests ✅
+Total:             92+ tests ✅
 
 Key Test Files:
 - Worker/WorkerTest.php (detection rules, processing)
 - Reception/ReceptionTest.php (assignment, flow)
 - Http/WordPressHttpClientTest.php (HTTP integration)
 - ServiceProvider/CrawlFlowServiceProviderTest.php (DI)
+- Processor/SetCategoryParentFromBreadcrumbsProcessorTest.php (breadcrumbs processing)
+- Integration/Processor/DentalPartIntegrationTest.php (complete flow with breadcrumbs)
 ```
 
 ### Verification Tests
@@ -920,6 +929,40 @@ $results = $reception->processRawItems($rawItems);
 
 ---
 
+## 🔧 PROCESSORS REFERENCE
+
+### SetCategoryParentFromBreadcrumbsProcessor
+**Location**: `wp-crawlflow-dentalpart/src/Processor/SetCategoryParentFromBreadcrumbsProcessor.php`  
+**Processor ID**: `set_category_parent_from_breadcrumbs`  
+**Purpose**: Establishes parent-child relationships for WooCommerce product categories using breadcrumbs data.
+
+**Input Requirements**:
+- `woocommerce_category_id`: Current category WordPress term ID
+- `breadcrumbs`: Array of breadcrumb objects with format `[{text: '...', guid: '...'}]`
+- `url` or `category_url`: Current category URL
+
+**Logic Flow**:
+1. Extracts breadcrumbs from item data
+2. Processes breadcrumbs in reverse order (from current to root)
+3. For each breadcrumb (excluding current):
+   - **If URL already fetched**: Finds WordPress category by URL → Sets as parent
+   - **If URL not fetched**: Creates entry in `dpc_rake_data_origins` → Creates reference in `dpc_rake_data_origins_references` → Fetches URL → Imports category → Sets as parent
+4. Updates current category with parent relationship
+
+**Key Methods**:
+- `findOrCreateParentCategory()`: Finds or creates parent category from breadcrumb URL
+- `findCategoryByUrl()`: Finds WordPress category by original URL stored in term meta
+- `createOrigin()`: Creates entry in `dpc_rake_data_origins` table
+- `createReference()`: Creates reference relationship between URLs
+- `fetchUrl()`: Fetches URL content and updates origin
+- `importCategoryFromOrigin()`: Imports category from fetched HTML data
+- `setCategoryParent()`: Sets parent relationship in WordPress
+
+**Usage**: Add this processor after `import_woocommerce_product_category` in the processor chain to automatically establish category hierarchies from breadcrumb navigation.
+
+---
+
 **Architecture verified**: December 3, 2025  
+**Last Updated**: December 7, 2025  
 **All tests passing**: ✅  
 **Production ready**: ✅
