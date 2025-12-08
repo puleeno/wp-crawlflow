@@ -182,7 +182,7 @@ class Phase2ProcessService
                 o.priority ASC, -- Order by priority (lower priority = higher priority for processing)
                 CASE WHEN o.source_id IS NULL THEN 0 ELSE 1 END, -- Prioritize child origins (products/categories) over parent origins
                 o.fetched_at ASC
-            LIMIT 2",
+            LIMIT 50",
             $projectId,
             $projectId,
             $projectId

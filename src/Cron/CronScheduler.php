@@ -89,6 +89,13 @@ class CronScheduler
      */
     public function register(): void
     {
+        // Test mode: when running via wp-cron.php and CRAWLFLOW_TEST_CRON=true,
+        // bypass schedule and execute all phases immediately in 'init' hook
+        // (with high priority to ensure all plugins/data types are loaded)
+        if (defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON) {
+            add_action('init', [$this, 'maybeRunTestCron'], 20);
+        }
+
         // Register system maintenance hook
         add_action(self::SYSTEM_MAINTENANCE_HOOK, [$this, 'executeSystemMaintenance']);
         
@@ -371,6 +378,42 @@ class CronScheduler
             }
         }
         return null;
+    }
+
+    /**
+     * Test-cron mode: when CRAWLFLOW_TEST_CRON=true and running inside wp-cron.php,
+     * execute all three phases immediately for all active projects (ignore schedules).
+     * Runs in 'init' hook to ensure all plugins and data types (like taxonomies) are loaded.
+     */
+    public function maybeRunTestCron(): void
+    {
+        // Only run in cron context (when called from wp-cron.php)
+        if (!defined('DOING_CRON') || !DOING_CRON) {
+            return;
+        }
+
+        // Ensure we run only once per request
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        error_log('CrawlFlow: Test cron mode detected, executing all phases for active projects in init hook');
+
+        $projects = $this->projectService->getAllProjects();
+        foreach ($projects as $project) {
+            $projectId = (int)($project['id'] ?? 0);
+            if (!$projectId || ($project['status'] ?? '') !== 'active') {
+                continue;
+            }
+
+            // Execute phases sequentially
+            // All phases run in 'init' hook context, ensuring plugins/data types are loaded
+            $this->executePhase1($projectId);
+            $this->executePhase2($projectId);
+            $this->executePhase3($projectId);
+        }
     }
 
     /**
