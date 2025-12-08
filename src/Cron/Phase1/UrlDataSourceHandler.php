@@ -67,9 +67,57 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                 $urls = $this->extractUrls($body, $url, $urlSettings);
                 error_log("CrawlFlow Phase 1 (URL): Extracted " . count($urls) . " URLs from {$url} (after filtering)");
                 
-                // Fetch raw_data for child URLs (limit to avoid timeout)
-                $urlsToFetch = array_slice($urls, 0, 50); // Limit to 50 URLs per run
+                // Save ALL extracted URLs to dpc_rake_data_origins
+                // First, save all URLs (even without raw_data) to ensure they're in the system
+                $savedCount = 0;
                 $fetchedCount = 0;
+                
+                foreach ($urls as $extractedUrl) {
+                    // Check if URL already exists (to avoid duplicate processing)
+                    global $wpdb;
+                    $originsTable = $wpdb->prefix . 'rake_data_origins';
+                    $existing = $wpdb->get_var($wpdb->prepare(
+                        "SELECT id FROM {$originsTable} WHERE guid = %s",
+                        $extractedUrl
+                    ));
+                    
+                    if ($existing) {
+                        // URL already exists, just create reference if needed
+                        $childOriginId = (int)$existing;
+                    } else {
+                        // Save child URL to origins (without raw_data initially, crawled = 0)
+                        $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, '');
+                        $savedCount++;
+                    }
+                    
+                    // Create reference relationship
+                    if ($childOriginId) {
+                        $this->saveReference($originId, $childOriginId, 'child');
+                        $result['references_saved']++;
+                    }
+                }
+                
+                error_log("CrawlFlow Phase 1 (URL): Saved " . $savedCount . " new URLs to origins (total: " . count($urls) . ")");
+                
+                // Now fetch raw_data for URLs that haven't been crawled yet
+                // Limit to avoid timeout (process in batches)
+                $uncrawledUrls = [];
+                foreach ($urls as $extractedUrl) {
+                    global $wpdb;
+                    $originsTable = $wpdb->prefix . 'rake_data_origins';
+                    $crawled = $wpdb->get_var($wpdb->prepare(
+                        "SELECT crawled FROM {$originsTable} WHERE guid = %s",
+                        $extractedUrl
+                    ));
+                    
+                    if (!$crawled || $crawled == 0) {
+                        $uncrawledUrls[] = $extractedUrl;
+                    }
+                }
+                
+                // Fetch raw_data for uncrawled URLs (limit to 50 per run to avoid timeout)
+                $urlsToFetch = array_slice($uncrawledUrls, 0, 50);
+                error_log("CrawlFlow Phase 1 (URL): Found " . count($uncrawledUrls) . " uncrawled URLs, fetching " . count($urlsToFetch) . " in this run");
                 
                 foreach ($urlsToFetch as $extractedUrl) {
                     // Try to fetch raw_data for this URL
@@ -82,25 +130,31 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                             if ($fetchedCount <= 5) {
                                 error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($childRawData) . " bytes from {$extractedUrl}");
                             }
+                            
+                            // Update origin with raw_data
+                            global $wpdb;
+                            $originsTable = $wpdb->prefix . 'rake_data_origins';
+                            $now = current_time('mysql');
+                            $wpdb->update(
+                                $originsTable,
+                                [
+                                    'raw_data' => $childRawData,
+                                    'fetched_at' => $now,
+                                    'crawled' => 1,
+                                    'updated_at' => $now,
+                                ],
+                                ['guid' => $extractedUrl]
+                            );
                         }
                     } catch (\Exception $e) {
                         error_log("CrawlFlow Phase 1 (URL): Failed to fetch {$extractedUrl}: " . $e->getMessage());
                     }
-                    
-                    // Save child URL to origins (with raw_data if fetched)
-                    $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, $childRawData);
-                    
-                    // Create reference relationship
-                    if ($childOriginId) {
-                        $this->saveReference($originId, $childOriginId, 'child');
-                        $result['references_saved']++;
-                    }
                 }
                 
-                if (count($urls) > 50) {
-                    error_log("CrawlFlow Phase 1 (URL): Fetched " . $fetchedCount . " URLs (limited to 50, " . (count($urls) - 50) . " remaining)");
+                if (count($uncrawledUrls) > 50) {
+                    error_log("CrawlFlow Phase 1 (URL): Fetched " . $fetchedCount . " URLs (limited to 50 per run, " . (count($uncrawledUrls) - 50) . " remaining)");
                 } else {
-                    error_log("CrawlFlow Phase 1 (URL): Fetched " . $fetchedCount . " URLs out of " . count($urls));
+                    error_log("CrawlFlow Phase 1 (URL): Fetched " . $fetchedCount . " URLs out of " . count($uncrawledUrls) . " uncrawled");
                 }
             } else {
                 $statusCode = $response['status_code'] ?? 'unknown';

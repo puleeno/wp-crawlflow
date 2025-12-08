@@ -110,8 +110,7 @@ abstract class AbstractDataSourceHandler
         }
 
         // Insert new
-        $wpdb->insert($table, [
-            'source_id' => $sourceId,
+        $insertData = [
             'guid' => $guid,
             'raw_data' => $rawData,
             'fetched_at' => $now,
@@ -121,7 +120,14 @@ abstract class AbstractDataSourceHandler
             'metadata' => $metadataJson,
             'source_type' => 'data_source',
             'processor_id' => null, // Data source doesn't have processor_id
-        ]);
+        ];
+        
+        // Only include source_id if it's not null
+        if ($sourceId !== null) {
+            $insertData['source_id'] = $sourceId;
+        }
+        
+        $wpdb->insert($table, $insertData);
 
         return (int)$wpdb->insert_id;
     }
