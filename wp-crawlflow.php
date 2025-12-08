@@ -155,6 +155,9 @@ class WP_CrawlFlow {
         // Run Rake migrations
         $this->runRakeMigrations();
 
+        // Run CrawlFlow custom migrations
+        $this->runCrawlFlowMigrations();
+
         // Flush rewrite rules
         flush_rewrite_rules();
     }
@@ -512,19 +515,42 @@ class WP_CrawlFlow {
      * @throws \Exception If migration kernel initialization or execution fails
      */
     private function runRakeMigrations(): void {
-        // Khởi tạo kernel migration
-        $kernel = new \CrawlFlow\Kernel\CrawlFlowMigrationKernel();
-        $kernel->initializeMigration();
+        global $wpdb;
+        
+        // Suppress duplicate key/constraint warnings during Rake migrations
+        // These are harmless warnings when indexes/constraints already exist
+        $wpdb->hide_errors();
+        
+        try {
+            // Khởi tạo kernel migration
+            $kernel = new \CrawlFlow\Kernel\CrawlFlowMigrationKernel();
+            $kernel->initializeMigration();
 
-        // Thực thi migration qua kernel
-        $result = $kernel->runMigrations();
+            // Thực thi migration qua kernel
+            $result = $kernel->runMigrations();
 
-        if (!($result['success'] ?? false)) {
-            $errorMessage = $result['error'] ?? 'Unknown migration error';
-            throw new \RuntimeException('CrawlFlow: Rake migrations failed - ' . $errorMessage);
+            if (!($result['success'] ?? false)) {
+                $errorMessage = $result['error'] ?? 'Unknown migration error';
+                throw new \RuntimeException('CrawlFlow: Rake migrations failed - ' . $errorMessage);
+            }
+
+            \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
+        } finally {
+            // Always re-enable error reporting
+            $wpdb->show_errors();
         }
+    }
 
-        \Rake\Facade\Logger::info('CrawlFlow: Rake migrations completed successfully');
+    /**
+     * Run CrawlFlow custom migrations
+     * 
+     * Runs custom migrations specific to CrawlFlow plugin
+     * Note: Most migrations have been moved to Rake framework schema definitions
+     */
+    private function runCrawlFlowMigrations(): void {
+        // All migrations have been converted to Rake framework schema definitions
+        // They will be handled automatically by Rake migration system
+        \Rake\Facade\Logger::info('CrawlFlow: Custom migrations handled by Rake framework schema definitions');
     }
 }
 

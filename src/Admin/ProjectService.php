@@ -225,7 +225,10 @@ class ProjectService
         $result = $wpdb->insert($table, $data);
 
         if ($result === false) {
-            throw new \RuntimeException('Failed to create project in database');
+            $error = $wpdb->last_error ?: 'Unknown database error';
+            $query = $wpdb->last_query ?: 'N/A';
+            error_log("CrawlFlow: Failed to create project - Error: {$error}, Query: {$query}, Data: " . json_encode($data));
+            throw new \RuntimeException('Failed to create project in database: ' . $error);
         }
 
         return $wpdb->insert_id;
