@@ -657,12 +657,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/puleeno/rake-wordpress-adapter.git",
-                "reference": "2f56fdbeac3f0ffb2005d535d3c1ad319780e5c7"
+                "reference": "ef6740b19a798a2dd5d4c447aacd56156cd84128"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/2f56fdbeac3f0ffb2005d535d3c1ad319780e5c7",
-                "reference": "2f56fdbeac3f0ffb2005d535d3c1ad319780e5c7",
+                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/ef6740b19a798a2dd5d4c447aacd56156cd84128",
+                "reference": "ef6740b19a798a2dd5d4c447aacd56156cd84128",
                 "shasum": ""
             },
             "require": {
@@ -691,7 +691,7 @@
                 "issues": "https://github.com/puleeno/rake-wordpress-adapter/issues",
                 "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/v2"
             },
-            "time": "2025-12-08T07:16:24+00:00"
+            "time": "2025-12-08T07:30:32+00:00"
         },
         {
             "name": "ramphor/rake",
