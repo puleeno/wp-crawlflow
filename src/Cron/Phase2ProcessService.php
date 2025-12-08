@@ -423,7 +423,7 @@ class Phase2ProcessService
                 
                 if ($resourceId) {
                     // Save reference link with processor_id
-                    $this->saveResourceReference($rawItem['id'], $resourceId, $resource['type'], $processorId);
+                    $this->saveResourceReference($projectId, $rawItem['id'], $resourceId, $resource['type'], $processorId);
                     $resourcesCount++;
                 }
             }
@@ -547,7 +547,7 @@ class Phase2ProcessService
      * Save resource reference
      * Now uses origin IDs instead of URLs
      */
-    private function saveResourceReference(int $parentOriginId, int $resourceId, string $type, ?string $processorId = null): void
+    private function saveResourceReference(int $projectId, int $parentOriginId, int $resourceId, string $type, ?string $processorId = null): void
     {
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins_references';
