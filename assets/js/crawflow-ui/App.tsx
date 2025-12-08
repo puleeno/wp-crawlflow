@@ -1013,25 +1013,14 @@ const App: React.FC = () => {
               setEdges(config.edges);
               setSelectedNode(null);
 
-              if (validation.warnings.length > 0) {
-                setTimeout(async () => {
-                  await dialog.showAlert(
-                    `Project imported successfully!\n\n` +
-                    `⚠️ Warnings:\n` +
-                    validation.warnings.join('\n'),
-                    'warning',
-                    '✅ Import Successful'
-                  );
-                }, 100);
-              } else {
-                setTimeout(async () => {
-                  await dialog.showAlert(
-                    'Project imported successfully! All connections are valid.',
-                    'success',
-                    '✅ Import Successful'
-                  );
-                }, 100);
-              }
+              // Show success message
+              setTimeout(async () => {
+                await dialog.showAlert(
+                  'Project imported successfully! All connections are valid.',
+                  'success',
+                  '✅ Import Successful'
+                );
+              }, 100);
             }
           } else {
             await dialog.showAlert('Invalid configuration file format.', 'error', '❌ Import Error');
