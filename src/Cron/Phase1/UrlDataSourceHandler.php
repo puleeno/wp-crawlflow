@@ -56,7 +56,7 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                 error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($body) . " bytes from {$url}");
                 
                 // Save to rake_data_origins
-                $originId = $this->saveToDataOrigins($projectId, $sourceId, $url, $body);
+                $originId = $this->saveToDataOrigins($projectId, $sourceId, $url, $body, [], $flowConfig);
                 $result['items_saved']++;
 
                 // Extract URLs, save to origins, and create references
@@ -88,7 +88,7 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                     }
                     
                     // Save child URL to origins (with raw_data if fetched)
-                    $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, $childRawData);
+                    $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, $childRawData, [], $flowConfig);
                     
                     // Create reference relationship
                     if ($childOriginId) {

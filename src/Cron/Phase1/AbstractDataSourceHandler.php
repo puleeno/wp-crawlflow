@@ -2,6 +2,10 @@
 
 namespace CrawlFlow\Cron\Phase1;
 
+use CrawlFlow\Cron\WorkerCacheService;
+use CrawlFlow\Reception\Reception;
+use CrawlFlow\Worker\Worker;
+
 /**
  * Abstract Data Source Handler for Phase 1
  * 
@@ -60,6 +64,42 @@ abstract class AbstractDataSourceHandler
     }
 
     /**
+     * Detect worker priority for a URL
+     * 
+     * @param int $projectId Project ID
+     * @param array $flowConfig Flow configuration
+     * @param string $url URL to check
+     * @return int Priority (default: 100 if no worker matches)
+     */
+    protected function detectWorkerPriority(int $projectId, array $flowConfig, string $url): int
+    {
+        try {
+            $workerCacheService = new WorkerCacheService();
+            $reception = $workerCacheService->getReception($projectId, $flowConfig);
+            $workers = $reception->getWorkers();
+            
+            // Create a mock raw item for detection
+            $mockRawItem = [
+                'id' => 0,
+                'guid' => $url,
+                'raw_data' => '',
+            ];
+            
+            // Check each worker (already sorted by priority)
+            foreach ($workers as $worker) {
+                if ($worker->canHandle($mockRawItem)) {
+                    return $worker->getPriority();
+                }
+            }
+        } catch (\Exception $e) {
+            error_log("CrawlFlow Phase 1: Error detecting worker priority for URL {$url}: " . $e->getMessage());
+        }
+        
+        // Default priority if no worker matches
+        return 100;
+    }
+
+    /**
      * Save data to rake_data_origins
      * 
      * @param int $projectId Project ID
@@ -67,9 +107,10 @@ abstract class AbstractDataSourceHandler
      * @param string $guid URL/guid
      * @param string $rawData Raw data content
      * @param array $metadata Optional metadata (will be JSON encoded)
+     * @param array|null $flowConfig Flow configuration (for worker priority detection)
      * @return int Origin ID
      */
-    protected function saveToDataOrigins(int $projectId, ?int $sourceId, string $guid, string $rawData, array $metadata = []): int
+    protected function saveToDataOrigins(int $projectId, ?int $sourceId, string $guid, string $rawData, array $metadata = [], ?array $flowConfig = null): int
     {
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins';
@@ -83,6 +124,12 @@ abstract class AbstractDataSourceHandler
         $now = current_time('mysql');
         $crawled = !empty($rawData) ? 1 : 0;
         $metadataJson = !empty($metadata) ? json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null;
+        
+        // Detect worker priority if flowConfig is provided and guid is a URL
+        $priority = 100; // Default priority
+        if ($flowConfig !== null && !empty($guid) && filter_var($guid, FILTER_VALIDATE_URL)) {
+            $priority = $this->detectWorkerPriority($projectId, $flowConfig, $guid);
+        }
 
         if ($existing) {
             // Update existing if we have new data
@@ -99,6 +146,11 @@ abstract class AbstractDataSourceHandler
             // Update metadata if provided
             if (!empty($metadata)) {
                 $updateData['metadata'] = $metadataJson;
+            }
+            
+            // Update priority if flowConfig is provided
+            if ($flowConfig !== null && !empty($guid) && filter_var($guid, FILTER_VALIDATE_URL)) {
+                $updateData['priority'] = $priority;
             }
             
             $wpdb->update(
@@ -121,6 +173,7 @@ abstract class AbstractDataSourceHandler
             'metadata' => $metadataJson,
             'source_type' => 'data_source',
             'processor_id' => null, // Data source doesn't have processor_id
+            'priority' => $priority,
         ]);
 
         return (int)$wpdb->insert_id;

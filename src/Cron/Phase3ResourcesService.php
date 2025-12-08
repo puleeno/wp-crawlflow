@@ -408,6 +408,34 @@ class Phase3ResourcesService
             return (int)$existing;
         }
 
+        // Detect worker priority for URL
+        $priority = 100; // Default priority
+        try {
+            $flowConfig = $this->projectCacheService->getFlowConfig($projectId);
+            if ($flowConfig && !empty($url) && filter_var($url, FILTER_VALIDATE_URL)) {
+                $workerCacheService = new \CrawlFlow\Cron\WorkerCacheService();
+                $reception = $workerCacheService->getReception($projectId, $flowConfig);
+                $workers = $reception->getWorkers();
+                
+                // Create a mock raw item for detection
+                $mockRawItem = [
+                    'id' => 0,
+                    'guid' => $url,
+                    'raw_data' => '',
+                ];
+                
+                // Check each worker (already sorted by priority)
+                foreach ($workers as $worker) {
+                    if ($worker->canHandle($mockRawItem)) {
+                        $priority = $worker->getPriority();
+                        break;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            error_log("CrawlFlow Phase 3: Error detecting worker priority for URL {$url}: " . $e->getMessage());
+        }
+        
         // Insert to origins (from processor, will be fetched in Phase 1)
         $wpdb->insert($originsTable, [
             'source_id' => $sourceId,
@@ -416,6 +444,7 @@ class Phase3ResourcesService
             'fetched_at' => null,
             'source_type' => 'processor',
             'processor_id' => $processorId ?? 'phase3_resources',
+            'priority' => $priority,
         ]);
 
         return $wpdb->insert_id ? (int)$wpdb->insert_id : null;
