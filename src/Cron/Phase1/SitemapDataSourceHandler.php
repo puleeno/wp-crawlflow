@@ -63,7 +63,8 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                     $sourceId, 
                     $sitemapUrl, 
                     $xmlContent,
-                    ['type' => 'sitemap', 'source_type' => 'sitemap']
+                    ['type' => 'sitemap', 'source_type' => 'sitemap'],
+                    $flowConfig
                 );
                 $result['items_saved']++;
 
@@ -219,7 +220,8 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                     null, // No source_id for child sitemaps
                     $sitemapUrl,
                     '', // Empty raw_data - will be fetched in step 2
-                    ['type' => 'sitemap', 'source_type' => 'sitemap', 'parent_sitemap_index' => $baseUrl]
+                    ['type' => 'sitemap', 'source_type' => 'sitemap', 'parent_sitemap_index' => $baseUrl],
+                    $flowConfig
                 );
                 
                 if ($childOriginId) {
@@ -283,7 +285,8 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                 null,
                 $url,
                 '', // Empty raw_data - will be fetched later
-                ['type' => 'url', 'source_type' => 'sitemap', 'parent_sitemap' => $baseUrl]
+                ['type' => 'url', 'source_type' => 'sitemap', 'parent_sitemap' => $baseUrl],
+                $flowConfig
             );
             
             if ($childOriginId) {
@@ -358,7 +361,8 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                                 null,
                                 $url,
                                 '', // Empty raw_data - will be fetched later
-                                ['type' => 'url', 'source_type' => 'sitemap', 'parent_sitemap' => $sitemapUrl]
+                                ['type' => 'url', 'source_type' => 'sitemap', 'parent_sitemap' => $sitemapUrl],
+                                $flowConfig
                             );
                             
                             if ($childOriginId) {

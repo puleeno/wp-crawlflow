@@ -179,6 +179,7 @@ class Phase2ProcessService
             AND o.crawled = 1 -- Only get items that have been crawled (have raw_data)
             AND latest_parsed.origin_id IS NULL -- Only get items that have never been parsed
             ORDER BY 
+                o.priority ASC, -- Order by priority (lower priority = higher priority for processing)
                 CASE WHEN o.source_id IS NULL THEN 0 ELSE 1 END, -- Prioritize child origins (products/categories) over parent origins
                 o.fetched_at ASC
             LIMIT 2",
@@ -577,6 +578,34 @@ class Phase2ProcessService
         ), ARRAY_A);
 
         if (!$childOrigin) {
+            // Detect worker priority for URL
+            $priority = 100; // Default priority
+            try {
+                $flowConfig = $this->projectCacheService->getFlowConfig($projectId);
+                if ($flowConfig && !empty($childUrl) && filter_var($childUrl, FILTER_VALIDATE_URL)) {
+                    $workerCacheService = new WorkerCacheService();
+                    $reception = $workerCacheService->getReception($projectId, $flowConfig);
+                    $workers = $reception->getWorkers();
+                    
+                    // Create a mock raw item for detection
+                    $mockRawItem = [
+                        'id' => 0,
+                        'guid' => $childUrl,
+                        'raw_data' => '',
+                    ];
+                    
+                    // Check each worker (already sorted by priority)
+                    foreach ($workers as $worker) {
+                        if ($worker->canHandle($mockRawItem)) {
+                            $priority = $worker->getPriority();
+                            break;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                error_log("CrawlFlow Phase 2: Error detecting worker priority for URL {$childUrl}: " . $e->getMessage());
+            }
+            
             // Create child origin if not exists (from processor)
             $wpdb->insert($originsTable, [
                 'source_id' => null, // Resource doesn't have source_id
@@ -585,6 +614,7 @@ class Phase2ProcessService
                 'fetched_at' => current_time('mysql'),
                 'source_type' => 'processor',
                 'processor_id' => $processorId,
+                'priority' => $priority,
             ]);
             $childOriginId = (int)$wpdb->insert_id;
         } else {
