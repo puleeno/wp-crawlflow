@@ -699,12 +699,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "949a94351e38647c6ed4636dafb88df9d085fb58"
+                "reference": "56f28cc844ac58ed72b246fea1b7fdc7a1ca6cfa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/949a94351e38647c6ed4636dafb88df9d085fb58",
-                "reference": "949a94351e38647c6ed4636dafb88df9d085fb58",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/56f28cc844ac58ed72b246fea1b7fdc7a1ca6cfa",
+                "reference": "56f28cc844ac58ed72b246fea1b7fdc7a1ca6cfa",
                 "shasum": ""
             },
             "require": {
@@ -736,7 +736,7 @@
                 "issues": "https://github.com/ramphor/rake-php/issues",
                 "source": "https://github.com/ramphor/rake-php/tree/v2.x"
             },
-            "time": "2025-12-09T01:40:17+00:00"
+            "time": "2025-12-09T10:09:52+00:00"
         },
         {
             "name": "symfony/clock",
