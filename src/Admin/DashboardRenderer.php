@@ -96,6 +96,7 @@ class DashboardRenderer
             'parsers' => $registryData['parsers'],
             'httpClients' => $registryData['httpClients'],
             'completionActions' => $registryData['completionActions'],
+            'phase1ExtraActions' => $registryData['phase1ExtraActions'] ?? [],
             'phase1Actions' => $registryData['phase1Actions'] ?? [],
             'nonce' => wp_create_nonce('crawlflow_nonce'),
             'ajaxUrl' => admin_url('admin-ajax.php'),

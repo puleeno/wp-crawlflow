@@ -30,6 +30,7 @@ class RegistryService
             'httpClients' => $this->getHttpClients(),
             'completionActions' => $this->getCompletionActions(),
             'phase1Actions' => $this->getPhase1Actions(),
+            'phase1ExtraActions' => $this->getPhase1ExtraActions(),
         ];
     }
 
@@ -536,6 +537,32 @@ class RegistryService
 
         // Allow external plugins to modify phase 1 actions
         return apply_filters('crawlflow_registered_phase1_actions', $actionList);
+    }
+
+    /**
+     * Get registered Phase 1 extra (data source scoped) actions
+     * 
+     * @return array
+     */
+    public function getPhase1ExtraActions(): array
+    {
+        $actions = ContextActionManager::getActions('phase1_extra_actions');
+        $actionList = [];
+
+        foreach ($actions as $actionId => $action) {
+            $actionList[] = [
+                'id' => $actionId,
+                'label' => $action->getLabel(),
+                'description' => $action->getDescription(),
+                'priority' => $action->getPriority(),
+            ];
+        }
+
+        usort($actionList, function($a, $b) {
+            return $a['priority'] <=> $b['priority'];
+        });
+
+        return apply_filters('crawlflow_registered_phase1_extra_actions', $actionList);
     }
 }
 

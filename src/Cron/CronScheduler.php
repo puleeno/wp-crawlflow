@@ -50,6 +50,7 @@ class CronScheduler
     /**
      * Phase hooks
      */
+    const PHASE_BONUS_HOOK = 'crawlflow_bonus_phase';
     const PHASE_1_CRAWL_HOOK = 'crawlflow_phase1_crawl';
     const PHASE_2_PROCESS_HOOK = 'crawlflow_phase2_process';
     const PHASE_3_RESOURCES_HOOK = 'crawlflow_phase3_resources';
@@ -191,11 +192,15 @@ class CronScheduler
 
         // Get unique hooks for each phase
         $hash = substr(md5($projectId), 0, 6);
+        $bonusHook = self::PHASE_BONUS_HOOK . '_' . $hash;
         $phase1Hook = self::PHASE_1_CRAWL_HOOK . '_' . $hash;
         $phase2Hook = self::PHASE_2_PROCESS_HOOK . '_' . $hash;
         $phase3Hook = self::PHASE_3_RESOURCES_HOOK . '_' . $hash;
 
         // Register phase hooks if not already registered
+        if (!has_action($bonusHook, [$this, 'executeBonusPhase'])) {
+            add_action($bonusHook, [$this, 'executeBonusPhase'], 10, 1);
+        }
         if (!has_action($phase1Hook, [$this, 'executePhase1'])) {
             add_action($phase1Hook, [$this, 'executePhase1'], 10, 1);
         }
@@ -206,23 +211,27 @@ class CronScheduler
             add_action($phase3Hook, [$this, 'executePhase3'], 10, 1);
         }
 
-        // Schedule Phase 1 (Crawl) - runs first
+        // Schedule Bonus Phase - runs before Phase 1
         $timestamp = time();
-        $scheduled1 = wp_schedule_event($timestamp, $schedule, $phase1Hook, [$projectId]);
+        $scheduledBonus = wp_schedule_event($timestamp, $schedule, $bonusHook, [$projectId]);
+
+        // Schedule Phase 1 (Crawl) - runs after bonus (delay by 30s)
+        $timestamp1 = $timestamp + 30;
+        $scheduled1 = wp_schedule_event($timestamp1, $schedule, $phase1Hook, [$projectId]);
 
         // Schedule Phase 2 (Process) - runs after Phase 1 (delay by 1 minute)
-        $timestamp2 = $timestamp + 60;
+        $timestamp2 = $timestamp1 + 60;
         $scheduled2 = wp_schedule_event($timestamp2, $schedule, $phase2Hook, [$projectId]);
 
         // Schedule Phase 3 (Resources) - runs after Phase 2 (delay by 2 minutes)
-        $timestamp3 = $timestamp + 120;
+        $timestamp3 = $timestamp2 + 60;
         $scheduled3 = wp_schedule_event($timestamp3, $schedule, $phase3Hook, [$projectId]);
 
-        if ($scheduled1 === false || $scheduled2 === false || $scheduled3 === false) {
+        if ($scheduledBonus === false || $scheduled1 === false || $scheduled2 === false || $scheduled3 === false) {
             throw new \RuntimeException("Failed to schedule project {$projectId} phases");
         }
 
-        error_log("CrawlFlow: Scheduled project {$projectId} with 3 phases - Phase1: {$phase1Hook}, Phase2: {$phase2Hook}, Phase3: {$phase3Hook}");
+        error_log("CrawlFlow: Scheduled project {$projectId} with bonus + 3 phases - Bonus: {$bonusHook}, Phase1: {$phase1Hook}, Phase2: {$phase2Hook}, Phase3: {$phase3Hook}");
     }
 
     /**
@@ -290,9 +299,16 @@ class CronScheduler
     public function unscheduleProject(int $projectId): void
     {
         $hash = substr(md5($projectId), 0, 6);
+        $bonusHook = self::PHASE_BONUS_HOOK . '_' . $hash;
         $phase1Hook = self::PHASE_1_CRAWL_HOOK . '_' . $hash;
         $phase2Hook = self::PHASE_2_PROCESS_HOOK . '_' . $hash;
         $phase3Hook = self::PHASE_3_RESOURCES_HOOK . '_' . $hash;
+
+        // Unschedule Bonus phase
+        $timestamp = wp_next_scheduled($bonusHook, [$projectId]);
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, $bonusHook, [$projectId]);
+        }
 
         // Unschedule Phase 1
         $timestamp = wp_next_scheduled($phase1Hook, [$projectId]);
@@ -313,6 +329,54 @@ class CronScheduler
         }
 
         error_log("CrawlFlow: Unscheduled all phases for project {$projectId}");
+    }
+
+    /**
+     * Execute Phase 1: Crawl (called by WordPress cron)
+     * 
+     * @param mixed $arg Project ID (passed from wp_schedule_event args) or hook name
+     */
+    public function executeBonusPhase($arg = null): void
+    {
+        $projectId = null;
+        
+        if (is_numeric($arg)) {
+            $projectId = (int)$arg;
+        } elseif (is_array($arg) && isset($arg[0]) && is_numeric($arg[0])) {
+            $projectId = (int)$arg[0];
+        } else {
+            $currentHook = current_filter();
+            if ($currentHook) {
+                $projectId = $this->extractProjectIdFromHook($currentHook);
+            }
+        }
+
+        if (!$projectId) {
+            error_log("CrawlFlow Bonus Phase: Could not determine project ID. Arg: " . print_r($arg, true) . ", Hook: " . current_filter());
+            return;
+        }
+
+        try {
+            error_log("CrawlFlow Bonus Phase: Hook triggered for project {$projectId}");
+            
+            $projectCacheService = new ProjectCacheService();
+            $project = $projectCacheService->getProject($projectId);
+            if (!$project) {
+                error_log("CrawlFlow Bonus Phase: Project {$projectId} not found");
+                return;
+            }
+
+            if ($project['status'] !== 'active') {
+                error_log("CrawlFlow Bonus Phase: Project {$projectId} is not active (status: {$project['status']})");
+                return;
+            }
+
+            // Execute only bonus actions (phase1 actions) without data source fetch
+            $this->phase1Service->executeBonus($projectId);
+
+        } catch (\Exception $e) {
+            error_log("CrawlFlow Bonus Phase: Failed for project {$projectId} - " . $e->getMessage());
+        }
     }
 
     /**

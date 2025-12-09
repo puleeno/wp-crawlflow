@@ -319,7 +319,8 @@ class Phase2ProcessService
                     $originId
                 ));
                 
-                $metadata = json_decode($currentMetadata, true) ?: [];
+                $metadataSource = is_string($currentMetadata) ? $currentMetadata : '';
+                $metadata = json_decode($metadataSource ?: '{}', true) ?: [];
                 $metadata['project_id'] = $this->currentProjectId; // Store project_id for filtering
                 
                 $wpdb->update(

@@ -75,6 +75,23 @@ class Phase1CrawlService
                     $results['items_saved'] += $sourceResult['items_saved'] ?? 0;
                     $results['references_saved'] += $sourceResult['references_saved'] ?? 0;
                     
+                    // Execute data-source scoped Phase1 extra actions (if any)
+                    $actionContext = new ActionContext(
+                        'phase1_extra_actions',
+                        $projectId,
+                        $sourceResult,
+                        $flowConfig,
+                        ['dataSource' => $source]
+                    );
+                    $extraActionResults = ContextActionManager::execute('phase1_extra_actions', $actionContext);
+                    if (!isset($results['extra_actions'])) {
+                        $results['extra_actions'] = [];
+                    }
+                    $results['extra_actions'][] = [
+                        'data_source' => $source['name'] ?? $source['type'] ?? 'unknown',
+                        'actions' => $extraActionResults,
+                    ];
+
                     // Merge errors if any
                     if (isset($sourceResult['errors']) && !empty($sourceResult['errors'])) {
                         foreach ($sourceResult['errors'] as $error) {
@@ -118,6 +135,57 @@ class Phase1CrawlService
 
         } catch (\Exception $e) {
             error_log("CrawlFlow Phase 1: Failed for project {$projectId} - " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Execute Bonus Phase: only Phase 1 context actions (no data source fetching)
+     *
+     * @param int $projectId
+     * @return array
+     */
+    public function executeBonus(int $projectId): array
+    {
+        try {
+            error_log("CrawlFlow Bonus Phase: Starting actions for project {$projectId}");
+
+            $project = $this->projectCacheService->getProject($projectId);
+            if (!$project) {
+                throw new \RuntimeException("Project {$projectId} not found");
+            }
+
+            $flowConfig = $this->projectCacheService->getFlowConfig($projectId);
+            if (!$flowConfig) {
+                throw new \RuntimeException("No flow config for project {$projectId}");
+            }
+
+            // Minimal results baseline
+            $results = [
+                'project_id' => $projectId,
+                'phase' => 'bonus',
+                'sources_processed' => 0,
+                'items_saved' => 0,
+                'references_saved' => 0,
+                'errors' => [],
+            ];
+
+            // Execute Phase 1 actions only
+            $actionContext = new ActionContext(
+                'phase1',
+                $projectId,
+                $results,
+                $flowConfig
+            );
+
+            $actionResults = ContextActionManager::execute('phase1', $actionContext);
+            $results['actions'] = $actionResults;
+
+            error_log("CrawlFlow Bonus Phase: Executed " . count($actionResults) . " action(s) for project {$projectId}");
+
+            return $results;
+        } catch (\Exception $e) {
+            error_log("CrawlFlow Bonus Phase: Failed for project {$projectId} - " . $e->getMessage());
             throw $e;
         }
     }

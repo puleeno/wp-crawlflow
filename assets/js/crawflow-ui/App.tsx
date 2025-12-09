@@ -158,6 +158,7 @@ const App: React.FC = () => {
     crawlDelay: 300000, // default 5 minutes
     userAgent: 'Crawler/1.0',
     concurrency: 50, // default max items per cron run
+    phase1Actions: [],
   });
   
   // State for UI panels

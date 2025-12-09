@@ -22,6 +22,7 @@ export interface ProjectSettings {
   userAgent: string;
   concurrency: number;
   httpClient?: string; // HTTP client name from registry
+  phase1Actions?: string[]; // Selected context actions for Phase 1 (including bonus phase)
 }
 
 
@@ -110,9 +111,9 @@ export interface StartNodeData {
   apiSettings?: APISourceSettings;
   xmlSettings?: XMLSourceSettings;
   jsonSettings?: JSONSourceSettings;
-  
-  // Phase 1 actions to execute
-  phase1Actions?: string[]; // Array of action IDs
+
+  // Phase1 extra actions (data-source scoped)
+  phase1ExtraActions?: string[];
 }
 // --- END OF NEW TYPES ---
 

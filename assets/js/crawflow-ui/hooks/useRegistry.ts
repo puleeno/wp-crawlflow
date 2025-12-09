@@ -12,6 +12,7 @@ declare global {
       httpClients: HttpClient[];
       completionActions: CompletionAction[];
       phase1Actions: Phase1Action[];
+      phase1ExtraActions: Phase1Action[];
       nonce: string;
       ajaxUrl: string;
     };
@@ -86,6 +87,7 @@ export function useRegistry() {
   const [httpClients, setHttpClients] = useState<HttpClient[]>([]);
   const [completionActions, setCompletionActions] = useState<CompletionAction[]>([]);
   const [phase1Actions, setPhase1Actions] = useState<Phase1Action[]>([]);
+   const [phase1ExtraActions, setPhase1ExtraActions] = useState<Phase1Action[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -97,6 +99,7 @@ export function useRegistry() {
       setHttpClients(window.crawlflowRegistry.httpClients || []);
       setCompletionActions(window.crawlflowRegistry.completionActions || []);
       setPhase1Actions(window.crawlflowRegistry.phase1Actions || []);
+       setPhase1ExtraActions(window.crawlflowRegistry.phase1ExtraActions || []);
       setLoading(false);
     } else {
       console.warn('CrawlFlow registry data not found');
@@ -111,6 +114,7 @@ export function useRegistry() {
     httpClients,
     completionActions,
     phase1Actions,
+    phase1ExtraActions,
     loading,
     nonce: window.crawlflowRegistry?.nonce || '',
     ajaxUrl: window.crawlflowRegistry?.ajaxUrl || '/wp-admin/admin-ajax.php',

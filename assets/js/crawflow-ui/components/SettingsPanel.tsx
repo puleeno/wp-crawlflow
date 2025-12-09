@@ -102,7 +102,7 @@ const TagInput: React.FC<{ label: string; tags: string[]; onChange: (tags: strin
 // --- Start Node Settings ---
 const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: StartNodeData) => void }> = ({ node, onUpdate }) => {
     const { data } = node;
-    const { phase1Actions } = useRegistry();
+    const { phase1ExtraActions } = useRegistry();
 
     const handleUpdate = <K extends keyof StartNodeData>(key: K, value: StartNodeData[K]) => {
         onUpdate({ ...data, [key]: value });
@@ -116,14 +116,6 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                 ...update,
             }
         });
-    };
-
-    const handleActionToggle = (actionId: string) => {
-        const currentActions = data.phase1Actions || [];
-        const newActions = currentActions.includes(actionId)
-            ? currentActions.filter(id => id !== actionId)
-            : [...currentActions, actionId];
-        handleUpdate('phase1Actions', newActions);
     };
 
     const renderFileBasedInputs = () => {
@@ -457,15 +449,16 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
             {data.sourceType === 'xml' && renderXMLSettings()}
             {data.sourceType === 'json' && renderJSONSettings()}
 
-            {/* Phase 1 Actions */}
-            {phase1Actions.length > 0 && (
-                <CollapsibleSection title="Phase 1 Actions" defaultOpen>
+            {/* Phase 1 Extra Actions (data-source scoped) */}
+            {phase1ExtraActions.length > 0 && (
+                <CollapsibleSection title="Phase 1 Extra Actions" defaultOpen>
                     <div className="space-y-3">
                         <p className="text-sm text-gray-600 mb-3">
-                            Select actions to execute during Phase 1 for this data source:
+                            Chọn actions chạy cho data source này ở Bonus/Phase 1.
                         </p>
-                        {phase1Actions.map((action) => {
-                            const isSelected = (data.phase1Actions || []).includes(action.id);
+                        {phase1ExtraActions.map((action) => {
+                            const selectedList = data.phase1ExtraActions || [];
+                            const isSelected = selectedList.includes(action.id);
                             return (
                                 <div
                                     key={action.id}
@@ -479,7 +472,12 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                                         <input
                                             type="checkbox"
                                             checked={isSelected}
-                                            onChange={() => handleActionToggle(action.id)}
+                                            onChange={() => {
+                                                const next = isSelected
+                                                    ? selectedList.filter(id => id !== action.id)
+                                                    : [...selectedList, action.id];
+                                                handleUpdate('phase1ExtraActions', next);
+                                            }}
                                             className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                         />
                                         <div className="flex-1">
@@ -1680,7 +1678,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
     };
 
     const renderProjectSettings = () => {
-        const { httpClients } = useRegistry();
+        const { httpClients, phase1Actions } = useRegistry();
+
+        const getSelectedPhase1Actions = () => {
+            const defaultSelected = phase1Actions.find(a => a.id === 'data_update_checker') ? ['data_update_checker'] : [];
+            return projectSettings.phase1Actions ?? defaultSelected;
+        };
+
+        const handleProjectActionToggle = (actionId: string) => {
+            const current = getSelectedPhase1Actions();
+            const next = current.includes(actionId)
+                ? current.filter(id => id !== actionId)
+                : [...current, actionId];
+            onUpdateProjectSettings({ phase1Actions: next });
+        };
         
         return (
         <div className="space-y-4">
@@ -1749,6 +1760,41 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                     />
                 </div>
             </div>
+            {phase1Actions.length > 0 && (
+                <div className="space-y-2">
+                    <label className={commonLabelClasses}>Project Actions: Extra Phase</label>
+                    <p className="text-xs text-gray-500">
+                        Chọn các actions chạy ở Bonus/Phase 1 (ví dụ: DataUpdateCheckerAction).
+                    </p>
+                    <div className="space-y-2">
+                        {phase1Actions.map(action => {
+                            const selected = (projectSettings.phase1Actions ?? (phase1Actions.find(a => a.id === 'data_update_checker') ? ['data_update_checker'] : [])).includes(action.id);
+                            return (
+                                <label
+                                    key={action.id}
+                                    className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                                        selected ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-slate-300'
+                                    }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={() => handleProjectActionToggle(action.id)}
+                                        className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="font-medium text-gray-900">{action.label}</div>
+                                        {action.description && (
+                                            <div className="text-sm text-gray-600 mt-1">{action.description}</div>
+                                        )}
+                                        <div className="text-xs text-gray-500 mt-1">Priority: {action.priority}</div>
+                                    </div>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
             <div>
                 <label className={commonLabelClasses}>User Agent</label>
                 <input type="text" value={projectSettings.userAgent} onChange={e => onUpdateProjectSettings({ userAgent: e.target.value })} className={commonInputClasses} />
