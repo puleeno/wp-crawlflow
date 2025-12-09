@@ -780,7 +780,31 @@ const HTMLDataExtractorSettings: React.FC<{
                                             <option value="html">Extract HTML</option>
                                             <option value="regex">Extract via Regex</option>
                                         </select>
-                                        {rule.extract === 'attribute' && <input type="text" placeholder="Attribute Name (e.g., href)" value={rule.attribute || ''} onChange={e => handleRuleChange(rule.id, 'attribute', e.target.value)} className={smallInputClasses} />}
+                                        {rule.extract === 'attribute' && (
+                                            <>
+                                                <input type="text" placeholder="Attribute Name (e.g., href)" value={rule.attribute || ''} onChange={e => handleRuleChange(rule.id, 'attribute', e.target.value)} className={smallInputClasses} />
+                                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={rule.extractMultiple || false}
+                                                        onChange={e => handleRuleChange(rule.id, 'extractMultiple', e.target.checked)}
+                                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                    />
+                                                    <span>Extract Multiple (array)</span>
+                                                </label>
+                                            </>
+                                        )}
+                                        {(rule.extract === 'text' || rule.extract === 'html') && (
+                                            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={rule.extractMultiple || false}
+                                                    onChange={e => handleRuleChange(rule.id, 'extractMultiple', e.target.checked)}
+                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                />
+                                                <span>Extract Multiple (array)</span>
+                                            </label>
+                                        )}
                                         {rule.extract === 'regex' && (
                                             <div className="grid grid-cols-3 gap-2">
                                                 <input type="text" placeholder="Regex Pattern" value={rule.regexPattern || ''} onChange={e => handleRuleChange(rule.id, 'regexPattern', e.target.value)} className={`${smallInputClasses} col-span-2`} />

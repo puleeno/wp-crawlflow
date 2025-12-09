@@ -119,13 +119,40 @@ class WorkerCacheService
             $nodeId = $node['id'] ?? '';
             $nodeData = $node['data'] ?? [];
 
+            // Get parser rules from worker node
+            $parserRules = $nodeData['parser']['rules'] ?? [];
+            
+            // Find extractor nodes connected to this worker (extractor -> worker)
+            $extractorRules = $this->findExtractorRules($nodeId, $nodes, $edges);
+            
+            // Merge extractor rules with worker parser rules
+            // Extractor rules take precedence (they are more specific)
+            $mergedRules = array_merge($parserRules, $extractorRules);
+            
+            // Remove duplicates by name (keep extractor rules if duplicate)
+            $uniqueRules = [];
+            $seenNames = [];
+            foreach (array_reverse($mergedRules) as $rule) {
+                $ruleName = $rule['name'] ?? '';
+                if (!empty($ruleName) && !isset($seenNames[$ruleName])) {
+                    $uniqueRules[] = $rule;
+                    $seenNames[$ruleName] = true;
+                } elseif (empty($ruleName)) {
+                    // Keep rules without name (they might be unique)
+                    $uniqueRules[] = $rule;
+                }
+            }
+            $mergedRules = array_reverse($uniqueRules);
+
             // Build worker config from node
             $workerConfig = [
                 'name' => $nodeId,
                 'priority' => (int)($nodeData['priority'] ?? 0),
                 'detectionRules' => $nodeData['detectionRules'] ?? [],
                 'detectionLogic' => $nodeData['detectionLogic'] ?? 'and',
-                'parser' => $nodeData['parser'] ?? [],
+                'parser' => [
+                    'rules' => $mergedRules,
+                ],
                 'processors' => [],
             ];
 
@@ -197,6 +224,57 @@ class WorkerCacheService
         }
 
         return $processors;
+    }
+
+    /**
+     * Find extractor rules from extractor nodes connected to worker
+     * 
+     * @param string $workerNodeId Worker node ID
+     * @param array $nodes All nodes
+     * @param array $edges All edges
+     * @return array Extractor rules
+     */
+    private function findExtractorRules(string $workerNodeId, array $nodes, array $edges): array
+    {
+        $rules = [];
+        
+        // Find edges pointing to this worker (extractor -> worker)
+        $incomingEdges = array_filter($edges, function($edge) use ($workerNodeId) {
+            return ($edge['target'] ?? '') === $workerNodeId;
+        });
+        
+        foreach ($incomingEdges as $edge) {
+            $sourceNodeId = $edge['source'] ?? '';
+            
+            // Find the source node
+            foreach ($nodes as $node) {
+                if (($node['id'] ?? '') !== $sourceNodeId) {
+                    continue;
+                }
+                
+                // Check if it's an extractor node
+                $nodeType = $node['type'] ?? '';
+                if (!in_array($nodeType, ['html-data-extractor', 'html-extractor', 'csv-extractor', 'json-extractor', 'xml-extractor', 'mysql-extractor'])) {
+                    continue;
+                }
+                
+                $nodeData = $node['data'] ?? [];
+                
+                // Get rules from extractor node
+                // Check customRules first (user-defined), then presets
+                if (!empty($nodeData['customRules'])) {
+                    $rules = array_merge($rules, $nodeData['customRules']);
+                } elseif (!empty($nodeData['presets'])) {
+                    // If using presets, we need to expand them
+                    // For now, just log that presets are used
+                    error_log("CrawlFlow WorkerCache: Extractor node {$sourceNodeId} uses presets, but preset expansion not implemented yet");
+                }
+                
+                break;
+            }
+        }
+        
+        return $rules;
     }
 }
 

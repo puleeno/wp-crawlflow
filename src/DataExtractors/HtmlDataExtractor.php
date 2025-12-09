@@ -33,6 +33,7 @@ class HtmlDataExtractor implements ParserInterface
             $name = $rule['name'] ?? 'field';
             $selector = $rule['selector'] ?? '';
             $extractType = $rule['extract'] ?? 'text';
+            $attribute = $rule['attribute'] ?? null; // Specific attribute to extract
             $multiple = $rule['extractMultiple'] ?? $rule['multiple'] ?? false;
 
             if (empty($selector)) {
@@ -44,9 +45,9 @@ class HtmlDataExtractor implements ParserInterface
                 if ($name === 'breadcrumbs' && $multiple) {
                     $results[$name] = $this->extractBreadcrumbs($selector);
                 } elseif ($multiple) {
-                    $results[$name] = $this->extractMultiple($selector, $extractType);
+                    $results[$name] = $this->extractMultiple($selector, $extractType, $attribute);
                 } else {
-                    $results[$name] = $this->extractSingle($selector, $extractType);
+                    $results[$name] = $this->extractSingle($selector, $extractType, $attribute);
                 }
             } catch (\Exception $e) {
                 $results[$name] = null;
@@ -59,7 +60,7 @@ class HtmlDataExtractor implements ParserInterface
     /**
      * Extract single value
      */
-    private function extractSingle(string $selector, string $extractType)
+    private function extractSingle(string $selector, string $extractType, ?string $attribute = null)
     {
         $element = $this->crawler->filter($selector);
 
@@ -67,7 +68,7 @@ class HtmlDataExtractor implements ParserInterface
             return null;
         }
 
-        return $this->extractFromElement($element->first(), $extractType);
+        return $this->extractFromElement($element->first(), $extractType, $attribute);
     }
 
     /**
@@ -119,13 +120,16 @@ class HtmlDataExtractor implements ParserInterface
     /**
      * Extract multiple values
      */
-    private function extractMultiple(string $selector, string $extractType): array
+    private function extractMultiple(string $selector, string $extractType, ?string $attribute = null): array
     {
         $elements = $this->crawler->filter($selector);
         $results = [];
 
-        $elements->each(function (Crawler $element) use ($extractType, &$results) {
-            $results[] = $this->extractFromElement($element, $extractType);
+        $elements->each(function (Crawler $element) use ($extractType, $attribute, &$results) {
+            $value = $this->extractFromElement($element, $extractType, $attribute);
+            if ($value !== null && $value !== '') {
+                $results[] = $value;
+            }
         });
 
         return $results;
@@ -134,7 +138,7 @@ class HtmlDataExtractor implements ParserInterface
     /**
      * Extract from element based on type
      */
-    private function extractFromElement(Crawler $element, string $extractType)
+    private function extractFromElement(Crawler $element, string $extractType, ?string $attribute = null)
     {
         switch ($extractType) {
             case 'text':
@@ -143,7 +147,20 @@ class HtmlDataExtractor implements ParserInterface
             case 'html':
                 return $element->html();
 
+            case 'attribute':
             case 'attr':
+                // If specific attribute is requested, extract that
+                if ($attribute !== null) {
+                    $value = $element->attr($attribute);
+                    // Convert relative URLs to absolute for href/src attributes
+                    if (($attribute === 'href' || $attribute === 'src') && $value && !preg_match('/^https?:\/\//', $value)) {
+                        $baseUrl = $this->getBaseUrl();
+                        if ($baseUrl) {
+                            $value = rtrim($baseUrl, '/') . '/' . ltrim($value, '/');
+                        }
+                    }
+                    return $value;
+                }
                 // Extract all attributes
                 $node = $element->getNode(0);
                 if (!$node || !$node->attributes) {
@@ -156,13 +173,41 @@ class HtmlDataExtractor implements ParserInterface
                 return $attrs;
 
             case 'href':
-                return $element->attr('href');
+                $value = $element->attr('href');
+                // Convert relative URLs to absolute
+                if ($value && !preg_match('/^https?:\/\//', $value)) {
+                    $baseUrl = $this->getBaseUrl();
+                    if ($baseUrl) {
+                        $value = rtrim($baseUrl, '/') . '/' . ltrim($value, '/');
+                    }
+                }
+                return $value;
 
             case 'src':
-                return $element->attr('src');
+                $value = $element->attr('src');
+                // Convert relative URLs to absolute
+                if ($value && !preg_match('/^https?:\/\//', $value)) {
+                    $baseUrl = $this->getBaseUrl();
+                    if ($baseUrl) {
+                        $value = rtrim($baseUrl, '/') . '/' . ltrim($value, '/');
+                    }
+                }
+                return $value;
 
             default:
-                return $element->attr($extractType);
+                // Try as attribute name
+                $value = $element->attr($extractType);
+                if ($value !== null) {
+                    // Convert relative URLs to absolute for href/src
+                    if (($extractType === 'href' || $extractType === 'src') && !preg_match('/^https?:\/\//', $value)) {
+                        $baseUrl = $this->getBaseUrl();
+                        if ($baseUrl) {
+                            $value = rtrim($baseUrl, '/') . '/' . ltrim($value, '/');
+                        }
+                    }
+                    return $value;
+                }
+                return null;
         }
     }
 
