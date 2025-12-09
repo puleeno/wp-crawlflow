@@ -56,8 +56,14 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                 error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($body) . " bytes from {$url}");
                 
                 // Save to rake_data_origins
-                $originId = $this->saveToDataOrigins($projectId, $sourceId, $url, $body, [], $flowConfig);
-                $result['items_saved']++;
+                $originId = $this->saveToDataOrigins($projectId, $sourceId > 0 ? $sourceId : null, $url, $body, [], $flowConfig);
+                if ($originId > 0) {
+                    $result['items_saved']++;
+                } else {
+                    error_log("CrawlFlow Phase 1 (URL): Failed to save origin for URL: {$url}");
+                    $result['errors'][] = "Failed to save origin for URL: {$url}";
+                    return $result; // Cannot continue without valid origin ID
+                }
 
                 // Extract URLs, save to origins, and create references
                 // Get URL settings from data source config (dpc_rake_data_sources.config)
@@ -84,16 +90,31 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                     if ($existing) {
                         // URL already exists, just create reference if needed
                         $childOriginId = (int)$existing;
+                        
+                        // Update priority if flowConfig is provided (in case worker config changed)
+                        if ($flowConfig !== null && !empty($extractedUrl) && filter_var($extractedUrl, FILTER_VALIDATE_URL)) {
+                            $detectedPriority = $this->detectWorkerPriority($projectId, $flowConfig, $extractedUrl);
+                            global $wpdb;
+                            $originsTable = $wpdb->prefix . 'rake_data_origins';
+                            $wpdb->update(
+                                $originsTable,
+                                ['priority' => $detectedPriority, 'updated_at' => current_time('mysql')],
+                                ['id' => $childOriginId]
+                            );
+                        }
                     } else {
                         // Save child URL to origins (without raw_data initially, crawled = 0)
-                        $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, '');
+                        // Pass flowConfig to detect worker priority
+                        $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, '', [], $flowConfig);
                         $savedCount++;
                     }
                     
                     // Create reference relationship
-                    if ($childOriginId) {
-                        $this->saveReference($originId, $childOriginId, 'child');
-                        $result['references_saved']++;
+                    // Only create reference if both parent and child origin IDs are valid
+                    if ($childOriginId && $originId > 0) {
+                        if ($this->saveReference($originId, $childOriginId, 'child')) {
+                            $result['references_saved']++;
+                        }
                     }
                 }
                 
@@ -367,57 +388,107 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
             return null;
         }
         
-        // Remove excessive escaping (from JSON storage - multiple backslashes)
-        // JSON stores backslashes as "\\" which becomes "\" when decoded
-        // But if stored with double escaping, we get "\\\\" which becomes "\\"
-        // Keep reducing until we have reasonable escaping
+        // Step 1: Aggressively remove excessive backslashes
+        // Handle cases where pattern is over-escaped (e.g., "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/admin\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/")
+        // Strategy: Remove all backslashes first, then rebuild the pattern correctly
         $originalPattern = $pattern;
-        $maxIterations = 20; // Increase for deeply nested escaping
-        $iteration = 0;
         
-        while ($iteration < $maxIterations) {
-            $newPattern = stripslashes($pattern);
-            if ($newPattern === $pattern) {
-                break; // No more backslashes to remove
+        // Count consecutive backslashes - if there are too many, it's over-escaped
+        if (preg_match('/\\\\{10,}/', $pattern)) {
+            // Pattern is severely over-escaped - extract the actual content
+            // Look for pattern structure: /.../flags or /.../
+            if (preg_match('/^[\\\\\/]*(.+?)[\\\\\/]+([imsxADSUXJu]*)$/', $pattern, $matches)) {
+                $patternContent = $matches[1];
+                $flags = $matches[2] ?? '';
+                
+                // Remove all backslashes from content
+                $patternContent = str_replace('\\', '', $patternContent);
+                
+                // Rebuild pattern: if content looks like a regex pattern, use it as-is
+                // Otherwise, escape it
+                if (preg_match('/^[\/\^].*[\/\$]?$/', $patternContent)) {
+                    // Already looks like a regex pattern
+                    $pattern = '/' . trim($patternContent, '/') . '/' . $flags;
+                } else {
+                    // Escape and wrap
+                    $pattern = '/' . preg_quote($patternContent, '/') . '/' . $flags;
+                }
+            } else {
+                // Fallback: remove all backslashes and rebuild
+                $pattern = str_replace('\\', '', $pattern);
+                if (!preg_match('/^\/.+\//', $pattern)) {
+                    $pattern = '/' . preg_quote($pattern, '/') . '/';
+                }
             }
-            $pattern = $newPattern;
-            $iteration++;
+        } else {
+            // Step 2: Normalize moderate escaping
+            // Remove excessive escaping (from JSON storage - multiple backslashes)
+            $maxIterations = 10;
+            $iteration = 0;
+            
+            while ($iteration < $maxIterations) {
+                $newPattern = stripslashes($pattern);
+                if ($newPattern === $pattern) {
+                    break; // No more backslashes to remove
+                }
+                $pattern = $newPattern;
+                $iteration++;
+            }
+            
+            // If still has excessive backslashes, try regex replace
+            if (preg_match('/\\\\{4,}/', $pattern)) {
+                // Replace multiple consecutive backslashes with single backslash
+                $pattern = preg_replace('/\\\\+/', '\\', $pattern);
+            }
         }
         
-        // If still has excessive backslashes, try regex replace
-        if (preg_match('/\\\\{4,}/', $pattern)) {
-            $pattern = preg_replace('/\\\\+/', '\\', $pattern);
-        }
-        
+        // Step 3: Validate and fix pattern structure
         // If pattern already has delimiters, validate and return
         if (preg_match('/^\/.+\/[imsxADSUXJu]*$/', $pattern)) {
-            // Validate the pattern is correct
-            $testPattern = $pattern;
-            // If it has flags, extract them
-            if (preg_match('/^(.+)\/([imsxADSUXJu]+)$/', $pattern, $matches)) {
-                $testPattern = $matches[1] . '/';
-            }
-            // Test if pattern is valid
-            if (@preg_match($testPattern, '') !== false) {
-                return $pattern;
+            // Extract pattern and flags
+            if (preg_match('/^(.+)\/([imsxADSUXJu]*)$/', $pattern, $matches)) {
+                $patternBody = $matches[1];
+                $flags = $matches[2] ?? '';
+                
+                // Clean up pattern body - remove excessive escaping
+                // If pattern body has escaped slashes like \/admin\/, normalize them
+                $patternBody = preg_replace('/\\\\+\//', '/', $patternBody);
+                $patternBody = preg_replace('/\/\\\\+/', '/', $patternBody);
+                
+                // Rebuild pattern
+                $testPattern = '/' . $patternBody . '/' . $flags;
+                
+                // Test if pattern is valid
+                if (@preg_match($testPattern, '') !== false) {
+                    return $testPattern;
+                }
             }
         }
         
-        // If pattern looks like it has delimiters but is malformed, try to fix
-        if (strpos($pattern, '/') === 0 && strrpos($pattern, '/') !== false) {
-            $lastSlash = strrpos($pattern, '/');
-            $actualPattern = substr($pattern, 1, $lastSlash - 1);
-            $flags = substr($pattern, $lastSlash + 1);
+        // Step 4: Try to extract pattern from malformed structure
+        if (strpos($pattern, '/') !== false || strpos($pattern, '\\') !== false) {
+            // Look for pattern-like structure
+            // Remove all backslashes and see if we can find a valid pattern
+            $cleanPattern = str_replace('\\', '', $pattern);
             
-            // Validate the actual pattern part
-            if (@preg_match('/' . $actualPattern . '/', '') !== false) {
-                return '/' . $actualPattern . '/' . $flags;
+            // Check if it looks like /pattern/flags
+            if (preg_match('/^\/?([^\/]+)\/?([imsxADSUXJu]*)$/', $cleanPattern, $matches)) {
+                $patternBody = $matches[1];
+                $flags = $matches[2] ?? '';
+                
+                // Try to use as regex pattern
+                $testPattern = '/' . $patternBody . '/' . $flags;
+                if (@preg_match($testPattern, '') !== false) {
+                    return $testPattern;
+                }
             }
         }
         
-        // Otherwise, treat as simple string pattern
+        // Step 5: Final fallback - treat as simple string pattern
+        // Remove all backslashes first
+        $cleanPattern = str_replace('\\', '', $pattern);
         // Escape special regex chars and add delimiters
-        $escaped = preg_quote($pattern, '/');
+        $escaped = preg_quote($cleanPattern, '/');
         return '/' . $escaped . '/';
     }
 

@@ -54,8 +54,8 @@ abstract class AbstractDataSourceHandler
         // Extract URL settings from config
         $urlSettings = [
             'excludeExtensions' => $config['excludeExtensions'] ?? [],
-            'excludePatterns' => $config['excludePatterns'] ?? [],
-            'whitelistPatterns' => $config['whitelistPatterns'] ?? [],
+            'excludePatterns' => $this->normalizePatternArray($config['excludePatterns'] ?? []),
+            'whitelistPatterns' => $this->normalizePatternArray($config['whitelistPatterns'] ?? []),
             'domainPolicy' => $config['domainPolicy'] ?? 'all',
             'domainWhitelist' => $config['domainWhitelist'] ?? [],
         ];
@@ -175,14 +175,35 @@ abstract class AbstractDataSourceHandler
             'priority' => $priority,
         ];
         
-        // Only include source_id if it's not null
-        if ($sourceId !== null) {
-            $insertData['source_id'] = $sourceId;
+        // Only include source_id if it's not null and exists in database
+        if ($sourceId !== null && $sourceId > 0) {
+            // Verify source_id exists in database before inserting
+            $sourceExists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}rake_data_sources WHERE id = %d",
+                $sourceId
+            ));
+            
+            if ($sourceExists) {
+                $insertData['source_id'] = $sourceId;
+            } else {
+                error_log("CrawlFlow Phase 1: Source ID {$sourceId} does not exist in database, skipping source_id in origin insert");
+            }
         }
         
-        $wpdb->insert($table, $insertData);
+        $result = $wpdb->insert($table, $insertData);
 
-        return (int)$wpdb->insert_id;
+        if ($result === false) {
+            error_log("CrawlFlow Phase 1: Failed to insert origin - " . $wpdb->last_error);
+            return 0;
+        }
+
+        $insertId = (int)$wpdb->insert_id;
+        if ($insertId <= 0) {
+            error_log("CrawlFlow Phase 1: Failed to get insert ID for origin");
+            return 0;
+        }
+
+        return $insertId;
     }
 
     /**
@@ -195,8 +216,36 @@ abstract class AbstractDataSourceHandler
      */
     protected function saveReference(int $parentOriginId, int $childOriginId, string $relationshipType = 'child'): bool
     {
+        // Validate parent and child IDs - must be > 0 to satisfy foreign key constraints
+        if ($parentOriginId <= 0 || $childOriginId <= 0) {
+            error_log("CrawlFlow Phase 1: Cannot save reference - invalid IDs (parent: {$parentOriginId}, child: {$childOriginId})");
+            return false;
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins_references';
+
+        // Verify parent origin exists in database
+        $parentExists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}rake_data_origins WHERE id = %d",
+            $parentOriginId
+        ));
+
+        if (!$parentExists) {
+            error_log("CrawlFlow Phase 1: Cannot save reference - parent origin ID {$parentOriginId} does not exist");
+            return false;
+        }
+
+        // Verify child origin exists in database
+        $childExists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}rake_data_origins WHERE id = %d",
+            $childOriginId
+        ));
+
+        if (!$childExists) {
+            error_log("CrawlFlow Phase 1: Cannot save reference - child origin ID {$childOriginId} does not exist");
+            return false;
+        }
 
         // Check if reference already exists
         $existing = $wpdb->get_var($wpdb->prepare(
@@ -211,12 +260,17 @@ abstract class AbstractDataSourceHandler
         }
 
         // Insert new reference
-        $wpdb->insert($table, [
+        $result = $wpdb->insert($table, [
             'parent_origin_id' => $parentOriginId,
             'child_origin_id' => $childOriginId,
             'relationship_type' => $relationshipType,
             'created_at' => current_time('mysql'),
         ]);
+
+        if ($result === false) {
+            error_log("CrawlFlow Phase 1: Failed to insert reference - " . $wpdb->last_error);
+            return false;
+        }
 
         return (int)$wpdb->insert_id > 0;
     }
@@ -226,16 +280,26 @@ abstract class AbstractDataSourceHandler
      * 
      * @param int $projectId Project ID
      * @param array $source Data source configuration
-     * @return int Source ID
+     * @return int Source ID (0 if failed)
      */
     protected function ensureDataSourceInDb(int $projectId, array $source): int
     {
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_sources';
 
-        // If source already has ID, return it
+        // If source already has ID, verify it exists in database
         if (isset($source['id']) && !empty($source['id'])) {
-            return (int)$source['id'];
+            $sourceId = (int)$source['id'];
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table} WHERE id = %d",
+                $sourceId
+            ));
+            
+            if ($exists) {
+                return $sourceId;
+            } else {
+                error_log("CrawlFlow Phase 1: Source ID {$sourceId} from source config does not exist in database, will create new");
+            }
         }
 
         // Check if source exists by name and project
@@ -251,7 +315,7 @@ abstract class AbstractDataSourceHandler
         }
 
         // Create new source
-        $wpdb->insert($table, [
+        $result = $wpdb->insert($table, [
             'tooth_id' => $projectId,
             'type' => $source['type'] ?? 'url',
             'name' => $source['name'] ?? 'Data Source',
@@ -259,7 +323,18 @@ abstract class AbstractDataSourceHandler
             'created_at' => current_time('mysql'),
         ]);
 
-        return (int)$wpdb->insert_id;
+        if ($result === false) {
+            error_log("CrawlFlow Phase 1: Failed to create data source - " . $wpdb->last_error);
+            return 0;
+        }
+
+        $insertId = (int)$wpdb->insert_id;
+        if ($insertId <= 0) {
+            error_log("CrawlFlow Phase 1: Failed to get insert ID for data source");
+            return 0;
+        }
+
+        return $insertId;
     }
 }
 
