@@ -547,6 +547,19 @@ const App: React.FC = () => {
 
 
   const addNode = (type: string, data: NodeData, sourceNode: Node | null = null) => {
+    // Repository Node Logic - Prevent adding if already exists
+    if (type === 'repository') {
+      const existingRepositoryNodes = nodes.filter(n => n.type === 'repository');
+      if (existingRepositoryNodes.length > 0) {
+        dialog.showAlert(
+          'Flow can have maximum 1 Raw Items Repository node. Please remove the existing repository node first.',
+          'warning',
+          'Maximum Repository Nodes Exceeded'
+        );
+        return;
+      }
+    }
+
     // Start Node Logic
     if (type === 'start') {
       const startNodes = nodes.filter(n => n.type === 'start');

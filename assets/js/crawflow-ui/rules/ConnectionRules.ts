@@ -405,6 +405,15 @@ export class ConnectionRuleEngine {
       );
     }
 
+    // 4. Validate max instance of repository nodes (max 1 repository node per flow)
+    const repositoryNodes = nodes.filter(n => n.type === 'repository');
+    if (repositoryNodes.length > 1) {
+      errors.push(
+        `Flow can have maximum 1 Raw Items Repository node, but found ${repositoryNodes.length}. ` +
+        `Please remove extra repository nodes.`
+      );
+    }
+
     return {
       isValid: errors.length === 0,
       errors,
