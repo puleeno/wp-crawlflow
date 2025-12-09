@@ -1713,14 +1713,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                 <label className={commonLabelClasses}>Description</label>
                 <textarea value={projectSettings.description} onChange={e => onUpdateProjectSettings({ description: e.target.value })} className={`${commonInputClasses} h-24`} />
             </div>
-             <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className={commonLabelClasses}>Crawl Delay (ms)</label>
-                    <input type="number" value={projectSettings.crawlDelay} onChange={e => onUpdateProjectSettings({ crawlDelay: parseInt(e.target.value) })} className={commonInputClasses} />
+                    <label className={commonLabelClasses}>Schedule (ms giữa mỗi lần chạy)</label>
+                    <input
+                        type="number"
+                        value={projectSettings.crawlDelay}
+                        onChange={e => onUpdateProjectSettings({ crawlDelay: parseInt(e.target.value) })}
+                        className={commonInputClasses}
+                    />
                 </div>
                  <div>
-                    <label className={commonLabelClasses}>Concurrency</label>
-                    <input type="number" value={projectSettings.concurrency} onChange={e => onUpdateProjectSettings({ concurrency: parseInt(e.target.value) })} className={commonInputClasses} />
+                    <label className={commonLabelClasses}>Số items tối đa mỗi lần cron xử lý</label>
+                    <input
+                        type="number"
+                        value={projectSettings.concurrency}
+                        onChange={e => onUpdateProjectSettings({ concurrency: parseInt(e.target.value) })}
+                        className={commonInputClasses}
+                    />
                 </div>
             </div>
             <div>
