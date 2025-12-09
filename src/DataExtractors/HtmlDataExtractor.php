@@ -29,6 +29,12 @@ class HtmlDataExtractor implements ParserInterface
         $this->crawler = new Crawler($html);
         $results = [];
 
+        // Log extraction start
+        $this->logExtraction('Starting HTML data extraction', [
+            'rules_count' => count($rules),
+            'html_length' => strlen($html),
+        ]);
+
         foreach ($rules as $rule) {
             $name = $rule['name'] ?? 'field';
             $selector = $rule['selector'] ?? '';
@@ -37,24 +43,117 @@ class HtmlDataExtractor implements ParserInterface
             $multiple = $rule['extractMultiple'] ?? $rule['multiple'] ?? false;
 
             if (empty($selector)) {
+                $this->logExtraction("Skipping rule '{$name}': empty selector", [
+                    'rule' => $name,
+                ]);
                 continue;
             }
 
             try {
+                $value = null;
+                
                 // Special handling for breadcrumbs: extract both text and href
                 if ($name === 'breadcrumbs' && $multiple) {
-                    $results[$name] = $this->extractBreadcrumbs($selector);
+                    $value = $this->extractBreadcrumbs($selector);
                 } elseif ($multiple) {
-                    $results[$name] = $this->extractMultiple($selector, $extractType, $attribute);
+                    $value = $this->extractMultiple($selector, $extractType, $attribute);
                 } else {
-                    $results[$name] = $this->extractSingle($selector, $extractType, $attribute);
+                    $value = $this->extractSingle($selector, $extractType, $attribute);
                 }
+
+                $results[$name] = $value;
+
+                // Log extraction result for each rule
+                $this->logExtraction("Extracted data for rule '{$name}'", [
+                    'rule' => $name,
+                    'selector' => $selector,
+                    'extract_type' => $extractType,
+                    'attribute' => $attribute,
+                    'multiple' => $multiple,
+                    'value_type' => gettype($value),
+                    'value' => $this->formatValueForLog($value),
+                    'value_length' => is_string($value) ? strlen($value) : (is_array($value) ? count($value) : null),
+                ]);
+
             } catch (\Exception $e) {
                 $results[$name] = null;
+                $this->logExtraction("Failed to extract data for rule '{$name}'", [
+                    'rule' => $name,
+                    'selector' => $selector,
+                    'extract_type' => $extractType,
+                    'error' => $e->getMessage(),
+                ], 'error');
             }
         }
 
+        // Log extraction summary
+        $this->logExtraction('HTML data extraction completed', [
+            'rules_processed' => count($rules),
+            'results_count' => count($results),
+            'successful_extractions' => count(array_filter($results, fn($v) => $v !== null)),
+        ]);
+
         return $results;
+    }
+
+    /**
+     * Format value for logging (truncate long values)
+     * 
+     * @param mixed $value Value to format
+     * @return mixed Formatted value
+     */
+    private function formatValueForLog($value)
+    {
+        if (is_string($value)) {
+            // Truncate long strings
+            $maxLength = 200;
+            if (strlen($value) > $maxLength) {
+                return substr($value, 0, $maxLength) . '... (truncated, length: ' . strlen($value) . ')';
+            }
+            return $value;
+        }
+        
+        if (is_array($value)) {
+            // For arrays, show count and first few items
+            $count = count($value);
+            if ($count > 5) {
+                $preview = array_slice($value, 0, 3);
+                return [
+                    'count' => $count,
+                    'preview' => $preview,
+                    'note' => '... (showing first 3 of ' . $count . ' items)',
+                ];
+            }
+            return $value;
+        }
+        
+        return $value;
+    }
+
+    /**
+     * Log extraction message
+     * 
+     * @param string $message Log message
+     * @param array $context Additional context
+     * @param string $level Log level (info, error, debug)
+     * @return void
+     */
+    private function logExtraction(string $message, array $context = [], string $level = 'info'): void
+    {
+        if (class_exists('\Rake\Facade\Logger')) {
+            $context['component'] = 'HtmlDataExtractor';
+            switch ($level) {
+                case 'error':
+                    \Rake\Facade\Logger::error($message, $context);
+                    break;
+                case 'debug':
+                    \Rake\Facade\Logger::debug($message, $context);
+                    break;
+                default:
+                    \Rake\Facade\Logger::info($message, $context);
+                    break;
+            }
+        }
     }
 
     /**
