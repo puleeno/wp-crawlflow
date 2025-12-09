@@ -386,6 +386,12 @@ class CronScheduler
      */
     public function executePhase1($arg = null): void
     {
+        $eventName = current_filter() ?: 'crawlflow_phase1_crawl';
+        $lockId = $this->acquireEventLock($eventName);
+        if ($lockId === null) {
+            return;
+        }
+
         $projectId = null;
         
         // Try to get project ID from argument
@@ -427,10 +433,12 @@ class CronScheduler
             $this->logPhaseExecution($projectId, 'phase1_crawl', $result);
             
             error_log("CrawlFlow Phase 1: Completed for project {$projectId} - " . json_encode($result));
+            $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
             error_log("CrawlFlow Phase 1: Exception for project {$projectId} - " . $e->getMessage());
             error_log("CrawlFlow Phase 1: Stack trace: " . $e->getTraceAsString());
+            $this->completeEventLock($lockId, 'error');
         }
     }
 
@@ -454,6 +462,120 @@ class CronScheduler
             }
         }
         return null;
+    }
+
+    /**
+     * Try to acquire lock for an event; returns lock id or null if canceled
+     */
+    private function acquireEventLock(string $eventName): ?int
+    {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'rake_event_status';
+        $now = current_time('mysql');
+        $pid = getmypid();
+
+        // Check existing running/pending event
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE event_name = %s AND status IN ('pending','running')
+             ORDER BY updated_at DESC
+             LIMIT 1",
+            $eventName
+        ), ARRAY_A);
+
+        if ($existing) {
+            $alive = $this->isProcessAlive((int)$existing['process_id'], $existing['updated_at'] ?? null);
+            if ($alive) {
+                // Insert cancel record for current process and skip
+                $wpdb->insert($table, [
+                    'event_name' => $eventName,
+                    'process_id' => $pid,
+                    'status' => 'cancel',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+                error_log("CrawlFlow Cron: Event {$eventName} already running by PID {$existing['process_id']}, skipping current PID {$pid}");
+                return null;
+            }
+
+            // Mark stale process as error
+            $wpdb->update(
+                $table,
+                [
+                    'status' => 'error',
+                    'updated_at' => $now,
+                ],
+                ['id' => $existing['id']],
+                ['%s', '%s'],
+                ['%d']
+            );
+        }
+
+        // Insert new running record
+        $wpdb->insert($table, [
+            'event_name' => $eventName,
+            'process_id' => $pid,
+            'status' => 'running',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        return (int)$wpdb->insert_id;
+    }
+
+    /**
+     * Complete lock with status
+     */
+    private function completeEventLock(int $lockId, string $status): void
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_event_status';
+        $wpdb->update(
+            $table,
+            [
+                'status' => $status,
+                'updated_at' => current_time('mysql'),
+            ],
+            ['id' => $lockId],
+            ['%s', '%s'],
+            ['%d']
+        );
+    }
+
+    /**
+     * Check if OS process is still alive
+     */
+    private function isProcessAlive(int $pid, ?string $updatedAt = null): bool
+    {
+        if ($pid <= 0) {
+            return false;
+        }
+
+        // POSIX check
+        if (function_exists('posix_kill')) {
+            return @posix_kill($pid, 0);
+        }
+
+        if (function_exists('posix_getpgid')) {
+            return posix_getpgid($pid) !== false;
+        }
+
+        // Linux /proc
+        if (DIRECTORY_SEPARATOR === '/' && file_exists("/proc/{$pid}")) {
+            return true;
+        }
+
+        // Fallback: consider stale if last update > 10 minutes
+        if ($updatedAt) {
+            $updatedTs = strtotime($updatedAt);
+            if ($updatedTs && (time() - $updatedTs) > 600) {
+                return false;
+            }
+        }
+
+        // Unknown platform, assume alive to be safe
+        return true;
     }
 
     /**
@@ -499,6 +621,12 @@ class CronScheduler
      */
     public function executePhase2($arg = null): void
     {
+        $eventName = current_filter() ?: 'crawlflow_phase2_process';
+        $lockId = $this->acquireEventLock($eventName);
+        if ($lockId === null) {
+            return;
+        }
+
         $projectId = null;
         
         if (is_numeric($arg)) {
@@ -531,9 +659,11 @@ class CronScheduler
             $this->logPhaseExecution($projectId, 'phase2_process', $result);
             
             error_log("CrawlFlow Phase 2: Completed for project {$projectId}");
+            $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
             error_log("CrawlFlow Phase 2: Failed for project {$projectId} - " . $e->getMessage());
+            $this->completeEventLock($lockId, 'error');
         }
     }
 
@@ -544,6 +674,12 @@ class CronScheduler
      */
     public function executePhase3($arg = null): void
     {
+        $eventName = current_filter() ?: 'crawlflow_phase3_resources';
+        $lockId = $this->acquireEventLock($eventName);
+        if ($lockId === null) {
+            return;
+        }
+
         $projectId = null;
         
         if (is_numeric($arg)) {
@@ -576,9 +712,11 @@ class CronScheduler
             $this->logPhaseExecution($projectId, 'phase3_resources', $result);
             
             error_log("CrawlFlow Phase 3: Completed for project {$projectId}");
+            $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
             error_log("CrawlFlow Phase 3: Failed for project {$projectId} - " . $e->getMessage());
+            $this->completeEventLock($lockId, 'error');
         }
     }
 

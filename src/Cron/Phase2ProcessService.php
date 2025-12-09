@@ -188,6 +188,7 @@ class Phase2ProcessService
             )
             AND (o.crawled = 0 OR o.crawled IS NULL) -- Only get items that haven't been crawled yet
             AND (o.ignored = 0 OR o.ignored IS NULL) -- Only get items that are not ignored
+            AND (o.process_id IS NULL OR o.process_id = 0) -- Only items not claimed by another process
             AND latest_parsed.origin_id IS NULL -- Only get items that have never been parsed
             ORDER BY 
                 o.priority ASC, -- Order by priority (lower priority = higher priority for processing)
@@ -202,9 +203,42 @@ class Phase2ProcessService
 
         $results = $wpdb->get_results($query, ARRAY_A);
         $count = is_array($results) ? count($results) : 0;
+
+        // Claim items with current process_id in a single query to avoid duplicate processing
+        if ($count > 0) {
+            $ids = array_map(function ($row) {
+                return (int)($row['id'] ?? 0);
+            }, $results);
+            $ids = array_filter($ids);
+            if (!empty($ids)) {
+                $pid = getmypid();
+                $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE {$originsTable} SET process_id = %d WHERE id IN ({$placeholders})",
+                    array_merge([$pid], $ids)
+                ));
+            }
+        }
+
         error_log("CrawlFlow Phase 2: Found {$count} raw items for project {$projectId}");
         
         return is_array($results) ? $results : [];
+    }
+
+    /**
+     * Ensure process_id column exists on origins table
+     */
+    private function maybeAddProcessIdColumn(string $originsTable): void
+    {
+        global $wpdb;
+        $column = $wpdb->get_var($wpdb->prepare(
+            "SHOW COLUMNS FROM {$originsTable} LIKE %s",
+            'process_id'
+        ));
+
+        if (!$column) {
+            $wpdb->query("ALTER TABLE {$originsTable} ADD COLUMN process_id BIGINT NULL DEFAULT NULL AFTER source_id");
+        }
     }
 
     /**
