@@ -11,6 +11,7 @@ declare global {
       parsers: Parser[];
       httpClients: HttpClient[];
       completionActions: CompletionAction[];
+      phase1Actions: Phase1Action[];
       nonce: string;
       ajaxUrl: string;
     };
@@ -57,6 +58,13 @@ export interface CompletionAction {
   configFields: ConfigField[];
 }
 
+export interface Phase1Action {
+  id: string;
+  label: string;
+  description: string;
+  priority: number;
+}
+
 export interface ConfigField {
   name: string;
   type: 'text' | 'number' | 'select' | 'file' | 'textarea' | 'checkbox' | 'url' | 'password';
@@ -77,6 +85,7 @@ export function useRegistry() {
   const [parsers, setParsers] = useState<Parser[]>([]);
   const [httpClients, setHttpClients] = useState<HttpClient[]>([]);
   const [completionActions, setCompletionActions] = useState<CompletionAction[]>([]);
+  const [phase1Actions, setPhase1Actions] = useState<Phase1Action[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -87,6 +96,7 @@ export function useRegistry() {
       setParsers(window.crawlflowRegistry.parsers || []);
       setHttpClients(window.crawlflowRegistry.httpClients || []);
       setCompletionActions(window.crawlflowRegistry.completionActions || []);
+      setPhase1Actions(window.crawlflowRegistry.phase1Actions || []);
       setLoading(false);
     } else {
       console.warn('CrawlFlow registry data not found');
@@ -100,6 +110,7 @@ export function useRegistry() {
     parsers,
     httpClients,
     completionActions,
+    phase1Actions,
     loading,
     nonce: window.crawlflowRegistry?.nonce || '',
     ajaxUrl: window.crawlflowRegistry?.ajaxUrl || '/wp-admin/admin-ajax.php',

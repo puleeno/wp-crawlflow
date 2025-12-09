@@ -44,6 +44,11 @@ class Worker implements WorkerInterface
     private array $processorChain;
 
     /**
+     * @var bool Flag indicating if this worker handles archive pages
+     */
+    private bool $isArchive;
+
+    /**
      * Constructor
      */
     public function __construct(array $config)
@@ -54,6 +59,7 @@ class Worker implements WorkerInterface
         $this->detectionLogic = $config['detectionLogic'] ?? $config['detection_logic'] ?? 'and';
         $this->parserConfig = $config['parser'] ?? [];
         $this->processorChain = $config['processors'] ?? $config['processor_chain'] ?? [];
+        $this->isArchive = (bool)($config['isArchive'] ?? $config['is_archive'] ?? false);
     }
 
     /**
@@ -70,6 +76,16 @@ class Worker implements WorkerInterface
     public function getPriority(): int
     {
         return $this->priority;
+    }
+
+    /**
+     * Check if this worker handles archive pages
+     * 
+     * @return bool
+     */
+    public function isArchive(): bool
+    {
+        return $this->isArchive;
     }
 
     /**

@@ -110,6 +110,9 @@ export interface StartNodeData {
   apiSettings?: APISourceSettings;
   xmlSettings?: XMLSourceSettings;
   jsonSettings?: JSONSourceSettings;
+  
+  // Phase 1 actions to execute
+  phase1Actions?: string[]; // Array of action IDs
 }
 // --- END OF NEW TYPES ---
 
@@ -305,6 +308,7 @@ export interface WorkerNodeData {
   detectionRules: WorkerRule[];
   detectionLogic: 'and' | 'or';
   priority: number;
+  isArchive?: boolean; // Flag indicating if this worker handles archive pages (category pages, listing pages, etc.)
 }
 
 // FIX: Added CompletionNodeData interface to fix import error.

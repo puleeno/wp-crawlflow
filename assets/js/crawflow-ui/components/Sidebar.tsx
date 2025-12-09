@@ -217,6 +217,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onAddNode, selectedNode, isOpen, onCl
       }],
       detectionLogic: 'and',
       priority: 1,
+      isArchive: false,
     };
     handleAddNode('worker', data, selectedNode);
   };

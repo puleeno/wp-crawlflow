@@ -150,6 +150,7 @@ class WorkerCacheService
                 'priority' => (int)($nodeData['priority'] ?? 0),
                 'detectionRules' => $nodeData['detectionRules'] ?? [],
                 'detectionLogic' => $nodeData['detectionLogic'] ?? 'and',
+                'isArchive' => (bool)($nodeData['isArchive'] ?? false),
                 'parser' => [
                     'rules' => $mergedRules,
                 ],

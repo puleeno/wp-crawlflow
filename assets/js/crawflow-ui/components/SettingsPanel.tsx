@@ -102,6 +102,7 @@ const TagInput: React.FC<{ label: string; tags: string[]; onChange: (tags: strin
 // --- Start Node Settings ---
 const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: StartNodeData) => void }> = ({ node, onUpdate }) => {
     const { data } = node;
+    const { phase1Actions } = useRegistry();
 
     const handleUpdate = <K extends keyof StartNodeData>(key: K, value: StartNodeData[K]) => {
         onUpdate({ ...data, [key]: value });
@@ -115,6 +116,14 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                 ...update,
             }
         });
+    };
+
+    const handleActionToggle = (actionId: string) => {
+        const currentActions = data.phase1Actions || [];
+        const newActions = currentActions.includes(actionId)
+            ? currentActions.filter(id => id !== actionId)
+            : [...currentActions, actionId];
+        handleUpdate('phase1Actions', newActions);
     };
 
     const renderFileBasedInputs = () => {
@@ -447,6 +456,52 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
             {data.sourceType === 'api' && renderAPISettings()}
             {data.sourceType === 'xml' && renderXMLSettings()}
             {data.sourceType === 'json' && renderJSONSettings()}
+
+            {/* Phase 1 Actions */}
+            {phase1Actions.length > 0 && (
+                <CollapsibleSection title="Phase 1 Actions" defaultOpen>
+                    <div className="space-y-3">
+                        <p className="text-sm text-gray-600 mb-3">
+                            Select actions to execute during Phase 1 for this data source:
+                        </p>
+                        {phase1Actions.map((action) => {
+                            const isSelected = (data.phase1Actions || []).includes(action.id);
+                            return (
+                                <div
+                                    key={action.id}
+                                    className={`p-3 rounded-lg border transition-colors ${
+                                        isSelected
+                                            ? 'bg-blue-50 border-blue-200'
+                                            : 'bg-white border-slate-200 hover:border-slate-300'
+                                    }`}
+                                >
+                                    <label className="flex items-start gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => handleActionToggle(action.id)}
+                                            className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <div className="flex-1">
+                                            <div className="font-medium text-gray-900">
+                                                {action.label}
+                                            </div>
+                                            {action.description && (
+                                                <div className="text-sm text-gray-600 mt-1">
+                                                    {action.description}
+                                                </div>
+                                            )}
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                Priority: {action.priority}
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </CollapsibleSection>
+            )}
         </div>
     );
 };
@@ -1404,6 +1459,24 @@ const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data
              <div className="flex justify-between items-center">
                  <label className={commonLabelClasses}>Priority</label>
                  <input type="number" value={data.priority} onChange={e => onUpdate({ ...data, priority: parseInt(e.target.value) })} className={`${commonInputClasses} w-24`} />
+             </div>
+
+             <div className="flex justify-between items-center">
+                 <div className="flex items-center gap-2">
+                     <input
+                         type="checkbox"
+                         id="isArchive"
+                         checked={data.isArchive || false}
+                         onChange={e => onUpdate({ ...data, isArchive: e.target.checked })}
+                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                     />
+                     <label htmlFor="isArchive" className={commonLabelClasses + " mb-0 cursor-pointer"}>
+                         Is Archive Page
+                     </label>
+                 </div>
+                 <span className="text-xs text-gray-500">
+                     Category pages, listing pages that contain multiple items
+                 </span>
              </div>
 
              <CollapsibleSection title="Detection Rules" defaultOpen>

@@ -7,6 +7,7 @@ use Rake\Manager\ProcessorManager;
 use Rake\Manager\ParserManager;
 use Rake\Manager\HttpClientManager;
 use Rake\Manager\CompletionActionManager;
+use Rake\Actions\ContextActionManager;
 
 /**
  * Registry Service
@@ -28,6 +29,7 @@ class RegistryService
             'parsers' => $this->getParsers(),
             'httpClients' => $this->getHttpClients(),
             'completionActions' => $this->getCompletionActions(),
+            'phase1Actions' => $this->getPhase1Actions(),
         ];
     }
 
@@ -506,6 +508,34 @@ class RegistryService
         
         // Allow external plugins to modify completion actions
         return apply_filters('crawlflow_registered_completion_actions', $actions);
+    }
+
+    /**
+     * Get registered Phase 1 context actions
+     * 
+     * @return array
+     */
+    public function getPhase1Actions(): array
+    {
+        $actions = ContextActionManager::getActions('phase1');
+        $actionList = [];
+
+        foreach ($actions as $actionId => $action) {
+            $actionList[] = [
+                'id' => $actionId,
+                'label' => $action->getLabel(),
+                'description' => $action->getDescription(),
+                'priority' => $action->getPriority(),
+            ];
+        }
+
+        // Sort by priority (lower priority = higher priority)
+        usort($actionList, function($a, $b) {
+            return $a['priority'] <=> $b['priority'];
+        });
+
+        // Allow external plugins to modify phase 1 actions
+        return apply_filters('crawlflow_registered_phase1_actions', $actionList);
     }
 }
 

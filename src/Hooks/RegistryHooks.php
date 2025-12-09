@@ -42,6 +42,9 @@ class RegistryHooks
         // Hook to register phase actions (phase1, phase2, phase3)
         do_action('crawlflow_register_phase_actions');
 
+        // Register default Phase 1 actions
+        self::registerDefaultPhaseActions();
+
         // Register default types
         self::registerDefaults();
     }
@@ -59,6 +62,9 @@ class RegistryHooks
 
         // Register built-in completion actions
         self::registerBuiltInCompletionActions();
+
+        // Register default phase actions
+        self::registerDefaultPhaseActions();
 
         // Register WordPress-specific processors
         if (!ProcessorManager::has('save_to_wordpress')) {
@@ -222,6 +228,19 @@ class RegistryHooks
                     'category' => 'media',
                     'enabled' => true
                 ]
+            );
+        }
+    }
+
+    /**
+     * Register default Phase 1 actions
+     */
+    private static function registerDefaultPhaseActions(): void
+    {
+        // Register Data Update Checker action (Bonus Phase)
+        if (!\Rake\Actions\ContextActionManager::hasAction('phase1', 'data_update_checker')) {
+            \Rake\Actions\ContextActionManager::register(
+                new \Rake\Actions\DataUpdateCheckerAction()
             );
         }
     }

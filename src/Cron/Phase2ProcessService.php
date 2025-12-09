@@ -87,8 +87,11 @@ class Phase2ProcessService
             // Get Reception instance (cached by project ID)
             $reception = $this->workerCacheService->getReception($projectId, $flowConfig);
 
+            // Store project ID for use in processRawItemsWithVersioning
+            $this->currentProjectId = $projectId;
+
             // Process raw items with versioning tracking
-            $results = $this->processRawItemsWithVersioning($rawItems, $reception);
+            $results = $this->processRawItemsWithVersioning($rawItems, $reception, $projectId);
 
             // Execute complete actions and mark as saved
             $this->executeCompleteActions($projectId, $results, $flowConfig);
@@ -295,6 +298,34 @@ class Phase2ProcessService
                     'error' => 'No worker can handle this item',
                 ];
                 continue;
+            }
+
+            // If worker has isArchive flag, set is_archive flag in database
+            if ($worker->isArchive()) {
+                global $wpdb;
+                $table = $wpdb->prefix . 'rake_data_origins';
+                
+                // Get current metadata to preserve it
+                $currentMetadata = $wpdb->get_var($wpdb->prepare(
+                    "SELECT metadata FROM {$table} WHERE id = %d",
+                    $originId
+                ));
+                
+                $metadata = json_decode($currentMetadata, true) ?: [];
+                $metadata['project_id'] = $this->currentProjectId; // Store project_id for filtering
+                
+                $wpdb->update(
+                    $table,
+                    [
+                        'is_archive' => 1,
+                        'metadata' => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                        'updated_at' => current_time('mysql'),
+                    ],
+                    ['id' => $originId],
+                    ['%d', '%s', '%s'],
+                    ['%d']
+                );
+                error_log("CrawlFlow Phase 2: Set is_archive=1 for origin {$originId} (worker: {$worker->getName()})");
             }
 
             try {
