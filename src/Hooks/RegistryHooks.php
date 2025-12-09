@@ -39,6 +39,9 @@ class RegistryHooks
         // Hook to register completion actions
         do_action('crawlflow_register_completion_actions');
 
+        // Hook to register phase actions (phase1, phase2, phase3)
+        do_action('crawlflow_register_phase_actions');
+
         // Register default types
         self::registerDefaults();
     }

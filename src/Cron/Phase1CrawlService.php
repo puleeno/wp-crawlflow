@@ -5,6 +5,8 @@ namespace CrawlFlow\Cron;
 use CrawlFlow\Admin\ProjectService;
 use CrawlFlow\Cron\Phase1\DataSourceHandlerFactory;
 use CrawlFlow\Cron\ProjectCacheService;
+use Rake\Actions\ContextActionManager;
+use Rake\Actions\ActionContext;
 use Ramphor\Rake\Rake;
 
 /**
@@ -98,6 +100,19 @@ class Phase1CrawlService
                 $results['items_saved'],
                 $results['references_saved']
             ));
+
+            // Execute Phase 1 actions
+            $actionContext = new ActionContext(
+                'phase1',
+                $projectId,
+                $results,
+                $flowConfig
+            );
+            
+            $actionResults = ContextActionManager::execute('phase1', $actionContext);
+            $results['actions'] = $actionResults;
+            
+            error_log("CrawlFlow Phase 1: Executed " . count($actionResults) . " action(s)");
 
             return $results;
 
