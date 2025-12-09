@@ -68,8 +68,15 @@ class Phase2ProcessService
                 throw new \RuntimeException("No flow config for project {$projectId}");
             }
 
+            // Determine batch size from project settings (concurrency = max items per cron run)
+            $projectSettings = $flowConfig['projectSettings'] ?? [];
+            $maxItemsPerRun = (int)($projectSettings['concurrency'] ?? 50);
+            if ($maxItemsPerRun <= 0) {
+                $maxItemsPerRun = 50; // sensible fallback
+            }
+
             // Get raw items from rake_data_origins for this project
-            $rawItems = $this->getRawItems($projectId);
+            $rawItems = $this->getRawItems($projectId, $maxItemsPerRun);
 
             if (empty($rawItems)) {
                 error_log("CrawlFlow Phase 2: No raw items found for project {$projectId}");
@@ -129,7 +136,7 @@ class Phase2ProcessService
      * Get raw items from rake_data_origins for project
      * Includes both parent origins (with source_id) and child origins (via references)
      */
-    private function getRawItems(int $projectId): array
+    private function getRawItems(int $projectId, int $limit = 50): array
     {
         global $wpdb;
         
@@ -186,10 +193,11 @@ class Phase2ProcessService
                 o.priority ASC, -- Order by priority (lower priority = higher priority for processing)
                 CASE WHEN o.source_id IS NULL THEN 0 ELSE 1 END, -- Prioritize child origins (products/categories) over parent origins
                 o.fetched_at ASC
-            LIMIT 50",
+            LIMIT %d",
             $projectId,
             $projectId,
-            $projectId
+            $projectId,
+            $limit
         );
 
         $results = $wpdb->get_results($query, ARRAY_A);

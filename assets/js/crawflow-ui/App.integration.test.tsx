@@ -137,9 +137,9 @@ describe('CrawlFlow App - Integration Tests', () => {
             name: 'Test Project',
             description: 'Test',
             enabled: true,
-            crawlDelay: 1000,
+            crawlDelay: 300000,
             userAgent: 'Test',
-            concurrency: 5
+            concurrency: 50
           },
           nodes: [
             { id: 'repo', type: 'repository', position: { x: 0, y: 0 }, data: {} },
@@ -303,9 +303,9 @@ describe('CrawlFlow App - Integration Tests', () => {
             name: 'Test',
             description: '',
             enabled: true,
-            crawlDelay: 1000,
+            crawlDelay: 300000,
             userAgent: 'Test',
-            concurrency: 5
+            concurrency: 50
           },
           nodes: [
             { id: 'w1', type: 'worker', position: { x: 0, y: 0 }, data: {} },
@@ -335,9 +335,9 @@ describe('CrawlFlow App - Integration Tests', () => {
             name: 'Test',
             description: '',
             enabled: true,
-            crawlDelay: 1000,
+            crawlDelay: 300000,
             userAgent: 'Test',
-            concurrency: 5
+            concurrency: 50
           },
           nodes: [
             { id: 'w1', type: 'worker', position: { x: 0, y: 0 }, data: {} },

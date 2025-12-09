@@ -449,9 +449,9 @@ describe('Comprehensive Flow Tests - All Scenarios', () => {
           name: 'Imported Project',
           description: 'Test',
           enabled: true,
-          crawlDelay: 1000,
+          crawlDelay: 300000,
           userAgent: 'Test',
-          concurrency: 5
+          concurrency: 50
         },
         nodes: [
           { id: 's1', type: 'start', position: { x: 100, y: 50 }, data: {} },
@@ -478,7 +478,7 @@ describe('Comprehensive Flow Tests - All Scenarios', () => {
 
     test('Import INVALID JSON → Show confirm, clean if accepted', () => {
       const importedConfig = {
-        projectSettings: { name: 'Test', description: '', enabled: true, crawlDelay: 1000, userAgent: '', concurrency: 5 },
+        projectSettings: { name: 'Test', description: '', enabled: true, crawlDelay: 300000, userAgent: '', concurrency: 50 },
         nodes: [
           { id: 's1', type: 'start', position: { x: 100, y: 50 }, data: {} },
           { id: 'repository-node', type: 'repository', position: { x: 100, y: 200 }, data: {} },

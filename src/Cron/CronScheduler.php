@@ -171,8 +171,20 @@ class CronScheduler
             return;
         }
 
-        // All phases run every 5 minutes by default
-        $schedule = 'every_5_minutes';
+        // Determine schedule from project settings: use crawlDelay (ms) as interval between runs
+        $crawlDelayMs = (int)($projectSettings['crawlDelay'] ?? 300000); // default 5 minutes
+        $intervalSeconds = max(60, (int)round($crawlDelayMs / 1000)); // enforce minimum 60s
+        $scheduleSlug = 'crawlflow_project_' . $projectId;
+
+        // Register custom schedule for this project (per-interval)
+        add_filter('cron_schedules', function ($schedules) use ($scheduleSlug, $intervalSeconds) {
+            $schedules[$scheduleSlug] = [
+                'interval' => $intervalSeconds,
+                'display' => "CrawlFlow Project interval ({$intervalSeconds}s)",
+            ];
+            return $schedules;
+        });
+        $schedule = $scheduleSlug;
 
         // Unschedule existing phases
         $this->unscheduleProject($projectId);
@@ -194,15 +206,15 @@ class CronScheduler
             add_action($phase3Hook, [$this, 'executePhase3'], 10, 1);
         }
 
-        // Schedule Phase 1 (Crawl) - runs first, every 5 minutes
+        // Schedule Phase 1 (Crawl) - runs first
         $timestamp = time();
         $scheduled1 = wp_schedule_event($timestamp, $schedule, $phase1Hook, [$projectId]);
 
-        // Schedule Phase 2 (Process) - runs after Phase 1 (delay by 1 minute), every 5 minutes
+        // Schedule Phase 2 (Process) - runs after Phase 1 (delay by 1 minute)
         $timestamp2 = $timestamp + 60;
         $scheduled2 = wp_schedule_event($timestamp2, $schedule, $phase2Hook, [$projectId]);
 
-        // Schedule Phase 3 (Resources) - runs after Phase 2 (delay by 2 minutes), every 5 minutes
+        // Schedule Phase 3 (Resources) - runs after Phase 2 (delay by 2 minutes)
         $timestamp3 = $timestamp + 120;
         $scheduled3 = wp_schedule_event($timestamp3, $schedule, $phase3Hook, [$projectId]);
 

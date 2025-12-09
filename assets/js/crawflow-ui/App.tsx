@@ -155,9 +155,9 @@ const App: React.FC = () => {
     name: 'My Crawler Project',
     description: 'A new web crawler configuration.',
     enabled: true,
-    crawlDelay: 1000,
+    crawlDelay: 300000, // default 5 minutes
     userAgent: 'Crawler/1.0',
-    concurrency: 5,
+    concurrency: 50, // default max items per cron run
   });
   
   // State for UI panels

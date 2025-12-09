@@ -1713,23 +1713,39 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                 <label className={commonLabelClasses}>Description</label>
                 <textarea value={projectSettings.description} onChange={e => onUpdateProjectSettings({ description: e.target.value })} className={`${commonInputClasses} h-24`} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
                 <div>
-                    <label className={commonLabelClasses}>Schedule (ms giữa mỗi lần chạy)</label>
-                    <input
-                        type="number"
-                        value={projectSettings.crawlDelay}
+                    <label className={commonLabelClasses}>Schedule (khoảng cách giữa mỗi lần chạy)</label>
+                    <select
+                        value={projectSettings.crawlDelay ?? 300000}
                         onChange={e => onUpdateProjectSettings({ crawlDelay: parseInt(e.target.value) })}
                         className={commonInputClasses}
-                    />
+                    >
+                        {[
+                            { value: 60000, label: 'Mỗi 1 phút' },
+                            { value: 300000, label: 'Mỗi 5 phút' }, // default
+                            { value: 900000, label: 'Mỗi 15 phút' },
+                            { value: 1800000, label: 'Mỗi 30 phút' },
+                            { value: 3600000, label: 'Mỗi 1 giờ' },
+                            { value: 10800000, label: 'Mỗi 3 giờ' },
+                            { value: 21600000, label: 'Mỗi 6 giờ' },
+                            { value: 43200000, label: 'Mỗi 12 giờ' },
+                            { value: 86400000, label: 'Mỗi 24 giờ' },
+                        ].map(opt => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
                 </div>
-                 <div>
+                <div>
                     <label className={commonLabelClasses}>Số items tối đa mỗi lần cron xử lý</label>
                     <input
                         type="number"
-                        value={projectSettings.concurrency}
-                        onChange={e => onUpdateProjectSettings({ concurrency: parseInt(e.target.value) })}
+                        value={projectSettings.concurrency ?? 50}
+                        onChange={e => onUpdateProjectSettings({ concurrency: parseInt(e.target.value) || 50 })}
                         className={commonInputClasses}
+                        min={1}
                     />
                 </div>
             </div>
