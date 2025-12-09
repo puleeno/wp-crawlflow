@@ -933,7 +933,7 @@ $results = $reception->processRawItems($rawItems);
 
 ### SetCategoryParentFromBreadcrumbsProcessor
 **Location**: `wp-crawlflow-dentalpart/src/Processor/SetCategoryParentFromBreadcrumbsProcessor.php`  
-**Processor ID**: `set_category_parent_from_breadcrumbs`  
+**Processor ID**: `set_category_parent_from_references`  
 **Purpose**: Establishes parent-child relationships for WooCommerce product categories using breadcrumbs data.
 
 **Input Requirements**:

@@ -32,7 +32,7 @@ if ($wpTestsDir && file_exists($wpTestsDir . '/includes/functions.php')) {
     // Mock WordPress functions for unit tests
     require_once __DIR__ . '/mocks/wordpress-functions.php';
     // Load dentalpart processor for unit tests
-    $dentalpartProcessor = dirname(__DIR__) . '/../wp-crawlflow-dentalpart/src/Processor/SetCategoryParentFromBreadcrumbsProcessor.php';
+    $dentalpartProcessor = dirname(__DIR__) . '/../wp-crawlflow-dentalpart/src/Processor/LookingForParentCategoryProcessor.php';
     if (file_exists($dentalpartProcessor)) {
         require_once $dentalpartProcessor;
     }
