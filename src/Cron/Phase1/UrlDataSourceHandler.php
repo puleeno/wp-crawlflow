@@ -65,7 +65,7 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
             // This is a one-time fetch just to discover URLs
             $dataSource = new HttpDataSource();
             $response = $dataSource->fetch($url);
-            
+
             if (isset($response['status_code']) && $response['status_code'] === 200) {
                 $body = $response['body'] ?? '';
                 error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($body) . " bytes from {$url} to extract URLs (not saving raw_data)");
