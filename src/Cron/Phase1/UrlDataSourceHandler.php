@@ -7,7 +7,11 @@ use CrawlFlow\DataSources\HttpDataSource;
 /**
  * URL Data Source Handler
  * 
- * Handles crawling and URL extraction from HTTP/HTTPS URLs
+ * Phase 1: Only extracts URLs from data source and saves them to database
+ * - Fetches HTML/XML once to extract URLs (but does NOT save raw_data)
+ * - Saves URLs to rake_data_origins (without raw_data)
+ * - Detects worker priority for each URL
+ * - Phase 2 will fetch raw_data for these URLs
  */
 class UrlDataSourceHandler extends AbstractDataSourceHandler
 {
@@ -42,44 +46,43 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
             // Get or create source in database
             $sourceId = $this->ensureDataSourceInDb($projectId, $source);
             
-            // Fetch data using HttpDataSource
-            $dataSource = new HttpDataSource();
-            
             $url = $sourceConfig['url'];
             error_log("CrawlFlow Phase 1 (URL): Handler started for URL: {$url}");
-            error_log("CrawlFlow Phase 1 (URL): Fetching URL: {$url}");
             
-            $response = $dataSource->fetch($url);
+            // Phase 1: Only save URL to database, do NOT fetch/crawl data
+            // Save source URL to rake_data_origins (without raw_data)
+            $originId = $this->saveToDataOrigins($projectId, $sourceId > 0 ? $sourceId : null, $url, '', [], $flowConfig);
+            if ($originId > 0) {
+                $result['items_saved']++;
+                error_log("CrawlFlow Phase 1 (URL): Saved source URL to origins: {$url}");
+            } else {
+                error_log("CrawlFlow Phase 1 (URL): Failed to save origin for URL: {$url}");
+                $result['errors'][] = "Failed to save origin for URL: {$url}";
+                return $result;
+            }
 
+            // Phase 1: Fetch HTML only to extract child URLs, but do NOT save raw_data
+            // This is a one-time fetch just to discover URLs
+            $dataSource = new HttpDataSource();
+            $response = $dataSource->fetch($url);
+            
             if (isset($response['status_code']) && $response['status_code'] === 200) {
                 $body = $response['body'] ?? '';
-                error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($body) . " bytes from {$url}");
+                error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($body) . " bytes from {$url} to extract URLs (not saving raw_data)");
                 
-                // Save to rake_data_origins
-                $originId = $this->saveToDataOrigins($projectId, $sourceId > 0 ? $sourceId : null, $url, $body, [], $flowConfig);
-                if ($originId > 0) {
-                    $result['items_saved']++;
-                } else {
-                    error_log("CrawlFlow Phase 1 (URL): Failed to save origin for URL: {$url}");
-                    $result['errors'][] = "Failed to save origin for URL: {$url}";
-                    return $result; // Cannot continue without valid origin ID
-                }
-
-                // Extract URLs, save to origins, and create references
-                // Get URL settings from data source config (dpc_rake_data_sources.config)
+                // Extract URLs from HTML (but don't save the HTML)
+                // Get URL settings from data source config
                 $urlSettings = $this->getUrlSettingsFromSourceConfig($source);
                 error_log("CrawlFlow Phase 1 (URL): URL settings from source config: " . json_encode($urlSettings));
                 
                 $urls = $this->extractUrls($body, $url, $urlSettings);
                 error_log("CrawlFlow Phase 1 (URL): Extracted " . count($urls) . " URLs from {$url} (after filtering)");
                 
-                // Save ALL extracted URLs to dpc_rake_data_origins
-                // First, save all URLs (even without raw_data) to ensure they're in the system
+                // Save ALL extracted URLs to dpc_rake_data_origins (without raw_data)
                 $savedCount = 0;
-                $fetchedCount = 0;
                 
                 foreach ($urls as $extractedUrl) {
-                    // Check if URL already exists (to avoid duplicate processing)
+                    // Check if URL already exists
                     global $wpdb;
                     $originsTable = $wpdb->prefix . 'rake_data_origins';
                     $existing = $wpdb->get_var($wpdb->prepare(
@@ -88,14 +91,12 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                     ));
                     
                     if ($existing) {
-                        // URL already exists, just create reference if needed
+                        // URL already exists, update priority if needed
                         $childOriginId = (int)$existing;
                         
                         // Update priority if flowConfig is provided (in case worker config changed)
                         if ($flowConfig !== null && !empty($extractedUrl) && filter_var($extractedUrl, FILTER_VALIDATE_URL)) {
                             $detectedPriority = $this->detectWorkerPriority($projectId, $flowConfig, $extractedUrl);
-                            global $wpdb;
-                            $originsTable = $wpdb->prefix . 'rake_data_origins';
                             $wpdb->update(
                                 $originsTable,
                                 ['priority' => $detectedPriority, 'updated_at' => current_time('mysql')],
@@ -103,14 +104,13 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                             );
                         }
                     } else {
-                        // Save child URL to origins (without raw_data initially, crawled = 0)
+                        // Save child URL to origins (without raw_data)
                         // Pass flowConfig to detect worker priority
                         $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, '', [], $flowConfig);
                         $savedCount++;
                     }
                     
                     // Create reference relationship
-                    // Only create reference if both parent and child origin IDs are valid
                     if ($childOriginId && $originId > 0) {
                         if ($this->saveReference($originId, $childOriginId, 'child')) {
                             $result['references_saved']++;
@@ -119,68 +119,12 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                 }
                 
                 error_log("CrawlFlow Phase 1 (URL): Saved " . $savedCount . " new URLs to origins (total: " . count($urls) . ")");
-                
-                // Now fetch raw_data for URLs that haven't been crawled yet
-                // Limit to avoid timeout (process in batches)
-                $uncrawledUrls = [];
-                foreach ($urls as $extractedUrl) {
-                    global $wpdb;
-                    $originsTable = $wpdb->prefix . 'rake_data_origins';
-                    $crawled = $wpdb->get_var($wpdb->prepare(
-                        "SELECT crawled FROM {$originsTable} WHERE guid = %s",
-                        $extractedUrl
-                    ));
-                    
-                    if (!$crawled || $crawled == 0) {
-                        $uncrawledUrls[] = $extractedUrl;
-                    }
-                }
-                
-                // Fetch raw_data for uncrawled URLs (limit to 50 per run to avoid timeout)
-                $urlsToFetch = array_slice($uncrawledUrls, 0, 50);
-                error_log("CrawlFlow Phase 1 (URL): Found " . count($uncrawledUrls) . " uncrawled URLs, fetching " . count($urlsToFetch) . " in this run");
-                
-                foreach ($urlsToFetch as $extractedUrl) {
-                    // Try to fetch raw_data for this URL
-                    $childRawData = '';
-                    try {
-                        $childResponse = $dataSource->fetch($extractedUrl);
-                        if (isset($childResponse['status_code']) && $childResponse['status_code'] === 200) {
-                            $childRawData = $childResponse['body'] ?? '';
-                            $fetchedCount++;
-                            if ($fetchedCount <= 5) {
-                                error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($childRawData) . " bytes from {$extractedUrl}");
-                            }
-                            
-                            // Update origin with raw_data
-                            global $wpdb;
-                            $originsTable = $wpdb->prefix . 'rake_data_origins';
-                            $now = current_time('mysql');
-                            $wpdb->update(
-                                $originsTable,
-                                [
-                                    'raw_data' => $childRawData,
-                                    'fetched_at' => $now,
-                                    'crawled' => 1,
-                                    'updated_at' => $now,
-                                ],
-                                ['guid' => $extractedUrl]
-                            );
-                        }
-                    } catch (\Exception $e) {
-                        error_log("CrawlFlow Phase 1 (URL): Failed to fetch {$extractedUrl}: " . $e->getMessage());
-                    }
-                }
-                
-                if (count($uncrawledUrls) > 50) {
-                    error_log("CrawlFlow Phase 1 (URL): Fetched " . $fetchedCount . " URLs (limited to 50 per run, " . (count($uncrawledUrls) - 50) . " remaining)");
-                } else {
-                    error_log("CrawlFlow Phase 1 (URL): Fetched " . $fetchedCount . " URLs out of " . count($uncrawledUrls) . " uncrawled");
-                }
+                error_log("CrawlFlow Phase 1 (URL): Phase 1 complete - URLs saved, no data fetched. Phase 2 will fetch raw_data.");
             } else {
                 $statusCode = $response['status_code'] ?? 'unknown';
-                error_log("CrawlFlow Phase 1 (URL): Failed to fetch {$url} - Status: {$statusCode}");
-                $result['errors'][] = "Failed to fetch URL: Status {$statusCode}";
+                error_log("CrawlFlow Phase 1 (URL): Failed to fetch {$url} for URL extraction - Status: {$statusCode}");
+                // Don't treat this as error - we still saved the source URL
+                // Phase 2 will try to fetch it
             }
 
         } catch (\Exception $e) {

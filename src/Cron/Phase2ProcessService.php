@@ -176,7 +176,8 @@ class Phase2ProcessService
                     )
                 ))
             )
-            AND o.crawled = 1 -- Only get items that have been crawled (have raw_data)
+            AND (o.crawled = 0 OR o.crawled IS NULL) -- Only get items that haven't been crawled yet
+            AND (o.ignored = 0 OR o.ignored IS NULL) -- Only get items that are not ignored
             AND latest_parsed.origin_id IS NULL -- Only get items that have never been parsed
             ORDER BY 
                 o.priority ASC, -- Order by priority (lower priority = higher priority for processing)
@@ -272,6 +273,22 @@ class Phase2ProcessService
             $worker = $reception->assignToWorker($rawItem);
 
             if (!$worker) {
+                // No worker can handle this item - mark as ignored
+                global $wpdb;
+                $table = $wpdb->prefix . 'rake_data_origins';
+                $wpdb->update(
+                    $table,
+                    [
+                        'ignored' => 1,
+                        'crawled' => 0,
+                        'updated_at' => current_time('mysql'),
+                    ],
+                    ['id' => $originId],
+                    ['%d', '%d', '%s'],
+                    ['%d']
+                );
+                
+                error_log("CrawlFlow Phase 2: No worker found for origin {$originId}, marked as ignored");
                 $results[] = [
                     'success' => false,
                     'item_id' => $originId,

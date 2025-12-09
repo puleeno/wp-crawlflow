@@ -197,6 +197,20 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                         placeholder="e.g., pdf, jpg, zip..."
                     />
 
+                    <TagInput 
+                        label="Exclude Patterns"
+                        tags={settings.excludePatterns || []}
+                        onChange={(tags) => handleNestedUpdate('urlSettings', { excludePatterns: tags })}
+                        placeholder="e.g., /\/admin\//i, /\/api\//i..."
+                    />
+
+                    <TagInput 
+                        label="Whitelist Patterns"
+                        tags={settings.whitelistPatterns || []}
+                        onChange={(tags) => handleNestedUpdate('urlSettings', { whitelistPatterns: tags })}
+                        placeholder="e.g., /products_list/, /products_detail/..."
+                    />
+
                     <div>
                         <label className={commonLabelClasses}>Domain Import Policy</label>
                         <div className="flex bg-slate-100 rounded-lg p-1">

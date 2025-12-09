@@ -32,6 +32,29 @@ abstract class AbstractDataSourceHandler
     abstract public function process(int $projectId, array $source, array $flowConfig): array;
 
     /**
+     * Normalize pattern array - ensure it's a valid array and filter empty values
+     * 
+     * @param array|mixed $patterns Patterns array
+     * @return array Normalized patterns array
+     */
+    protected function normalizePatternArray($patterns): array
+    {
+        if (!is_array($patterns)) {
+            return [];
+        }
+        
+        // Filter out empty values and ensure all items are strings
+        $normalized = [];
+        foreach ($patterns as $pattern) {
+            if (is_string($pattern) && !empty(trim($pattern))) {
+                $normalized[] = $pattern;
+            }
+        }
+        
+        return $normalized;
+    }
+
+    /**
      * Get URL settings from data source config
      * 
      * @param array $source Data source configuration
@@ -122,7 +145,8 @@ abstract class AbstractDataSourceHandler
         ));
 
         $now = current_time('mysql');
-        $crawled = !empty($rawData) ? 1 : 0;
+        // Phase 1 does not change crawled or ignored flags for existing records
+        // Only set crawled when inserting new records with raw_data
         $metadataJson = !empty($metadata) ? json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null;
         
         // Detect worker priority if flowConfig is provided and guid is a URL
@@ -132,16 +156,14 @@ abstract class AbstractDataSourceHandler
         }
 
         if ($existing) {
-            // Update existing if we have new data
+            // Update existing record
+            // Phase 1 does NOT update raw_data, crawled, or ignored flags
+            // Phase 1 only updates: priority, metadata, updated_at
             $updateData = [
                 'updated_at' => $now,
             ];
             
-            if (!empty($rawData)) {
-                $updateData['raw_data'] = $rawData;
-                $updateData['fetched_at'] = $now;
-                $updateData['crawled'] = 1;
-            }
+            // Phase 1 does not update raw_data - Phase 2 will fetch it
             
             // Update metadata if provided
             if (!empty($metadata)) {
@@ -162,17 +184,20 @@ abstract class AbstractDataSourceHandler
         }
 
         // Insert new
+        // Phase 1 does not set crawled or ignored flags - use default values from schema
+        // Phase 2 will manage crawled flag after fetching/processing
         $insertData = [
             'guid' => $guid,
             'raw_data' => $rawData,
             'fetched_at' => $now,
             'created_at' => $now,
             'updated_at' => $now,
-            'crawled' => $crawled,
+            // crawled will use default value 0 from schema (Phase 2 will set it)
             'metadata' => $metadataJson,
             'source_type' => 'data_source',
             'processor_id' => null, // Data source doesn't have processor_id
             'priority' => $priority,
+            // ignored will use default value 0 from schema
         ];
         
         // Only include source_id if it's not null and exists in database

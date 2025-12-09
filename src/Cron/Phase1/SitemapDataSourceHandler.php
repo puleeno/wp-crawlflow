@@ -7,10 +7,16 @@ use CrawlFlow\DataSources\HttpDataSource;
 /**
  * Sitemap Data Source Handler
  * 
- * Handles crawling and processing of XML sitemaps:
- * 1. Sitemap Index: First run imports all sitemap URLs, second run crawls URLs from those sitemaps
- * 2. Regular Sitemap: Directly imports all URLs from the sitemap
- * 3. XML Raw Object: Imports raw XML for Phase 2 processing with XML extractor
+ * Phase 1: Only extracts URLs from sitemaps and saves them to database
+ * - Fetches XML once to extract URLs (but does NOT save raw_data)
+ * - Saves URLs to rake_data_origins (without raw_data)
+ * - Detects worker priority for each URL
+ * - Phase 2 will fetch raw_data for these URLs
+ * 
+ * Handles:
+ * 1. Sitemap Index: First run imports all sitemap URLs, second run extracts URLs from those sitemaps
+ * 2. Regular Sitemap: Directly extracts all URLs from the sitemap
+ * 3. XML Raw Object: Marks for Phase 2 processing with XML extractor
  */
 class SitemapDataSourceHandler extends AbstractDataSourceHandler
 {
@@ -45,49 +51,52 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
             // Get or create source in database
             $sourceId = $this->ensureDataSourceInDb($projectId, $source);
             
-            // Fetch sitemap XML
-            $dataSource = new HttpDataSource();
             $sitemapUrl = $sourceConfig['url'];
+            error_log("CrawlFlow Phase 1 (Sitemap): Handler started for sitemap: {$sitemapUrl}");
             
-            error_log("CrawlFlow Phase 1 (Sitemap): Fetching sitemap: {$sitemapUrl}");
-            
+            // Phase 1: Only save sitemap URL to database, do NOT save raw_data
+            $originId = $this->saveToDataOrigins(
+                $projectId, 
+                $sourceId, 
+                $sitemapUrl, 
+                '', // Empty raw_data - Phase 1 does not fetch/crawl
+                ['type' => 'sitemap', 'source_type' => 'sitemap'],
+                $flowConfig
+            );
+            $result['items_saved']++;
+            error_log("CrawlFlow Phase 1 (Sitemap): Saved sitemap URL to origins: {$sitemapUrl}");
+
+            // Phase 1: Fetch XML only to extract URLs, but do NOT save raw_data
+            // This is a one-time fetch just to discover URLs
+            $dataSource = new HttpDataSource();
             $response = $dataSource->fetch($sitemapUrl);
 
             if (isset($response['status_code']) && $response['status_code'] === 200) {
                 $xmlContent = $response['body'] ?? '';
-                error_log("CrawlFlow Phase 1 (Sitemap): Fetched " . strlen($xmlContent) . " bytes from {$sitemapUrl}");
-                
-                // Save sitemap XML to origins
-                $originId = $this->saveToDataOrigins(
-                    $projectId, 
-                    $sourceId, 
-                    $sitemapUrl, 
-                    $xmlContent,
-                    ['type' => 'sitemap', 'source_type' => 'sitemap'],
-                    $flowConfig
-                );
-                $result['items_saved']++;
+                error_log("CrawlFlow Phase 1 (Sitemap): Fetched " . strlen($xmlContent) . " bytes from {$sitemapUrl} to extract URLs (not saving raw_data)");
 
                 // Parse XML and determine type
                 $sitemapType = $this->detectSitemapType($xmlContent);
                 error_log("CrawlFlow Phase 1 (Sitemap): Detected sitemap type: {$sitemapType}");
 
                 if ($sitemapType === 'index') {
-                    // Sitemap Index: Process in 2 steps
+                    // Sitemap Index: Extract sitemap URLs (but don't save XML)
                     $this->processSitemapIndex($projectId, $originId, $xmlContent, $sitemapUrl, $result);
                 } elseif ($sitemapType === 'sitemap') {
-                    // Regular Sitemap: Extract URLs directly
+                    // Regular Sitemap: Extract URLs directly (but don't save XML)
                     $this->processRegularSitemap($projectId, $originId, $xmlContent, $sitemapUrl, $result);
                 } else {
-                    // XML Raw Object: Save as raw XML for Phase 2 processing
+                    // XML Raw Object: Mark for Phase 2 processing
                     error_log("CrawlFlow Phase 1 (Sitemap): Treating as raw XML object for Phase 2 processing");
-                    // Already saved above, just mark it as raw XML
                     $this->updateOriginMetadata($originId, ['type' => 'xml-raw', 'source_type' => 'sitemap']);
                 }
+                
+                error_log("CrawlFlow Phase 1 (Sitemap): Phase 1 complete - URLs saved, no data fetched. Phase 2 will fetch raw_data.");
             } else {
                 $statusCode = $response['status_code'] ?? 'unknown';
-                error_log("CrawlFlow Phase 1 (Sitemap): Failed to fetch {$sitemapUrl} - Status: {$statusCode}");
-                $result['errors'][] = "Failed to fetch sitemap: Status {$statusCode}";
+                error_log("CrawlFlow Phase 1 (Sitemap): Failed to fetch {$sitemapUrl} for URL extraction - Status: {$statusCode}");
+                // Don't treat this as error - we still saved the sitemap URL
+                // Phase 2 will try to fetch it
             }
 
         } catch (\Exception $e) {
@@ -213,13 +222,13 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
 
             error_log("CrawlFlow Phase 1 (Sitemap): Found " . count($sitemapUrls) . " sitemap URLs in index");
             
-            // Save each sitemap URL as a child origin with type 'sitemap'
+            // Save each sitemap URL as a child origin with type 'sitemap' (without raw_data)
             foreach ($sitemapUrls as $sitemapUrl) {
                 $childOriginId = $this->saveToDataOrigins(
                     $projectId,
                     null, // No source_id for child sitemaps
                     $sitemapUrl,
-                    '', // Empty raw_data - will be fetched in step 2
+                    '', // Empty raw_data - Phase 1 does not fetch/crawl
                     ['type' => 'sitemap', 'source_type' => 'sitemap', 'parent_sitemap_index' => $baseUrl],
                     $flowConfig
                 );
@@ -278,13 +287,13 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
 
         error_log("CrawlFlow Phase 1 (Sitemap): Extracted " . count($urls) . " URLs from regular sitemap");
         
-        // Save each URL as a child origin with type 'url'
+        // Save each URL as a child origin with type 'url' (without raw_data)
         foreach ($urls as $url) {
             $childOriginId = $this->saveToDataOrigins(
                 $projectId,
                 null,
                 $url,
-                '', // Empty raw_data - will be fetched later
+                '', // Empty raw_data - Phase 1 does not fetch/crawl
                 ['type' => 'url', 'source_type' => 'sitemap', 'parent_sitemap' => $baseUrl],
                 $flowConfig
             );
@@ -298,7 +307,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
 
     /**
      * Process sitemap URLs (Step 2 of sitemap index processing)
-     * Fetch each sitemap and extract URLs from it
+     * Fetch each sitemap to extract URLs, but do NOT save raw_data
      */
     private function processSitemapUrls(int $projectId, array $sitemapOrigins, array &$result): void
     {
@@ -309,16 +318,15 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
             $sitemapOriginId = (int)$sitemapOrigin['id'];
             
             try {
-                error_log("CrawlFlow Phase 1 (Sitemap): Fetching sitemap URL: {$sitemapUrl}");
+                // Phase 1: Fetch XML only to extract URLs, do NOT save raw_data
+                error_log("CrawlFlow Phase 1 (Sitemap): Fetching sitemap URL: {$sitemapUrl} to extract URLs (not saving raw_data)");
                 $response = $dataSource->fetch($sitemapUrl);
                 
                 if (isset($response['status_code']) && $response['status_code'] === 200) {
                     $xmlContent = $response['body'] ?? '';
+                    error_log("CrawlFlow Phase 1 (Sitemap): Fetched " . strlen($xmlContent) . " bytes from {$sitemapUrl} (not saving)");
                     
-                    // Update origin with fetched content
-                    $this->updateOriginData($sitemapOriginId, $xmlContent);
-                    
-                    // Extract URLs from this sitemap
+                    // Extract URLs from this sitemap (but don't save the XML)
                     libxml_use_internal_errors(true);
                     $xml = @simplexml_load_string($xmlContent);
                     
@@ -354,13 +362,13 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                         
                         error_log("CrawlFlow Phase 1 (Sitemap): Extracted " . count($urls) . " URLs from {$sitemapUrl}");
                         
-                        // Save each URL as a child origin
+                        // Save each URL as a child origin (without raw_data)
                         foreach ($urls as $url) {
                             $childOriginId = $this->saveToDataOrigins(
                                 $projectId,
                                 null,
                                 $url,
-                                '', // Empty raw_data - will be fetched later
+                                '', // Empty raw_data - Phase 1 does not fetch/crawl
                                 ['type' => 'url', 'source_type' => 'sitemap', 'parent_sitemap' => $sitemapUrl],
                                 $flowConfig
                             );
@@ -381,21 +389,35 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
     }
 
     /**
-     * Update origin data and metadata
+     * Update origin metadata only (Phase 1 does not update raw_data)
      */
-    private function updateOriginData(int $originId, string $rawData): void
+    private function updateOriginMetadata(int $originId, array $metadata): void
     {
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins';
         
-        $now = current_time('mysql');
+        // Get existing metadata
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT metadata FROM {$table} WHERE id = %d",
+            $originId
+        ));
+        
+        $existingMetadata = [];
+        if ($existing) {
+            $decoded = json_decode($existing, true);
+            if (is_array($decoded)) {
+                $existingMetadata = $decoded;
+            }
+        }
+        
+        // Merge with new metadata
+        $mergedMetadata = array_merge($existingMetadata, $metadata);
+        
         $wpdb->update(
             $table,
             [
-                'raw_data' => $rawData,
-                'fetched_at' => $now,
-                'updated_at' => $now,
-                'crawled' => 1,
+                'metadata' => json_encode($mergedMetadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'updated_at' => current_time('mysql'),
             ],
             ['id' => $originId]
         );

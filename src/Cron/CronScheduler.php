@@ -642,10 +642,11 @@ class CronScheduler
      */
     public function scheduleSystemMaintenance(): void
     {
-        // Unschedule existing if any
+        // Check if already scheduled
         $timestamp = wp_next_scheduled(self::SYSTEM_MAINTENANCE_HOOK);
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, self::SYSTEM_MAINTENANCE_HOOK);
+        if ($timestamp !== false) {
+            // Already scheduled, no need to reschedule
+            return;
         }
 
         // Schedule new event (every 5 minutes)
@@ -655,9 +656,9 @@ class CronScheduler
             self::SYSTEM_MAINTENANCE_HOOK
         );
 
-        if ($scheduled === false && !$timestamp) {
+        if ($scheduled === false) {
             error_log("CrawlFlow: Failed to schedule system maintenance");
-        } elseif ($scheduled !== false) {
+        } else {
             error_log("CrawlFlow: Scheduled system maintenance (every 5 minutes)");
         }
     }
