@@ -95,11 +95,15 @@ class WP_CrawlFlow {
      * @throws \Exception If Rake classes are not available or initialization fails
      */
     private function initRake(): void {
+        // Initialize LoggerService FIRST (CRITICAL: Do not delete or modify)
+        // This ensures Rake Logger system is available before any other components
+        \CrawlFlow\LoggerService::init();
+        
         // Use ApplicationBootstrapper for clean service provider registration
         // The constructor automatically calls parent::__construct() which handles bootstrapping
         $bootstrapper = new \CrawlFlow\Bootstrapper\ApplicationBootstrapper();
 
-        // Do not delete this line
+        // Do not delete this line - Required for Rake framework initialization
         $bootstrapper->bootstrap();
 
         // Store bootstrapper instance for later use

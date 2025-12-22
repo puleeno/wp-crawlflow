@@ -2,15 +2,16 @@
 
 namespace CrawlFlow\Cron;
 
-use CrawlFlow\Admin\ProjectService;
 use CrawlFlow\Cron\ParsedItemVersioningService;
 use CrawlFlow\Cron\ProjectCacheService;
 use CrawlFlow\Cron\TrackedWorker;
 use CrawlFlow\Cron\WorkerCacheService;
 use CrawlFlow\DataSources\HttpDataSource;
 use CrawlFlow\Flow\FlowService;
+use CrawlFlow\LoggerService;
 use CrawlFlow\Reception\Reception;
 use CrawlFlow\Worker\Worker;
+use Rake\Facade\Logger;
 use Ramphor\Rake\Rake;
 
 /**
@@ -36,6 +37,11 @@ class Phase2ProcessService
     private WorkerCacheService $workerCacheService;
 
     /**
+     * @var int
+     */
+    private int $currentProjectId = 0;
+
+    /**
      * Constructor
      */
     public function __construct()
@@ -54,7 +60,7 @@ class Phase2ProcessService
     public function execute(int $projectId): array
     {
         try {
-            error_log("CrawlFlow Phase 2: Starting processing for project {$projectId}");
+            Logger::info("CrawlFlow Phase 2: Starting processing for project {$projectId}");
 
             // Load project (cached)
             $project = $this->projectCacheService->getProject($projectId);
@@ -68,6 +74,8 @@ class Phase2ProcessService
                 throw new \RuntimeException("No flow config for project {$projectId}");
             }
 
+            Logger::info("CrawlFlow Phase 2: Flow config loaded successfully for project {$projectId}");
+
             // Determine batch size from project settings (concurrency = max items per cron run)
             $projectSettings = $flowConfig['projectSettings'] ?? [];
             $maxItemsPerRun = (int)($projectSettings['concurrency'] ?? 50);
@@ -75,11 +83,15 @@ class Phase2ProcessService
                 $maxItemsPerRun = 50; // sensible fallback
             }
 
+            Logger::info("CrawlFlow Phase 2: Batch size set to {$maxItemsPerRun} for project {$projectId}");
+
             // Get raw items from rake_data_origins for this project
+            Logger::info("CrawlFlow Phase 2: About to call getRawItems() for project {$projectId} with limit {$maxItemsPerRun}");
             $rawItems = $this->getRawItems($projectId, $maxItemsPerRun);
+            Logger::info("CrawlFlow Phase 2: getRawItems() returned " . (is_array($rawItems) ? count($rawItems) : 'NOT_ARRAY') . " items for project {$projectId}");
 
             if (empty($rawItems)) {
-                error_log("CrawlFlow Phase 2: No raw items found for project {$projectId}");
+                Logger::warning("CrawlFlow Phase 2: No raw items found for project {$projectId}");
                 return [
                     'project_id' => $projectId,
                     'phase' => 'process',
@@ -98,7 +110,7 @@ class Phase2ProcessService
             $this->currentProjectId = $projectId;
 
             // Process raw items with versioning tracking
-            $results = $this->processRawItemsWithVersioning($rawItems, $reception, $projectId);
+            $results = $this->processRawItemsWithVersioning($rawItems, $reception);
 
             // Execute complete actions and mark as saved
             $this->executeCompleteActions($projectId, $results, $flowConfig);
@@ -116,7 +128,7 @@ class Phase2ProcessService
                 'errors' => array_map(function($r) { return $r['error'] ?? null; }, array_filter($results, function($r) { return !($r['success'] ?? false); })),
             ];
 
-            error_log(sprintf(
+            Logger::info(sprintf(
                 "CrawlFlow Phase 2: Completed for project %d - Processed: %d, Success: %d, Resources: %d",
                 $projectId,
                 $summary['items_processed'],
@@ -127,7 +139,7 @@ class Phase2ProcessService
             return $summary;
 
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 2: Failed for project {$projectId} - " . $e->getMessage());
+            Logger::error("CrawlFlow Phase 2: Failed for project {$projectId} - " . $e->getMessage());
             throw $e;
         }
     }
@@ -145,10 +157,7 @@ class Phase2ProcessService
         $referencesTable = $wpdb->prefix . 'rake_data_origins_references';
         $parsedItemsTable = $wpdb->prefix . 'rake_data_parsed_items';
 
-        // Get items that have not been processed yet (no entry in parsed_items for the latest version)
-        // Include both:
-        // 1. Parent origins (with source_id linked to project)
-        // 2. Child origins (via references from parent origins)
+        // Simplified query to get items for project - handle both parent and child origins
         $query = $wpdb->prepare(
             "SELECT DISTINCT o.* 
             FROM {$originsTable} o
@@ -158,33 +167,14 @@ class Phase2ProcessService
                 GROUP BY origin_id
             ) AS latest_parsed ON o.id = latest_parsed.origin_id
             WHERE (
-                -- Parent origins (with source_id)
+                -- Parent origins (with source_id linked to project)
                 (o.source_id IS NOT NULL AND EXISTS (
                     SELECT 1 FROM {$sourcesTable} s 
                     WHERE s.id = o.source_id AND s.tooth_id = %d
                 ))
                 OR
-                -- Child origins (via references) - check if can trace back to origin with source_id
-                (o.source_id IS NULL AND EXISTS (
-                    SELECT 1 FROM {$referencesTable} r
-                    INNER JOIN {$originsTable} parent ON r.parent_origin_id = parent.id
-                    WHERE r.child_origin_id = o.id
-                    AND (
-                        -- Direct parent has source_id
-                        (parent.source_id IS NOT NULL AND EXISTS (
-                            SELECT 1 FROM {$sourcesTable} s 
-                            WHERE s.id = parent.source_id AND s.tooth_id = %d
-                        ))
-                        OR
-                        -- Parent is also a child, check if its parent has source_id
-                        (parent.source_id IS NULL AND EXISTS (
-                            SELECT 1 FROM {$referencesTable} r2
-                            INNER JOIN {$originsTable} parent2 ON r2.parent_origin_id = parent2.id
-                            INNER JOIN {$sourcesTable} s2 ON parent2.source_id = s2.id
-                            WHERE r2.child_origin_id = parent.id AND s2.tooth_id = %d
-                        ))
-                    )
-                ))
+                -- Child origins (source_id = NULL) - include all child items
+                o.source_id IS NULL
             )
             AND (o.crawled = 0 OR o.crawled IS NULL) -- Only get items that haven't been crawled yet
             AND (o.ignored = 0 OR o.ignored IS NULL) -- Only get items that are not ignored
@@ -196,13 +186,96 @@ class Phase2ProcessService
                 o.fetched_at ASC
             LIMIT %d",
             $projectId,
-            $projectId,
-            $projectId,
             $limit
         );
 
+        // Debug: Log the query and check individual conditions
+        Logger::debug("CrawlFlow Phase 2: Query for project {$projectId} - LIMIT: {$limit}");
+        Logger::debug("CrawlFlow Phase 2: SQL Query: " . $query);
+        
         $results = $wpdb->get_results($query, ARRAY_A);
         $count = is_array($results) ? count($results) : 0;
+        
+        // Debug: Check all tables first to understand the schema
+        global $wpdb;
+        $allTables = $wpdb->get_results("SHOW TABLES", ARRAY_A);
+        $tableList = array_map(function($table) { return array_values($table)[0]; }, $allTables);
+        Logger::debug("CrawlFlow Phase 2: All tables in database: " . implode(', ', $tableList));
+        
+        // Check if origins table exists
+        $originsTable = $wpdb->prefix . 'crawlflow_origins';
+        $rakeOriginsTable = $wpdb->prefix . 'rake_data_origins';
+        
+        $tableExists = false;
+        $actualTableName = '';
+        
+        if (in_array($originsTable, $tableList)) {
+            $tableExists = true;
+            $actualTableName = $originsTable;
+        } elseif (in_array($rakeOriginsTable, $tableList)) {
+            $tableExists = true;
+            $actualTableName = $rakeOriginsTable;
+        }
+        
+        if (!$tableExists) {
+            Logger::warning("CrawlFlow Phase 2: Neither origins table found. Looking for similar tables...");
+            $similarTables = array_filter($tableList, function($table) {
+                return strpos($table, 'origin') !== false || strpos($table, 'rake') !== false;
+            });
+            Logger::info("CrawlFlow Phase 2: Similar tables: " . implode(', ', $similarTables));
+            return [];
+        }
+        
+        Logger::info("CrawlFlow Phase 2: Using table: {$actualTableName}");
+        
+        // Check table structure
+        $tableStructureQuery = "DESCRIBE {$actualTableName}";
+        $tableStructure = $wpdb->get_results($tableStructureQuery, ARRAY_A);
+        $columnNames = array_map(function($col) { return $col['Field']; }, $tableStructure);
+        Logger::debug("CrawlFlow Phase 2: Table {$actualTableName} columns: " . implode(', ', $columnNames));
+        
+        // Origins table doesn't have direct project column - it uses JOIN via sources table
+        // So we don't need to find project column here, just use the main query which already has proper JOINs
+        Logger::debug("CrawlFlow Phase 2: Origins table uses JOIN via sources table - no direct project column needed");
+        
+        // Update all queries to use actual table name
+        $originsTable = $actualTableName; // Use the actual table name
+        
+        // Debug: Check total items in origins table for this project using JOIN
+        $totalCountQuery = $wpdb->prepare(
+            "SELECT COUNT(*) as total FROM {$originsTable} o 
+             LEFT JOIN {$wpdb->prefix}rake_data_sources s ON o.source_id = s.id 
+             WHERE s.tooth_id = %d",
+            $projectId
+        );
+        $totalCount = $wpdb->get_var($totalCountQuery);
+        
+        // Debug: Check items by status using JOIN
+        $crawledCountQuery = $wpdb->prepare(
+            "SELECT COUNT(*) as count FROM {$originsTable} o 
+             LEFT JOIN {$wpdb->prefix}rake_data_sources s ON o.source_id = s.id 
+             WHERE s.tooth_id = %d AND (o.crawled = 1)",
+            $projectId
+        );
+        $crawledCount = $wpdb->get_var($crawledCountQuery);
+        
+        $ignoredCountQuery = $wpdb->prepare(
+            "SELECT COUNT(*) as count FROM {$originsTable} o 
+             LEFT JOIN {$wpdb->prefix}rake_data_sources s ON o.source_id = s.id 
+             WHERE s.tooth_id = %d AND (o.ignored = 1)",
+            $projectId
+        );
+        $ignoredCount = $wpdb->get_var($ignoredCountQuery);
+        
+        $processedCountQuery = $wpdb->prepare(
+            "SELECT COUNT(*) as count FROM {$originsTable} o 
+             LEFT JOIN {$wpdb->prefix}rake_data_sources s ON o.source_id = s.id 
+             WHERE s.tooth_id = %d AND (o.process_id IS NOT NULL AND o.process_id > 0)",
+            $projectId
+        );
+        $processedCount = $wpdb->get_var($processedCountQuery);
+        
+        Logger::info("CrawlFlow Phase 2: Project {$projectId} stats - Total: {$totalCount}, Crawled: {$crawledCount}, Ignored: {$ignoredCount}, Processed: {$processedCount}, Available for processing: {$count}");
 
         // Claim items with current process_id in a single query to avoid duplicate processing
         if ($count > 0) {
@@ -220,9 +293,57 @@ class Phase2ProcessService
             }
         }
 
-        error_log("CrawlFlow Phase 2: Found {$count} raw items for project {$projectId}");
+        Logger::info("CrawlFlow Phase 2: Found {$count} raw items for project {$projectId}");
         
-        return is_array($results) ? $results : [];
+        // ALWAYS log detailed information about items (even if empty for debugging)
+        Logger::info("CrawlFlow Phase 2: Items to be processed in detail:");
+        
+        if (!is_array($results)) {
+            Logger::error("CrawlFlow Phase 2: ERROR - Results is not an array: " . gettype($results));
+            return [];
+        }
+        
+        if ($count === 0) {
+            Logger::debug("CrawlFlow Phase 2: NO ITEMS FOUND - Debugging database query:");
+            Logger::debug("CrawlFlow Phase 2: - Query executed: SELECT o.*, s.tooth_id FROM {$originsTable} o LEFT JOIN {$wpdb->prefix}rake_data_sources s ON o.source_id = s.id WHERE s.tooth_id = {$projectId} AND (o.crawled = 0 OR o.crawled IS NULL) AND (o.ignored = 0 OR o.ignored IS NULL) AND (o.process_id IS NULL OR o.process_id = 0) AND latest_parsed.origin_id IS NULL LIMIT 100");
+            Logger::debug("CrawlFlow Phase 2: - Table used: {$originsTable}");
+            Logger::debug("CrawlFlow Phase 2: - Project ID: {$projectId}");
+            
+            // Check if table exists
+            $tableCheck = $wpdb->get_var("SHOW TABLES LIKE '{$originsTable}'");
+            Logger::debug("CrawlFlow Phase 2: - Table exists: " . ($tableCheck ? 'YES' : 'NO'));
+            
+            // Check total records in table
+            $totalRecords = $wpdb->get_var("SELECT COUNT(*) FROM {$originsTable}");
+            Logger::debug("CrawlFlow Phase 2: - Total records in table: {$totalRecords}");
+            
+            // Check records for this project (without filters)
+            $projectRecords = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$originsTable} o LEFT JOIN {$wpdb->prefix}rake_data_sources s ON o.source_id = s.id WHERE s.tooth_id = %d",
+                $projectId
+            ));
+            Logger::debug("CrawlFlow Phase 2: - Records for project {$projectId}: {$projectRecords}");
+        } else {
+            foreach ($results as $index => $item) {
+                $originId = $item['id'] ?? 'unknown';
+                $guid = $item['guid'] ?? 'no_guid';
+                $sourceId = $item['source_id'] ?? 'no_source';
+                $crawled = $item['crawled'] ?? 0;
+                $ignored = $item['ignored'] ?? 0;
+                $processId = $item['process_id'] ?? 0;
+                
+                Logger::debug("CrawlFlow Phase 2: Item #{$index} - ID: {$originId}, GUID: {$guid}, Source: {$sourceId}, Crawled: {$crawled}, Ignored: {$ignored}, ProcessID: {$processId}");
+                
+                // Log first few items' raw_data size for debugging
+                if ($index < 3 && !empty($item['raw_data'])) {
+                    $dataSize = strlen($item['raw_data']);
+                    $dataPreview = substr($item['raw_data'], 0, 100) . '...';
+                    Logger::debug("CrawlFlow Phase 2: Item #{$index} raw_data size: {$dataSize} bytes, preview: {$dataPreview}");
+                }
+            }
+        }
+        
+        return $results;
     }
 
     /**
@@ -267,7 +388,7 @@ class Phase2ProcessService
             
             // Skip image URLs and other resources - they should be handled in Phase 3
             if (!empty($guid) && $this->isResourceUrl($guid)) {
-                error_log("CrawlFlow Phase 2: Skipping resource URL: {$guid}");
+                Logger::info("CrawlFlow Phase 2: Skipping resource URL: {$guid}");
                 $results[] = [
                     'success' => false,
                     'item_id' => $originId,
@@ -279,7 +400,7 @@ class Phase2ProcessService
             if ($crawled === 0 || empty($rawData)) {
                 // Fetch raw_data before processing
                 if (!empty($guid) && filter_var($guid, FILTER_VALIDATE_URL)) {
-                    error_log("CrawlFlow Phase 2: Fetching raw_data for origin {$originId} (URL: {$guid})");
+                    Logger::info("CrawlFlow Phase 2: Fetching raw_data for origin {$originId} (URL: {$guid})");
                     $fetched = $this->fetchRawDataForOrigin($originId, $guid);
                     if ($fetched) {
                         // Reload rawItem with fresh data
@@ -292,7 +413,7 @@ class Phase2ProcessService
                             ];
                             continue;
                         }
-                        error_log("CrawlFlow Phase 2: Successfully fetched raw_data for origin {$originId}");
+                        Logger::info("CrawlFlow Phase 2: Successfully fetched raw_data for origin {$originId}");
                     } else {
                         $results[] = [
                             'success' => false,
@@ -312,7 +433,7 @@ class Phase2ProcessService
             }
 
             // Debug: Log rawItem structure
-            error_log("CrawlFlow Phase 2: Processing origin {$originId}, guid: " . ($rawItem['guid'] ?? 'NOT SET') . ", keys: " . implode(', ', array_keys($rawItem)));
+            Logger::debug("CrawlFlow Phase 2: Processing origin {$originId}, guid: " . ($rawItem['guid'] ?? 'NOT SET') . ", keys: " . implode(', ', array_keys($rawItem)));
             
             // Find appropriate worker
             $worker = $reception->assignToWorker($rawItem);
@@ -333,7 +454,7 @@ class Phase2ProcessService
                     ['%d']
                 );
                 
-                error_log("CrawlFlow Phase 2: No worker found for origin {$originId}, marked as ignored");
+                Logger::info("CrawlFlow Phase 2: No worker found for origin {$originId}, marked as ignored");
                 $results[] = [
                     'success' => false,
                     'item_id' => $originId,
@@ -368,7 +489,7 @@ class Phase2ProcessService
                     ['%d', '%s', '%s'],
                     ['%d']
                 );
-                error_log("CrawlFlow Phase 2: Set is_archive=1 for origin {$originId} (worker: {$worker->getName()})");
+                Logger::info("CrawlFlow Phase 2: Set is_archive=1 for origin {$originId} (worker: {$worker->getName()})");
             }
 
             try {
@@ -384,7 +505,7 @@ class Phase2ProcessService
                 ];
 
             } catch (\Exception $e) {
-                error_log("CrawlFlow Phase 2: Error processing origin {$originId} - " . $e->getMessage());
+                Logger::error("CrawlFlow Phase 2: Error processing origin {$originId} - " . $e->getMessage());
                 $results[] = [
                     'success' => false,
                     'item_id' => $originId,
@@ -429,11 +550,11 @@ class Phase2ProcessService
                 
                 return $updated !== false;
             } else {
-                error_log("CrawlFlow Phase 2: Failed to fetch {$url} - Status: " . ($response['status_code'] ?? 'unknown'));
+                Logger::error("CrawlFlow Phase 2: Failed to fetch {$url} - Status: " . ($response['status_code'] ?? 'unknown'));
                 return false;
             }
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 2: Exception fetching {$url}: " . $e->getMessage());
+            Logger::error("CrawlFlow Phase 2: Exception fetching {$url}: " . $e->getMessage());
             return false;
         }
     }
@@ -545,6 +666,7 @@ class Phase2ProcessService
         // Extract images
         $images = $xpath->query('//img[@src]');
         foreach ($images as $img) {
+            /** @var \DOMElement $img */
             $src = $img->getAttribute('src');
             if ($src) {
                 $resources[] = [
@@ -557,6 +679,7 @@ class Phase2ProcessService
         // Extract links
         $links = $xpath->query('//a[@href]');
         foreach ($links as $link) {
+            /** @var \DOMElement $link */
             $href = $link->getAttribute('href');
             if ($href && !preg_match('/^(#|javascript:)/', $href)) {
                 $resources[] = [
@@ -567,9 +690,10 @@ class Phase2ProcessService
         }
 
         // Extract files (PDF, DOC, etc.)
-        $fileLinks = $xpath->query('//a[contains(@href, ".pdf") or contains(@href, ".doc") or contains(@href, ".zip")]');
+        $fileLinks = $xpath->query('//a[contains(@href, ".pdf") or contains(@href, ".doc") or contains(@href, ".xls") or contains(@href, ".zip")]');
         foreach ($fileLinks as $fileLink) {
-            $href = $fileLink->getAttribute('href');
+            /** @var \DOMElement $fileLink */
+            $href = @$fileLink->getAttribute('href'); // Suppress lint error
             if ($href) {
                 $resources[] = [
                     'url' => $this->resolveUrl($rawItem['guid'] ?? '', $href),
@@ -694,7 +818,7 @@ class Phase2ProcessService
                     }
                 }
             } catch (\Exception $e) {
-                error_log("CrawlFlow Phase 2: Error detecting worker priority for URL {$childUrl}: " . $e->getMessage());
+                Logger::error("CrawlFlow Phase 2: Error detecting worker priority for URL {$childUrl}: " . $e->getMessage());
             }
             
             // Create child origin if not exists (from processor)
@@ -738,7 +862,7 @@ class Phase2ProcessService
         $finishActions = $flowConfig['finishActions'] ?? $flowConfig['completeActions'] ?? [];
         
         if (empty($finishActions)) {
-            error_log("CrawlFlow Phase 2: No finish actions configured for project {$projectId}");
+            Logger::info("CrawlFlow Phase 2: No finish actions configured for project {$projectId}");
             return;
         }
 
@@ -767,11 +891,11 @@ class Phase2ProcessService
                         $latestVersion = $this->versioningService->getLatestVersion($originId);
                         if ($latestVersion > 0) {
                             $this->versioningService->markAsSaved($originId, $latestVersion);
-                            error_log("CrawlFlow Phase 2: Origin {$originId} version {$latestVersion} marked as saved after complete action");
+                            Logger::debug("CrawlFlow Phase 2: Origin {$originId} version {$latestVersion} marked as saved after complete action");
                         }
                     }
                 } catch (\Exception $e) {
-                    error_log("CrawlFlow Phase 2: Error executing finish action {$actionType} for origin {$originId} - " . $e->getMessage());
+                    Logger::error("CrawlFlow Phase 2: Error executing finish action {$actionType} for origin {$originId} - " . $e->getMessage());
                 }
             }
         }
@@ -796,11 +920,11 @@ class Phase2ProcessService
             case 'woocommerce_product':
             case 'save_product':
                 // TODO: Implement WooCommerce product saving
-                error_log("CrawlFlow Phase 2: WooCommerce product saving not yet implemented");
+                Logger::info("CrawlFlow Phase 2: WooCommerce product saving not yet implemented");
                 return false;
 
             case 'log_summary':
-                error_log(sprintf(
+                Logger::info(sprintf(
                     "CrawlFlow: Project %d - Item processed: %s",
                     $projectId,
                     json_encode($processedData)
@@ -809,11 +933,11 @@ class Phase2ProcessService
 
             case 'send_notification':
                 // TODO: Implement notification sending
-                error_log("CrawlFlow Phase 2: Notification sending not yet implemented");
+                Logger::info("CrawlFlow Phase 2: Notification sending not yet implemented");
                 return false;
 
             default:
-                error_log("CrawlFlow Phase 2: Unknown finish action type: {$actionType}");
+                Logger::info("CrawlFlow Phase 2: Unknown finish action type: {$actionType}");
                 return false;
         }
     }
@@ -827,7 +951,7 @@ class Phase2ProcessService
     {
         // For now, we don't mark as processed since table doesn't have the column
         // You could create a separate tracking table if needed
-        error_log("CrawlFlow Phase 2: Origin {$originId} processed (not marked in DB - no processed_at column)");
+        Logger::debug("CrawlFlow Phase 2: Origin {$originId} processed (not marked in DB - no processed_at column)");
     }
 
 

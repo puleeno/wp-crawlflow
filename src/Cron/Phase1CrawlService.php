@@ -1,13 +1,20 @@
 <?php
 
+/**
+ * @suppress PhanUndeclaredClass
+ * @suppress PhanUndeclaredClassMethod
+ */
+
 namespace CrawlFlow\Cron;
 
 use CrawlFlow\Admin\ProjectService;
 use CrawlFlow\Cron\Phase1\DataSourceHandlerFactory;
 use CrawlFlow\Cron\ProjectCacheService;
-use Rake\Actions\ContextActionManager;
-use Rake\Actions\ActionContext;
-use Ramphor\Rake\Rake;
+use CrawlFlow\LoggerService;
+use Rake\Actions\ContextActionManager; // @suppress PhanUndeclaredClass
+use Rake\Actions\ActionContext; // @suppress PhanUndeclaredClass
+use Ramphor\Rake\Rake; // @suppress PhanUndeclaredClass
+use Rake\Facade\Logger;
 
 /**
  * Phase 1: Crawl Service
@@ -38,7 +45,7 @@ class Phase1CrawlService
     public function execute(int $projectId): array
     {
         try {
-            error_log("CrawlFlow Phase 1: Starting crawl for project {$projectId}");
+            Logger::info("CrawlFlow Phase 1: Starting crawl for project {$projectId}");
 
             // Load project (cached)
             $project = $this->projectCacheService->getProject($projectId);
@@ -65,25 +72,25 @@ class Phase1CrawlService
             ];
 
             // Process each data source
-            error_log("CrawlFlow Phase 1: Found " . count($dataSources) . " data sources to process");
+            Logger::info("CrawlFlow Phase 1: Found " . count($dataSources) . " data sources to process");
             foreach ($dataSources as $source) {
                 try {
-                    error_log("CrawlFlow Phase 1: Processing source type: " . ($source['type'] ?? 'unknown'));
+                    Logger::debug("CrawlFlow Phase 1: Processing source type: " . ($source['type'] ?? 'unknown'));
                     $sourceResult = $this->processDataSource($projectId, $source, $flowConfig);
-                    error_log("CrawlFlow Phase 1: Source result: " . json_encode($sourceResult));
+                    Logger::debug("CrawlFlow Phase 1: Source result: " . json_encode($sourceResult));
                     $results['sources_processed']++;
                     $results['items_saved'] += $sourceResult['items_saved'] ?? 0;
                     $results['references_saved'] += $sourceResult['references_saved'] ?? 0;
                     
                     // Execute data-source scoped Phase1 extra actions (if any)
-                    $actionContext = new ActionContext(
+                    $actionContext = new ActionContext( // @suppress PhanUndeclaredClass
                         'phase1_extra_actions',
                         $projectId,
                         $sourceResult,
                         $flowConfig,
                         ['dataSource' => $source]
                     );
-                    $extraActionResults = ContextActionManager::execute('phase1_extra_actions', $actionContext);
+                    $extraActionResults = ContextActionManager::execute('phase1_extra_actions', $actionContext); // @suppress PhanUndeclaredClassMethod
                     if (!isset($results['extra_actions'])) {
                         $results['extra_actions'] = [];
                     }
@@ -106,35 +113,93 @@ class Phase1CrawlService
                         'source' => $source['name'] ?? 'unknown',
                         'error' => $e->getMessage(),
                     ];
-                    error_log("CrawlFlow Phase 1: Error processing source - " . $e->getMessage());
+                    Logger::error("CrawlFlow Phase 1: Error processing source - " . $e->getMessage());
                 }
             }
 
-            error_log(sprintf(
-                "CrawlFlow Phase 1: Completed for project %d - Sources: %d, Items: %d, References: %d",
+            // Determine execution mode for logging
+            $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
+            $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
+
+            Logger::info(sprintf(
+                "[{$mode}] CrawlFlow Phase 1: Completed for project %d - Sources: %d, Items: %d, References: %d",
                 $projectId,
                 $results['sources_processed'],
                 $results['items_saved'],
                 $results['references_saved']
             ));
 
+            // Debug: Check what was actually saved to database
+            global $wpdb;
+            
+            // Check all tables first to understand the schema
+            $allTables = $wpdb->get_results("SHOW TABLES", ARRAY_A);
+            $tableList = array_map(function($table) { return array_values($table)[0]; }, $allTables);
+            Logger::debug("[{$mode}] CrawlFlow Phase 1: All tables in database: " . implode(', ', $tableList));
+            
+            // Check if origins table exists
+            $originsTable = $wpdb->prefix . 'crawlflow_origins';
+            $rakeOriginsTable = $wpdb->prefix . 'rake_data_origins';
+            
+            $tableExists = false;
+            $actualTableName = '';
+            
+            if (in_array($originsTable, $tableList)) {
+                $tableExists = true;
+                $actualTableName = $originsTable;
+            } elseif (in_array($rakeOriginsTable, $tableList)) {
+                $tableExists = true;
+                $actualTableName = $rakeOriginsTable;
+            }
+            
+            if (!$tableExists) {
+                Logger::warning("[{$mode}] CrawlFlow Phase 1: No origins table found");
+                return $results;
+            }
+            
+            Logger::info("[{$mode}] CrawlFlow Phase 1: Using table: {$actualTableName}");
+            
+            // Check table structure
+            $tableStructureQuery = "DESCRIBE {$actualTableName}";
+            $tableStructure = $wpdb->get_results($tableStructureQuery, ARRAY_A);
+            $columnNames = array_map(function($col) { return $col['Field']; }, $tableStructure);
+            Logger::debug("[{$mode}] CrawlFlow Phase 1: Table {$actualTableName} columns: " . implode(', ', $columnNames));
+            
+            // Origins table doesn't have direct project column - it uses JOIN via sources table
+            Logger::debug("[{$mode}] CrawlFlow Phase 1: Origins table uses JOIN via sources table - no direct project column needed");
+            
+            // Check total items in table
+            $totalItemsQuery = "SELECT COUNT(*) as count FROM {$actualTableName}";
+            $totalItemsCount = $wpdb->get_var($totalItemsQuery);
+            
+            // Check items by project using JOIN
+            $savedItemsQuery = $wpdb->prepare(
+                "SELECT COUNT(*) as count FROM {$actualTableName} o 
+                 LEFT JOIN {$wpdb->prefix}rake_data_sources s ON o.source_id = s.id 
+                 WHERE s.tooth_id = %d",
+                $projectId
+            );
+            $savedItemsCount = $wpdb->get_var($savedItemsQuery);
+            
+            Logger::info("[{$mode}] CrawlFlow Phase 1: Project {$projectId} - Total items in origins table: {$savedItemsCount}/{$totalItemsCount}");
+
             // Execute Phase 1 actions
-            $actionContext = new ActionContext(
+            $actionContext = new ActionContext( // @suppress PhanUndeclaredClass
                 'phase1',
                 $projectId,
                 $results,
                 $flowConfig
             );
             
-            $actionResults = ContextActionManager::execute('phase1', $actionContext);
+            $actionResults = ContextActionManager::execute('phase1', $actionContext); // @suppress PhanUndeclaredClassMethod
             $results['actions'] = $actionResults;
             
-            error_log("CrawlFlow Phase 1: Executed " . count($actionResults) . " action(s)");
+            Logger::info("[{$mode}] CrawlFlow Phase 1: Executed " . count($actionResults) . " action(s)");
 
             return $results;
 
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 1: Failed for project {$projectId} - " . $e->getMessage());
+            Logger::error("CrawlFlow Phase 1: Failed for project {$projectId} - " . $e->getMessage());
             throw $e;
         }
     }
@@ -148,7 +213,7 @@ class Phase1CrawlService
     public function executeBonus(int $projectId): array
     {
         try {
-            error_log("CrawlFlow Bonus Phase: Starting actions for project {$projectId}");
+            Logger::info("CrawlFlow Bonus Phase: Starting actions for project {$projectId}");
 
             $project = $this->projectCacheService->getProject($projectId);
             if (!$project) {
@@ -171,21 +236,21 @@ class Phase1CrawlService
             ];
 
             // Execute Phase 1 actions only
-            $actionContext = new ActionContext(
+            $actionContext = new ActionContext( // @suppress PhanUndeclaredClass
                 'phase1',
                 $projectId,
                 $results,
                 $flowConfig
             );
 
-            $actionResults = ContextActionManager::execute('phase1', $actionContext);
+            $actionResults = ContextActionManager::execute('phase1', $actionContext); // @suppress PhanUndeclaredClassMethod
             $results['actions'] = $actionResults;
 
-            error_log("CrawlFlow Bonus Phase: Executed " . count($actionResults) . " action(s) for project {$projectId}");
+            Logger::info("CrawlFlow Bonus Phase: Executed " . count($actionResults) . " action(s) for project {$projectId}");
 
             return $results;
         } catch (\Exception $e) {
-            error_log("CrawlFlow Bonus Phase: Failed for project {$projectId} - " . $e->getMessage());
+            Logger::error("CrawlFlow Bonus Phase: Failed for project {$projectId} - " . $e->getMessage());
             throw $e;
         }
     }
@@ -251,13 +316,13 @@ class Phase1CrawlService
     private function processDataSource(int $projectId, array $source, array $flowConfig): array
     {
         $sourceType = $source['type'] ?? 'url';
-        error_log("CrawlFlow Phase 1: Getting handler for source type: {$sourceType}");
+        Logger::debug("CrawlFlow Phase 1: Getting handler for source type: {$sourceType}");
         
         // Get handler for this source type
         $handler = DataSourceHandlerFactory::getHandler($sourceType);
         
         if (!$handler) {
-            error_log("CrawlFlow Phase 1: No handler available for source type: {$sourceType}");
+            Logger::warning("CrawlFlow Phase 1: No handler available for source type: {$sourceType}");
             return [
                 'items_saved' => 0,
                 'references_saved' => 0,
@@ -265,10 +330,10 @@ class Phase1CrawlService
             ];
         }
 
-        error_log("CrawlFlow Phase 1: Handler found: " . get_class($handler));
+        Logger::debug("CrawlFlow Phase 1: Handler found: " . get_class($handler));
         // Delegate to handler
         $result = $handler->process($projectId, $source, $flowConfig);
-        error_log("CrawlFlow Phase 1: Handler returned: " . json_encode($result));
+        Logger::debug("CrawlFlow Phase 1: Handler returned: " . json_encode($result));
         return $result;
     }
 

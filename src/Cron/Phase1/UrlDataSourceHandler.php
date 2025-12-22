@@ -106,7 +106,8 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                     } else {
                         // Save child URL to origins (without raw_data)
                         // Pass flowConfig to detect worker priority
-                        $childOriginId = $this->saveToDataOrigins($projectId, null, $extractedUrl, '', [], $flowConfig);
+                        // Use the same source_id as parent to ensure project association
+                        $childOriginId = $this->saveToDataOrigins($projectId, $sourceId > 0 ? $sourceId : null, $extractedUrl, '', [], $flowConfig);
                         $savedCount++;
                     }
                     
@@ -169,6 +170,7 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
         $filteredReasons = ['no_absolute' => 0, 'duplicate' => 0, 'exclude_extension' => 0, 'exclude_pattern' => 0, 'whitelist_mismatch' => 0, 'domain_policy' => 0];
         
         foreach ($links as $link) {
+            /** @var \DOMElement $link */
             $href = $link->getAttribute('href');
             $absoluteUrl = $this->resolveUrl($baseUrl, $href);
             
@@ -235,6 +237,7 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
         // Extract images (but apply same filters)
         $images = $xpath->query('//img[@src]');
         foreach ($images as $img) {
+            /** @var \DOMElement $img */
             $src = $img->getAttribute('src');
             $absoluteUrl = $this->resolveUrl($baseUrl, $src);
             if ($absoluteUrl && !in_array($absoluteUrl, $urls)) {

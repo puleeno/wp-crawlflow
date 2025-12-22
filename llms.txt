@@ -917,6 +917,15 @@ $results = $reception->processRawItems($rawItems);
    - Clear error messages
    - Easier debugging
 
+7. **Rake Logger System (MANDATORY)**
+   - NEVER use error_log() in CrawlFlow code
+   - ALWAYS use Rake Facade Logger: `use Rake\Facade\Logger;`
+   - Proper log levels: Logger::info(), Logger::debug(), Logger::warning(), Logger::error()
+   - Import LoggerService: `use CrawlFlow\LoggerService;`
+   - LoggerService::init() called in plugin bootstrap
+   - Provides structured logging with proper levels and file rotation
+   - Integration with Rake framework logging system
+
 ---
 
 ## 📚 ADDITIONAL RESOURCES

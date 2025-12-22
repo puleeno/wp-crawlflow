@@ -81,10 +81,10 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
 
                 if ($sitemapType === 'index') {
                     // Sitemap Index: Extract sitemap URLs (but don't save XML)
-                    $this->processSitemapIndex($projectId, $originId, $xmlContent, $sitemapUrl, $result);
+                    $this->processSitemapIndex($projectId, $originId, $xmlContent, $sitemapUrl, $result, $sourceId, $flowConfig);
                 } elseif ($sitemapType === 'sitemap') {
                     // Regular Sitemap: Extract URLs directly (but don't save XML)
-                    $this->processRegularSitemap($projectId, $originId, $xmlContent, $sitemapUrl, $result);
+                    $this->processRegularSitemap($projectId, $originId, $xmlContent, $sitemapUrl, $result, $sourceId, $flowConfig);
                 } else {
                     // XML Raw Object: Mark for Phase 2 processing
                     error_log("CrawlFlow Phase 1 (Sitemap): Treating as raw XML object for Phase 2 processing");
@@ -157,7 +157,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
      * Step 1: Import all sitemap URLs as "sitemap" type origins
      * Step 2: On next run, fetch those sitemap URLs and extract URLs
      */
-    private function processSitemapIndex(int $projectId, int $parentOriginId, string $xmlContent, string $baseUrl, array &$result): void
+    private function processSitemapIndex(int $projectId, int $parentOriginId, string $xmlContent, string $baseUrl, array &$result, int $sourceId, array $flowConfig): void
     {
         libxml_use_internal_errors(true);
         $xml = @simplexml_load_string($xmlContent);
@@ -196,7 +196,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
         if (!empty($existingSitemaps)) {
             // Step 2: Fetch sitemap URLs and extract URLs from them
             error_log("CrawlFlow Phase 1 (Sitemap): Step 2 - Processing " . count($existingSitemaps) . " sitemap URLs");
-            $this->processSitemapUrls($projectId, $existingSitemaps, $result);
+            $this->processSitemapUrls($projectId, $existingSitemaps, $result, $sourceId, $flowConfig);
         } else {
             // Step 1: Extract and save all sitemap URLs
             error_log("CrawlFlow Phase 1 (Sitemap): Step 1 - Extracting sitemap URLs from index");
@@ -226,7 +226,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
             foreach ($sitemapUrls as $sitemapUrl) {
                 $childOriginId = $this->saveToDataOrigins(
                     $projectId,
-                    null, // No source_id for child sitemaps
+                    $sourceId > 0 ? $sourceId : null, // Use same source_id as parent
                     $sitemapUrl,
                     '', // Empty raw_data - Phase 1 does not fetch/crawl
                     ['type' => 'sitemap', 'source_type' => 'sitemap', 'parent_sitemap_index' => $baseUrl],
@@ -244,7 +244,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
     /**
      * Process regular sitemap (extract URLs directly)
      */
-    private function processRegularSitemap(int $projectId, int $parentOriginId, string $xmlContent, string $baseUrl, array &$result): void
+    private function processRegularSitemap(int $projectId, int $parentOriginId, string $xmlContent, string $baseUrl, array &$result, int $sourceId, array $flowConfig): void
     {
         libxml_use_internal_errors(true);
         $xml = @simplexml_load_string($xmlContent);
@@ -291,7 +291,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
         foreach ($urls as $url) {
             $childOriginId = $this->saveToDataOrigins(
                 $projectId,
-                null,
+                $sourceId > 0 ? $sourceId : null, // Use same source_id as parent
                 $url,
                 '', // Empty raw_data - Phase 1 does not fetch/crawl
                 ['type' => 'url', 'source_type' => 'sitemap', 'parent_sitemap' => $baseUrl],
@@ -309,7 +309,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
      * Process sitemap URLs (Step 2 of sitemap index processing)
      * Fetch each sitemap to extract URLs, but do NOT save raw_data
      */
-    private function processSitemapUrls(int $projectId, array $sitemapOrigins, array &$result): void
+    private function processSitemapUrls(int $projectId, array $sitemapOrigins, array &$result, int $sourceId, array $flowConfig): void
     {
         $dataSource = new HttpDataSource();
         
@@ -366,7 +366,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                         foreach ($urls as $url) {
                             $childOriginId = $this->saveToDataOrigins(
                                 $projectId,
-                                null,
+                                $sourceId > 0 ? $sourceId : null, // Use same source_id as parent
                                 $url,
                                 '', // Empty raw_data - Phase 1 does not fetch/crawl
                                 ['type' => 'url', 'source_type' => 'sitemap', 'parent_sitemap' => $sitemapUrl],
@@ -422,40 +422,4 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
             ['id' => $originId]
         );
     }
-
-    /**
-     * Update origin metadata only
-     */
-    private function updateOriginMetadata(int $originId, array $metadata): void
-    {
-        global $wpdb;
-        $table = $wpdb->prefix . 'rake_data_origins';
-        
-        // Get existing metadata
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT metadata FROM {$table} WHERE id = %d",
-            $originId
-        ));
-        
-        $existingMetadata = [];
-        if ($existing) {
-            $decoded = json_decode($existing, true);
-            if (is_array($decoded)) {
-                $existingMetadata = $decoded;
-            }
-        }
-        
-        // Merge with new metadata
-        $mergedMetadata = array_merge($existingMetadata, $metadata);
-        
-        $wpdb->update(
-            $table,
-            [
-                'metadata' => json_encode($mergedMetadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'updated_at' => current_time('mysql'),
-            ],
-            ['id' => $originId]
-        );
-    }
 }
-

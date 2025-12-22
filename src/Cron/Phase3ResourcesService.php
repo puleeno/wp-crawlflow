@@ -4,6 +4,8 @@ namespace CrawlFlow\Cron;
 
 use CrawlFlow\Admin\ProjectService;
 use CrawlFlow\Cron\ProjectCacheService;
+use CrawlFlow\LoggerService;
+use Rake\Facade\Logger;
 use Rake\Rake;
 
 /**
@@ -35,7 +37,7 @@ class Phase3ResourcesService
     public function execute(int $projectId): array
     {
         try {
-            error_log("CrawlFlow Phase 3: Starting resource processing for project {$projectId}");
+            Logger::info("CrawlFlow Phase 3: Starting resource processing for project {$projectId}");
 
             // Load project (cached)
             $project = $this->projectCacheService->getProject($projectId);
@@ -43,11 +45,15 @@ class Phase3ResourcesService
                 throw new \RuntimeException("Project {$projectId} not found");
             }
 
+            Logger::info("CrawlFlow Phase 3: Project loaded successfully for project {$projectId}");
+
             // Get pending resources
+            Logger::info("CrawlFlow Phase 3: About to call getPendingResources() for project {$projectId}");
             $resources = $this->getPendingResources($projectId);
+            Logger::info("CrawlFlow Phase 3: getPendingResources() returned " . (is_array($resources) ? count($resources) : 'NOT_ARRAY') . " resources for project {$projectId}");
 
             if (empty($resources)) {
-                error_log("CrawlFlow Phase 3: No pending resources for project {$projectId}");
+                Logger::warning("CrawlFlow Phase 3: No pending resources for project {$projectId}");
                 return [
                     'project_id' => $projectId,
                     'phase' => 'resources',
@@ -93,11 +99,11 @@ class Phase3ResourcesService
                         'resource_id' => $resource['id'],
                         'error' => $e->getMessage(),
                     ];
-                    error_log("CrawlFlow Phase 3: Error processing resource {$resource['id']} - " . $e->getMessage());
+                    Logger::error("CrawlFlow Phase 3: Error processing resource {$resource['id']} - " . $e->getMessage());
                 }
             }
 
-            error_log(sprintf(
+            Logger::info(sprintf(
                 "CrawlFlow Phase 3: Completed for project %d - Processed: %d, Images: %d, Files: %d, URLs Replaced: %d",
                 $projectId,
                 $results['resources_processed'],
@@ -130,7 +136,81 @@ class Phase3ResourcesService
             ARRAY_A
         );
 
-        return $resources ?: [];
+        $resourceCount = is_array($resources) ? count($resources) : 0;
+        Logger::info("CrawlFlow Phase 3: Found {$resourceCount} pending resources for project {$projectId}");
+        
+        // ALWAYS log detailed information about resources (even if empty for debugging)
+        Logger::info("CrawlFlow Phase 3: Resources to be processed in detail:");
+        
+        if (!is_array($resources)) {
+            Logger::error("CrawlFlow Phase 3: ERROR - Resources is not an array: " . gettype($resources));
+            return [];
+        }
+        
+        if ($resourceCount === 0) {
+            Logger::warning("CrawlFlow Phase 3: NO RESOURCES FOUND - Debugging database query:");
+            Logger::info("CrawlFlow Phase 3: - Query executed: SELECT * FROM {$table} WHERE tooth_id = {$projectId} AND type = 'resource' AND JSON_EXTRACT(config, '$.status') = 'pending' LIMIT 50");
+            Logger::info("CrawlFlow Phase 3: - Table used: {$table}");
+            Logger::info("CrawlFlow Phase 3: - Project ID: {$projectId}");
+            
+            // Check if table exists
+            $tableCheck = $wpdb->get_var("SHOW TABLES LIKE '{$table}'");
+            Logger::info("CrawlFlow Phase 3: - Table exists: " . ($tableCheck ? 'YES' : 'NO'));
+            
+            // Check total records in table
+            $totalRecords = $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+            Logger::info("CrawlFlow Phase 3: - Total records in table: {$totalRecords}");
+            
+            // Check records for this project (without filters)
+            $projectRecords = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE tooth_id = %d",
+                $projectId
+            ));
+            Logger::info("CrawlFlow Phase 3: - Records for project {$projectId}: {$projectRecords}");
+            
+            // Check resource records for this project
+            $resourceRecords = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE tooth_id = %d AND type = 'resource'",
+                $projectId
+            ));
+            Logger::info("CrawlFlow Phase 3: - Resource records for project {$projectId}: {$resourceRecords}");
+            
+            // Check pending resources for this project
+            $pendingRecords = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE tooth_id = %d AND type = 'resource' AND JSON_EXTRACT(config, '$.status') = 'pending'",
+                $projectId
+            ));
+            Logger::info("CrawlFlow Phase 3: - Pending resource records for project {$projectId}: {$pendingRecords}");
+            
+            // Show sample records for debugging
+            $sampleRecords = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, name, type, JSON_EXTRACT(config, '$.status') as status, JSON_EXTRACT(config, '$.url') as url FROM {$table} WHERE tooth_id = %d AND type = 'resource' LIMIT 3",
+                $projectId
+            ), ARRAY_A);
+            Logger::info("CrawlFlow Phase 3: - Sample resource records:");
+            foreach ($sampleRecords as $index => $record) {
+                Logger::info("CrawlFlow Phase 3:   Sample #{$index}: ID={$record['id']}, Name={$record['name']}, Type={$record['type']}, Status={$record['status']}, URL={$record['url']}");
+            }
+        } else {
+            foreach ($resources as $index => $resource) {
+                $resourceId = $resource['id'] ?? 'unknown';
+                $resourceName = $resource['name'] ?? 'no_name';
+                $config = json_decode($resource['config'] ?? '{}', true);
+                $url = $config['url'] ?? 'no_url';
+                $resourceType = $config['resource_type'] ?? 'unknown';
+                $status = $config['status'] ?? 'unknown';
+                
+                Logger::info("CrawlFlow Phase 3: Resource #{$index} - ID: {$resourceId}, Name: {$resourceName}, Type: {$resourceType}, Status: {$status}, URL: {$url}");
+                
+                // Log first few resources' additional config details
+                if ($index < 3) {
+                    $configPreview = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                    Logger::info("CrawlFlow Phase 3: Resource #{$index} full config: {$configPreview}");
+                }
+            }
+        }
+
+        return $resources;
     }
 
     /**
