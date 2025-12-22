@@ -535,12 +535,18 @@ class Phase3ResourcesService
     private function markResourceAsProcessed(int $resourceId, array $result): void
     {
         global $wpdb;
-        $table = $wpdb->prefix . 'rake_data_sources';
+        $table = $wpdb->prefix . 'rake_resources';
 
-        $config = json_decode($wpdb->get_var($wpdb->prepare(
-            "SELECT config FROM {$table} WHERE id = %d",
+        $metadata = $wpdb->get_var($wpdb->prepare(
+            "SELECT metadata FROM {$table} WHERE id = %d",
             $resourceId
-        )), true);
+        ));
+        
+        // Handle null metadata
+        $config = $metadata ? json_decode($metadata, true) : [];
+        if (!is_array($config)) {
+            $config = [];
+        }
 
         $config['status'] = 'processed';
         $config['processed_at'] = current_time('mysql');
@@ -550,7 +556,7 @@ class Phase3ResourcesService
 
         $wpdb->update(
             $table,
-            ['config' => json_encode($config)],
+            ['metadata' => json_encode($config)],
             ['id' => $resourceId]
         );
     }
