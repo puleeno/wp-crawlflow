@@ -1,0 +1,58 @@
+graph TD
+    %% Data Sources Configuration
+    A[wpd4_rake_data_sources] -->|Configured URLs/Sitemaps| B[Phase 1: URL Extraction]
+    
+    %% Phase 1: URL Extraction
+    B --> C[UrlDataSourceHandler]
+    B --> D[SitemapDataSourceHandler]
+    C --> E[Extract URLs from pages]
+    D --> F[Parse sitemap XML]
+    E --> G[wpd4_rake_data_origins table]
+    F --> G
+    
+    %% Phase 2: Raw Data Processing
+    G --> H[Phase 2: Process Raw Items]
+    H --> I[Fetch raw_data for each origin]
+    I --> J{isResourceUrl?}
+    
+    %% Resource URL Path
+    J -->|Yes| K[Create Resource Entry]
+    K --> L[wpd4_rake_resources table]
+    K --> M[Mark origin ignored=1]
+    
+    %% Normal Content Path
+    J -->|No| N[Worker Processing]
+    N --> O[Content Parsers]
+    O --> P[Data Processors]
+    P --> Q[Save Processed Data]
+    
+    %% Phase 3: Resource Processing
+    L --> R[Phase 3: Resource Processing]
+    R --> S[Query wpd4_rake_resources WHERE import_status='pending']
+    S --> T[Download Images/Files]
+    T --> U[Import to WordPress Media]
+    U --> V[Update import_status='imported']
+    
+    %% Database Tables
+    subgraph "Database Tables"
+        A
+        G
+        L
+        W[wpd4_rake_data_origins_references]
+        X[wpd4_rake_url_source_maps]
+        Y[wpd4_rake_file_checksums]
+    end
+    
+    %% Relationships
+    Q --> W
+    T --> X
+    T --> Y
+    
+    %% Styling
+    style A fill:#e3f2fd
+    style B fill:#f3e5f5
+    style H fill:#fff3e0
+    style R fill:#e8f5e8
+    style G fill:#fce4ec
+    style L fill:#fff8e1
+    

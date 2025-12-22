@@ -61,6 +61,9 @@ class Phase2ProcessService
     {
         try {
             Logger::info("CrawlFlow Phase 2: Starting processing for project {$projectId}");
+            
+            // Update missing ignore reasons for existing ignored items
+            $this->updateMissingIgnoreReasons($projectId);
 
             // Load project (cached)
             $project = $this->projectCacheService->getProject($projectId);
@@ -347,6 +350,179 @@ class Phase2ProcessService
     }
 
     /**
+     * Update ignore reasons for existing ignored items without reasons
+     */
+    private function updateMissingIgnoreReasons(int $projectId): void
+    {
+        global $wpdb;
+        $originsTable = $wpdb->prefix . 'rake_data_origins';
+        $sourcesTable = $wpdb->prefix . 'rake_data_sources';
+        
+        // Find items that are ignored=1 but have NULL ignore_reason
+        $itemsWithoutReason = $wpdb->get_results($wpdb->prepare(
+            "SELECT o.id, o.guid FROM {$originsTable} o
+             LEFT JOIN {$sourcesTable} s ON o.source_id = s.id
+             WHERE s.tooth_id = %d AND o.ignored = 1 AND (o.ignore_reason IS NULL OR o.ignore_reason = '')",
+            $projectId
+        ), ARRAY_A);
+        
+        if (!empty($itemsWithoutReason)) {
+            Logger::info("CrawlFlow Phase 2: Found " . count($itemsWithoutReason) . " ignored items without reasons, updating...");
+            
+            foreach ($itemsWithoutReason as $item) {
+                $ignoreReason = $this->determineIgnoreReason(['guid' => $item['guid']]);
+                
+                $wpdb->update(
+                    $originsTable,
+                    [
+                        'ignore_reason' => $ignoreReason,
+                        'updated_at' => current_time('mysql'),
+                    ],
+                    ['id' => $item['id']],
+                    ['%s', '%s'],
+                    ['%d']
+                );
+                
+                Logger::debug("CrawlFlow Phase 2: Updated ignore reason for item {$item['id']}: {$ignoreReason}");
+            }
+        }
+    }
+
+    /**
+     * Determine ignore reason based on URL characteristics
+     */
+    private function determineIgnoreReason(array $rawItem): string
+    {
+        $guid = $rawItem['guid'] ?? '';
+        
+        // Check if URL has resource file extensions
+        $resourceExtensions = [
+            'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico',
+            'css', 'js', 'scss', 'less', 'sass',
+            'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+            'zip', 'rar', 'tar', 'gz', '7z',
+            'mp3', 'mp4', 'avi', 'mov', 'wmv', 'flv',
+            'txt', 'xml', 'json', 'csv', 'log'
+        ];
+        
+        $path = parse_url($guid, PHP_URL_PATH);
+        if ($path) {
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            if (in_array($extension, $resourceExtensions)) {
+                return 'Resource URL (should be handled in Phase 3)';
+            }
+        }
+        
+        // Check domain policy violations
+        if ($this->isDomainPolicyViolation($guid)) {
+            return 'Domain policy violation (different domain)';
+        }
+        
+        // Check exclude patterns
+        if ($this->isExcludePatternViolation($guid)) {
+            return 'Exclude pattern violation';
+        }
+        
+        // Default: no suitable worker found
+        return 'No suitable worker found';
+    }
+
+    /**
+     * Check if URL violates domain policy
+     */
+    private function isDomainPolicyViolation(string $url): bool
+    {
+        // Get project flow config to check domain policy
+        $flowConfig = $this->projectCacheService->getFlowConfig($this->currentProjectId);
+        if (!$flowConfig) {
+            return false;
+        }
+        
+        $nodes = $flowConfig['nodes'] ?? [];
+        $baseUrl = '';
+        
+        // Find the first URL source node to get base domain
+        foreach ($nodes as $node) {
+            if ($node['type'] === 'url' && isset($node['data']['config']['url'])) {
+                $baseUrl = $node['data']['config']['url'];
+                break;
+            }
+        }
+        
+        if (empty($baseUrl)) {
+            return false;
+        }
+        
+        $baseDomain = parse_url($baseUrl, PHP_URL_HOST);
+        $targetDomain = parse_url($url, PHP_URL_HOST);
+        
+        if (!$baseDomain || !$targetDomain) {
+            return false;
+        }
+        
+        // Check if domains are different
+        return $baseDomain !== $targetDomain;
+    }
+
+    /**
+     * Check if URL violates exclude patterns
+     */
+    private function isExcludePatternViolation(string $url): bool
+    {
+        // Get project flow config to check exclude patterns
+        $flowConfig = $this->projectCacheService->getFlowConfig($this->currentProjectId);
+        if (!$flowConfig) {
+            return false;
+        }
+        
+        $nodes = $flowConfig['nodes'] ?? [];
+        $excludePatterns = [];
+        
+        // Find exclude patterns from URL source nodes
+        foreach ($nodes as $node) {
+            if ($node['type'] === 'url' && isset($node['data']['config']['urlSettings']['excludePatterns'])) {
+                $excludePatterns = array_merge($excludePatterns, $node['data']['config']['urlSettings']['excludePatterns']);
+            }
+        }
+        
+        if (empty($excludePatterns)) {
+            return false;
+        }
+        
+        // Check against exclude patterns
+        foreach ($excludePatterns as $pattern) {
+            if (empty($pattern)) continue;
+            
+            $normalizedPattern = $this->normalizeRegexPattern($pattern);
+            if ($normalizedPattern && @preg_match($normalizedPattern, $url)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Normalize regex pattern for URL matching
+     */
+    private function normalizeRegexPattern(string $pattern): ?string
+    {
+        if (empty($pattern)) {
+            return null;
+        }
+        
+        // If pattern doesn't look like regex, convert to simple match
+        if (!preg_match('/^\/.*\/[imsxADSUXJu]*$/', $pattern)) {
+            // Escape special regex characters and convert to wildcard pattern
+            $pattern = preg_quote($pattern, '/');
+            $pattern = str_replace('\\*', '.*', $pattern);
+            return '/^' . $pattern . '$/';
+        }
+        
+        return $pattern;
+    }
+
+    /**
      * Ensure process_id column exists on origins table
      */
     private function maybeAddProcessIdColumn(string $originsTable): void
@@ -388,11 +564,44 @@ class Phase2ProcessService
             
             // Skip image URLs and other resources - they should be handled in Phase 3
             if (!empty($guid) && $this->isResourceUrl($guid)) {
-                Logger::info("CrawlFlow Phase 2: Skipping resource URL: {$guid}");
+                Logger::info("CrawlFlow Phase 2: Creating resource entry for: {$guid}");
+                
+                // Create resource entry in rake_resources table
+                $resourceId = $this->createResourceEntry($this->currentProjectId, $guid, $originId);
+                
+                if ($resourceId) {
+                    Logger::info("CrawlFlow Phase 2: Successfully created resource entry {$resourceId} for: {$guid}");
+                } else {
+                    Logger::error("CrawlFlow Phase 2: Failed to create resource entry for: {$guid}");
+                }
+                
+                // Mark origin as ignored to prevent reprocessing
+                global $wpdb;
+                $table = $wpdb->prefix . 'rake_data_origins';
+                
+                $updateResult = $wpdb->update(
+                    $table,
+                    [
+                        'ignored' => 1,
+                        'ignore_reason' => 'Resource URL (should be handled in Phase 3)',
+                        'crawled' => 0,
+                        'updated_at' => current_time('mysql'),
+                    ],
+                    ['id' => $originId],
+                    ['%d', '%s', '%d', '%s'],
+                    ['%d']
+                );
+                
+                if ($updateResult === false) {
+                    Logger::error("CrawlFlow Phase 2: Failed to update ignored status for origin {$originId} - " . $wpdb->last_error);
+                } else {
+                    Logger::info("CrawlFlow Phase 2: Successfully updated ignored status for origin {$originId} - Resource URL (should be handled in Phase 3)");
+                }
+                
                 $results[] = [
                     'success' => false,
                     'item_id' => $originId,
-                    'error' => 'Resource URL (should be handled in Phase 3)',
+                    'error' => "ID:{$originId} - Resource URL (should be handled in Phase 3)",
                 ];
                 continue;
             }
@@ -415,10 +624,33 @@ class Phase2ProcessService
                         }
                         Logger::info("CrawlFlow Phase 2: Successfully fetched raw_data for origin {$originId}");
                     } else {
+                        // Fetch failed - mark as ignored
+                        global $wpdb;
+                        $table = $wpdb->prefix . 'rake_data_origins';
+                        
+                        $updateResult = $wpdb->update(
+                            $table,
+                            [
+                                'ignored' => 1,
+                                'ignore_reason' => 'Failed to fetch raw_data',
+                                'crawled' => 0,
+                                'updated_at' => current_time('mysql'),
+                            ],
+                            ['id' => $originId],
+                            ['%d', '%s', '%d', '%s'],
+                            ['%d']
+                        );
+                        
+                        if ($updateResult === false) {
+                            Logger::error("CrawlFlow Phase 2: Failed to update ignored status for origin {$originId} - " . $wpdb->last_error);
+                        } else {
+                            Logger::info("CrawlFlow Phase 2: Successfully updated ignored status for origin {$originId} - Failed to fetch raw_data");
+                        }
+                        
                         $results[] = [
                             'success' => false,
                             'item_id' => $originId,
-                            'error' => 'Failed to fetch raw_data',
+                            'error' => "ID:{$originId} - Failed to fetch raw_data",
                         ];
                         continue;
                     }
@@ -439,26 +671,36 @@ class Phase2ProcessService
             $worker = $reception->assignToWorker($rawItem);
 
             if (!$worker) {
-                // No worker can handle this item - mark as ignored
+                // No worker can handle this item - determine ignore reason and mark as ignored
+                $ignoreReason = $this->determineIgnoreReason($rawItem);
+                
                 global $wpdb;
                 $table = $wpdb->prefix . 'rake_data_origins';
-                $wpdb->update(
+                
+                $updateResult = $wpdb->update(
                     $table,
                     [
                         'ignored' => 1,
+                        'ignore_reason' => $ignoreReason,
                         'crawled' => 0,
                         'updated_at' => current_time('mysql'),
                     ],
                     ['id' => $originId],
-                    ['%d', '%d', '%s'],
+                    ['%d', '%s', '%d', '%s'],
                     ['%d']
                 );
                 
-                Logger::info("CrawlFlow Phase 2: No worker found for origin {$originId}, marked as ignored");
+                if ($updateResult === false) {
+                    Logger::error("CrawlFlow Phase 2: Failed to update ignored status for origin {$originId} - " . $wpdb->last_error);
+                } else {
+                    Logger::info("CrawlFlow Phase 2: Successfully updated ignored status for origin {$originId} - {$ignoreReason}");
+                }
+                
+                Logger::info("CrawlFlow Phase 2: No worker found for origin {$originId}, marked as ignored - {$ignoreReason}");
                 $results[] = [
                     'success' => false,
                     'item_id' => $originId,
-                    'error' => 'No worker can handle this item',
+                    'error' => "ID:{$originId} - {$ignoreReason}",
                 ];
                 continue;
             }
@@ -703,6 +945,66 @@ class Phase2ProcessService
         }
 
         return $resources;
+    }
+
+    /**
+     * Create resource entry in rake_resources table
+     */
+    private function createResourceEntry(int $projectId, string $url, int $originId): ?int
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_resources';
+        
+        // Check if already exists
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE guid = %s",
+            $url
+        ));
+        
+        if ($existing) {
+            return (int)$existing;
+        }
+        
+        // Determine resource type from URL
+        $path = parse_url($url, PHP_URL_PATH);
+        $dataType = 'url'; // default
+        if ($path) {
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'])) {
+                $dataType = 'image';
+            } elseif (in_array($extension, ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'])) {
+                $dataType = 'file';
+            }
+        }
+        
+        // Insert new resource
+        $result = $wpdb->insert(
+            $table,
+            [
+                'parent_id' => null,
+                'tooth_id' => $projectId,
+                'data_type' => $dataType,
+                'guid' => $url,
+                'current_content' => '',
+                'app_data_type' => '',
+                'app_guid' => '',
+                'import_status' => 'pending',
+                'import_retry' => 0,
+                'imported_at' => null,
+                'metadata' => json_encode([
+                    'source_url' => $url,
+                    'origin_id' => $originId,
+                    'created_from' => 'phase2_resource_detection'
+                ]),
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql'),
+            ],
+            [
+                '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', null, '%s', '%s', '%s'
+            ]
+        );
+        
+        return $result ? (int)$wpdb->insert_id : null;
     }
 
     /**
