@@ -1735,13 +1735,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                         {[
                             { value: 60000, label: 'Mỗi 1 phút' },
                             { value: 300000, label: 'Mỗi 5 phút' }, // default
+                            { value: 600000, label: 'Mỗi 10 phút' },
                             { value: 900000, label: 'Mỗi 15 phút' },
                             { value: 1800000, label: 'Mỗi 30 phút' },
                             { value: 3600000, label: 'Mỗi 1 giờ' },
+                            { value: 7200000, label: 'Mỗi 2 giờ' },
                             { value: 10800000, label: 'Mỗi 3 giờ' },
+                            { value: 14400000, label: 'Mỗi 4 giờ' },
                             { value: 21600000, label: 'Mỗi 6 giờ' },
+                            { value: 28800000, label: 'Mỗi 8 giờ' },
                             { value: 43200000, label: 'Mỗi 12 giờ' },
-                            { value: 86400000, label: 'Mỗi 24 giờ' },
+                            { value: 86400000, label: 'Mỗi 1 ngày' },
+                            { value: 172800000, label: 'Mỗi 2 ngày' },
+                            { value: 259200000, label: 'Mỗi 3 ngày' },
+                            { value: 432000000, label: 'Mỗi 5 ngày' },
+                            { value: 604800000, label: 'Mỗi 7 ngày' },
+                            { value: 864000000, label: 'Mỗi 10 ngày' },
+                            { value: 1296000000, label: 'Mỗi 15 ngày' },
                         ].map(opt => (
                             <option key={opt.value} value={opt.value}>
                                 {opt.label}

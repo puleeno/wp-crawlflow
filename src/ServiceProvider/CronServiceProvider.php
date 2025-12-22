@@ -37,8 +37,8 @@ class CronServiceProvider extends AbstractServiceProvider
         // Schedule all active projects on boot (if not already scheduled)
         add_action('init', [$this, 'scheduleActiveProjects'], 20);
         
-        // Register WP CLI commands
-        if (defined('WP_CLI') && WP_CLI) {
+        // Register WP CLI commands (only if WP-CLI is available)
+        if (defined('WP_CLI') && WP_CLI && class_exists('WP_CLI')) {
             $this->registerCliCommands();
         }
     }
@@ -54,8 +54,8 @@ class CronServiceProvider extends AbstractServiceProvider
 
         $command = new \CrawlFlow\CLI\CrawlFlowCronCommand();
 
-        // Register main command (list)
-        \WP_CLI::add_command('crawlflow cron list', [$command, 'list'], [
+        // Helper method to add WP CLI command safely
+        $this->addCliCommand('crawlflow cron list', [$command, 'list'], [
             'shortdesc' => 'List all CrawlFlow projects with their cron schedule status',
             'synopsis' => [
                 [
@@ -74,8 +74,8 @@ class CronServiceProvider extends AbstractServiceProvider
         ]);
 
         // Register schedule command
-        \WP_CLI::add_command('crawlflow cron schedule', [$command, 'schedule'], [
-            'shortdesc' => 'Schedule a project',
+        $this->addCliCommand('crawlflow cron schedule', [$command, 'schedule'], [
+            'shortdesc' => 'Schedule a CrawlFlow project',
             'synopsis' => [
                 [
                     'type' => 'positional',
@@ -87,8 +87,8 @@ class CronServiceProvider extends AbstractServiceProvider
         ]);
 
         // Register unschedule command
-        \WP_CLI::add_command('crawlflow cron unschedule', [$command, 'unschedule'], [
-            'shortdesc' => 'Unschedule a project',
+        $this->addCliCommand('crawlflow cron unschedule', [$command, 'unschedule'], [
+            'shortdesc' => 'Unschedule a CrawlFlow project',
             'synopsis' => [
                 [
                     'type' => 'positional',
@@ -100,8 +100,8 @@ class CronServiceProvider extends AbstractServiceProvider
         ]);
 
         // Register run command
-        \WP_CLI::add_command('crawlflow cron run', [$command, 'run'], [
-            'shortdesc' => 'Run a project manually',
+        $this->addCliCommand('crawlflow cron run', [$command, 'run'], [
+            'shortdesc' => 'Run a CrawlFlow project manually',
             'synopsis' => [
                 [
                     'type' => 'positional',
@@ -111,6 +111,16 @@ class CronServiceProvider extends AbstractServiceProvider
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Helper method to safely add WP CLI command
+     */
+    private function addCliCommand(string $name, array $callback, array $args): void
+    {
+        if (class_exists('WP_CLI')) {
+            \WP_CLI::add_command($name, $callback, $args);
+        }
     }
 
     /**
@@ -138,6 +148,42 @@ class CronServiceProvider extends AbstractServiceProvider
             'interval' => 6 * HOUR_IN_SECONDS,
             'display' => 'Every 6 Hours',
         ];
+        
+        // Add custom schedules for active projects directly
+        try {
+            $cronScheduler = $this->app->make('CrawlFlow\Cron\CronScheduler');
+            $projects = $cronScheduler->getProjectService()->getAllProjects();
+            
+            error_log('CrawlFlow: Found ' . count($projects) . ' projects for schedule registration');
+            
+            foreach ($projects as $project) {
+                if (($project['status'] ?? '') === 'active') {
+                    $projectId = $project['id'] ?? 0;
+                    $projectCacheService = new \CrawlFlow\Cron\ProjectCacheService();
+                    $flowConfig = $projectCacheService->getFlowConfig($projectId);
+                    $projectSettings = $flowConfig['projectSettings'] ?? [];
+                    
+                    if ($projectSettings['enabled'] ?? false) {
+                        $crawlDelayMs = (int)($projectSettings['crawlDelay'] ?? 300000);
+                        $intervalSeconds = max(60, (int)round($crawlDelayMs / 1000));
+                        $scheduleSlug = 'crawlflow_project_' . $projectId;
+                        
+                        $schedules[$scheduleSlug] = [
+                            'interval' => $intervalSeconds,
+                            'display' => "CrawlFlow Project interval ({$intervalSeconds}s)",
+                        ];
+                        
+                        error_log("CrawlFlow: Registered schedule {$scheduleSlug} with interval {$intervalSeconds}s");
+                    } else {
+                        error_log("CrawlFlow: Project {$projectId} is not enabled, skipping schedule registration");
+                    }
+                } else {
+                    error_log("CrawlFlow: Project {$projectId} status is '{$project['status']}', skipping schedule registration");
+                }
+            }
+        } catch (\Exception $e) {
+            error_log("CrawlFlow: Error adding custom project schedules: " . $e->getMessage());
+        }
         
         return $schedules;
     }

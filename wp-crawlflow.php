@@ -91,13 +91,15 @@ class WP_CrawlFlow {
 
     /**
      * Initialize Rake container and register service providers
-     * Uses ApplicationBootstrapper for centralized service provider management
      * 
      * @throws \Exception If Rake classes are not available or initialization fails
      */
     private function initRake(): void {
         // Use ApplicationBootstrapper for clean service provider registration
+        // The constructor automatically calls parent::__construct() which handles bootstrapping
         $bootstrapper = new \CrawlFlow\Bootstrapper\ApplicationBootstrapper();
+
+        // Do not delete this line
         $bootstrapper->bootstrap();
 
         // Store bootstrapper instance for later use

@@ -333,10 +333,109 @@ class CrawlFlowController
         $this->currentScreen = 'crawlflow-analytics';
         $this->detectCurrentScreen();
         $period = \sanitize_text_field($_GET['period'] ?? '7days');
+        $selectedProjectId = \sanitize_text_field($_GET['project_id'] ?? '');
+
+        // Get comprehensive analytics data
+        $projects = $this->projectService->getProjects();
+        $activeProjects = array_filter($projects, fn($p) => ($p['status'] ?? '') === 'active');
+        $draftProjects = array_filter($projects, fn($p) => ($p['status'] ?? '') === 'draft');
+        
+        // Get URL statistics
+        $totalUrls = $this->projectService->getTotalUrlsProcessed() + $this->projectService->getTotalUrlsPending() + $this->projectService->getTotalUrlsFailed();
+        $processedUrls = $this->projectService->getTotalUrlsProcessed();
+        $pendingUrls = $this->projectService->getTotalUrlsPending();
+        $failedUrls = $this->projectService->getTotalUrlsFailed();
+        
+        // Calculate success rate
+        $successRate = $totalUrls > 0 ? ($processedUrls / $totalUrls) * 100 : 0;
+        
+        // Get cron job statistics
+        $scheduledJobs = $this->getScheduledJobsCount();
+        $runningJobs = $this->getRunningJobsCount();
+        $failedJobs = $this->getFailedJobsCount();
+        
+        // Get system performance metrics
+        $memoryUsage = $this->getMemoryUsage();
+        $avgResponseTime = $this->getAverageResponseTime();
+        
+        // Get system health data
+        $systemHealth = $this->getSystemHealth();
+        
+        // Get performance metrics for the period
+        $performanceMetrics = $this->getPerformanceMetrics($period);
+        
+        // Get error analysis
+        $errorAnalysis = $this->getErrorAnalysis($period);
+        
+        // Get top performing projects
+        $topProjects = $this->getTopProjects($period);
+        
+        // Get projects progress data
+        $projectsProgress = $this->getProjectsProgress($activeProjects);
+        
+        // Get recent activity
+        $recentActivity = $this->getRecentActivity();
+        
+        // Get projects summary for table
+        $projectsSummary = $this->getProjectsSummary($projects);
+        
+        // Get selected project details if specified
+        $selectedProject = null;
+        if (!empty($selectedProjectId) && is_numeric($selectedProjectId)) {
+            $selectedProject = $this->getSelectedProjectDetails((int)$selectedProjectId, $period);
+        }
+        
+        // Get chart data
+        $chartData = [
+            'urls_chart' => $this->projectService->getUrlsProcessedChart($period),
+            'performance_chart' => $this->projectService->getProjectsPerformance($period),
+            'error_chart' => $this->getErrorRateChart($period),
+            'resource_chart' => $this->getResourceUsageChart($period),
+            'project_timeline_chart' => $selectedProject ? $this->getProjectTimelineChart((int)$selectedProjectId, $period) : null,
+        ];
 
         $data = [
-            'urls_chart' => $this->projectService->getUrlsProcessedChart($period),
-            'performance_data' => $this->projectService->getProjectsPerformance($period),
+            // Summary statistics
+            'total_projects' => count($projects),
+            'active_projects' => count($activeProjects),
+            'draft_projects' => count($draftProjects),
+            
+            // Cron job statistics
+            'scheduled_jobs' => $scheduledJobs,
+            'running_jobs' => $runningJobs,
+            'failed_jobs' => $failedJobs,
+            
+            // URL statistics
+            'total_urls' => $totalUrls,
+            'processed_urls' => $processedUrls,
+            'pending_urls' => $pendingUrls,
+            'failed_urls' => $failedUrls,
+            
+            // Performance metrics
+            'success_rate' => round($successRate, 1),
+            'avg_response_time' => $avgResponseTime,
+            'memory_usage' => $memoryUsage,
+            
+            // Detailed overview data
+            'system_health' => $systemHealth,
+            'performance_metrics' => $performanceMetrics,
+            'error_analysis' => $errorAnalysis,
+            'top_projects' => $topProjects,
+            
+            // Progress tracking
+            'projects_progress' => $projectsProgress,
+            
+            // Recent activity
+            'recent_activity' => $recentActivity,
+            
+            // Project-specific data
+            'all_projects' => $projects,
+            'selected_project_id' => $selectedProjectId,
+            'selected_project' => $selectedProject,
+            'projects_summary' => $projectsSummary,
+            
+            // Chart data
+            'chart_data' => $chartData,
             'period' => $period,
         ];
 
@@ -986,6 +1085,739 @@ class CrawlFlowController
     public function getLogService(): LogService
     {
         return $this->logService;
+    }
+
+    // ============================================================================
+    // ANALYTICS HELPER METHODS
+    // ============================================================================
+
+    /**
+     * Get scheduled cron jobs count
+     */
+    private function getScheduledJobsCount(): int
+    {
+        $cronJobs = _get_cron_array();
+        $crawlflowJobs = 0;
+        
+        if (is_array($cronJobs)) {
+            foreach ($cronJobs as $timestamp => $hooks) {
+                if (is_array($hooks)) {
+                    foreach ($hooks as $hook => $events) {
+                        if (strpos($hook, 'crawlflow') !== false) {
+                            $crawlflowJobs += count($events);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $crawlflowJobs;
+    }
+
+    /**
+     * Get running jobs count (approximate)
+     */
+    private function getRunningJobsCount(): int
+    {
+        // This is an approximation - in reality you'd need to track running processes
+        // For now, we'll return 0 as WordPress cron doesn't track running jobs
+        return 0;
+    }
+
+    /**
+     * Get failed jobs count from logs
+     */
+    private function getFailedJobsCount(): int
+    {
+        try {
+            $failedLogs = $this->logService->getLogsByLevel('error', 1, 100);
+            return count($failedLogs);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Get memory usage in human readable format
+     */
+    private function getMemoryUsage(): string
+    {
+        $memoryUsage = memory_get_usage(true);
+        $memoryLimit = ini_get('memory_limit');
+        
+        // Convert memory limit to bytes
+        $memoryLimitBytes = $this->parseMemoryLimit($memoryLimit);
+        
+        $usagePercent = $memoryLimitBytes > 0 ? ($memoryUsage / $memoryLimitBytes) * 100 : 0;
+        
+        return sprintf(
+            '%s / %s (%.1f%%)',
+            $this->formatBytes($memoryUsage),
+            $memoryLimit,
+            $usagePercent
+        );
+    }
+
+    /**
+     * Parse memory limit string to bytes
+     */
+    private function parseMemoryLimit(string $limit): int
+    {
+        $limit = trim($limit);
+        $last = strtolower($limit[strlen($limit) - 1]);
+        $value = (int) $limit;
+        
+        switch ($last) {
+            case 'g':
+                return $value * 1024 * 1024 * 1024;
+            case 'm':
+                return $value * 1024 * 1024;
+            case 'k':
+                return $value * 1024;
+            default:
+                return $value;
+        }
+    }
+
+    /**
+     * Format bytes to human readable format
+     */
+    private function formatBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $unitIndex = 0;
+        
+        while ($bytes >= 1024 && $unitIndex < count($units) - 1) {
+            $bytes /= 1024;
+            $unitIndex++;
+        }
+        
+        return round($bytes, 2) . ' ' . $units[$unitIndex];
+    }
+
+    /**
+     * Get average response time (mock implementation)
+     */
+    private function getAverageResponseTime(): float
+    {
+        // This would typically come from performance monitoring
+        // For now, return a reasonable default
+        return 2.5;
+    }
+
+    /**
+     * Get projects progress data
+     */
+    private function getProjectsProgress(array $projects): array
+    {
+        $progressData = [];
+        
+        foreach ($projects as $project) {
+            $projectId = $project['id'] ?? 0;
+            
+            // Get URL counts for this project
+            $totalUrls = $this->getProjectTotalUrls($projectId);
+            $processedUrls = $this->getProjectProcessedUrls($projectId);
+            
+            // Calculate progress percentage
+            $progressPercentage = $totalUrls > 0 ? ($processedUrls / $totalUrls) * 100 : 0;
+            
+            // Get next run time
+            $nextRun = $this->getProjectNextRun($projectId);
+            $lastRun = $this->getProjectLastRun($projectId);
+            
+            // Get schedule info
+            $schedule = $this->getProjectSchedule($projectId);
+            
+            // Get recent errors
+            $recentErrors = $this->getProjectRecentErrors($projectId);
+            
+            $progressData[] = [
+                'id' => $projectId,
+                'name' => $project['name'] ?? 'Unknown Project',
+                'status' => $project['status'] ?? 'unknown',
+                'total_count' => $totalUrls,
+                'processed_count' => $processedUrls,
+                'progress_percentage' => round($progressPercentage, 1),
+                'next_run' => $nextRun,
+                'last_run' => $lastRun,
+                'schedule' => $schedule,
+                'recent_errors' => $recentErrors,
+            ];
+        }
+        
+        return $progressData;
+    }
+
+    /**
+     * Get total URLs for a project
+     */
+    private function getProjectTotalUrls(int $projectId): int
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_urls';
+        
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table WHERE tooth_id = %d",
+            $projectId
+        ));
+        
+        return (int) $count;
+    }
+
+    /**
+     * Get processed URLs for a project
+     */
+    private function getProjectProcessedUrls(int $projectId): int
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_urls';
+        
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table WHERE tooth_id = %d AND status = 'processed'",
+            $projectId
+        ));
+        
+        return (int) $count;
+    }
+
+    /**
+     * Get next run time for a project
+     */
+    private function getProjectNextRun(int $projectId): string
+    {
+        $cronJobs = _get_cron_array();
+        
+        if (is_array($cronJobs)) {
+            foreach ($cronJobs as $timestamp => $hooks) {
+                if (is_array($hooks)) {
+                    foreach ($hooks as $hook => $events) {
+                        if (strpos($hook, 'crawlflow') !== false && strpos($hook, (string)$projectId) !== false) {
+                            return date('Y-m-d H:i:s', $timestamp);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return 'Not scheduled';
+    }
+
+    /**
+     * Get last run time for a project
+     */
+    private function getProjectLastRun(int $projectId): string
+    {
+        try {
+            $logs = $this->logService->getLogs(1, 10);
+            
+            foreach ($logs as $log) {
+                if (strpos($log['message'] ?? '', "project {$projectId}") !== false) {
+                    return $log['created_at'] ?? 'Unknown';
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignore errors
+        }
+        
+        return 'Never';
+    }
+
+    /**
+     * Get project schedule information
+     */
+    private function getProjectSchedule(int $projectId): string
+    {
+        try {
+            $flowConfig = $this->projectService->getFlowConfig($projectId);
+            $projectSettings = $flowConfig['projectSettings'] ?? [];
+            $crawlDelay = $projectSettings['crawlDelay'] ?? 300000;
+            
+            // Convert milliseconds to human readable format
+            $minutes = $crawlDelay / 60000;
+            
+            if ($minutes < 60) {
+                return "Every {$minutes} minutes";
+            } else {
+                $hours = $minutes / 60;
+                if ($hours < 24) {
+                    return "Every " . round($hours, 1) . " hours";
+                } else {
+                    $days = $hours / 24;
+                    return "Every " . round($days, 1) . " days";
+                }
+            }
+        } catch (\Exception $e) {
+            return 'N/A';
+        }
+    }
+
+    /**
+     * Get recent errors for a project
+     */
+    private function getProjectRecentErrors(int $projectId): array
+    {
+        try {
+            $errorLogs = $this->logService->getLogsByLevel('error', 1, 50);
+            $projectErrors = [];
+            
+            foreach ($errorLogs as $log) {
+                if (strpos($log['message'] ?? '', "project {$projectId}") !== false) {
+                    $projectErrors[] = [
+                        'message' => $log['message'] ?? 'Unknown error',
+                        'time' => $log['created_at'] ?? '',
+                    ];
+                    
+                    if (count($projectErrors) >= 3) {
+                        break;
+                    }
+                }
+            }
+            
+            return $projectErrors;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get recent activity
+     */
+    private function getRecentActivity(): array
+    {
+        try {
+            $logs = $this->logService->getLogs(1, 20);
+            $activity = [];
+            
+            foreach ($logs as $log) {
+                $type = 'info';
+                $message = $log['message'] ?? '';
+                $project = 'System';
+                
+                // Determine activity type and extract project name
+                if (strpos($message, 'error') !== false || strpos($message, 'failed') !== false) {
+                    $type = 'error';
+                } elseif (strpos($message, 'warning') !== false) {
+                    $type = 'warning';
+                } elseif (strpos($message, 'success') !== false || strpos($message, 'completed') !== false) {
+                    $type = 'success';
+                }
+                
+                // Extract project name if present
+                if (preg_match('/project (\d+)/', $message, $matches)) {
+                    $projectId = $matches[1];
+                    $projectData = $this->projectService->getProject((int)$projectId);
+                    $project = $projectData['name'] ?? "Project {$projectId}";
+                }
+                
+                $activity[] = [
+                    'type' => $type,
+                    'time' => $log['created_at'] ?? '',
+                    'project' => $project,
+                    'message' => $message,
+                ];
+            }
+            
+            return $activity;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get system health status
+     */
+    private function getSystemHealth(): array
+    {
+        $health = [];
+        
+        // Check cron system
+        $cronJobs = _get_cron_array();
+        $health['cron_status'] = is_array($cronJobs) && !empty($cronJobs) ? 'good' : 'warning';
+        
+        // Check database connectivity
+        global $wpdb;
+        $health['database_status'] = $wpdb->last_error ? 'critical' : 'good';
+        
+        // Check memory usage
+        $memoryUsage = memory_get_usage(true);
+        $memoryLimit = $this->parseMemoryLimit(ini_get('memory_limit'));
+        $memoryPercent = $memoryLimit > 0 ? ($memoryUsage / $memoryLimit) * 100 : 0;
+        
+        if ($memoryPercent > 90) {
+            $health['memory_status'] = 'critical';
+        } elseif ($memoryPercent > 75) {
+            $health['memory_status'] = 'warning';
+        } else {
+            $health['memory_status'] = 'good';
+        }
+        
+        // Check disk space (basic check)
+        $uploadDir = wp_upload_dir();
+        $freeSpace = disk_free_space($uploadDir['basedir']);
+        $totalSpace = disk_total_space($uploadDir['basedir']);
+        $diskPercent = $totalSpace > 0 ? (($totalSpace - $freeSpace) / $totalSpace) * 100 : 0;
+        
+        if ($diskPercent > 90) {
+            $health['disk_status'] = 'critical';
+        } elseif ($diskPercent > 80) {
+            $health['disk_status'] = 'warning';
+        } else {
+            $health['disk_status'] = 'good';
+        }
+        
+        return $health;
+    }
+
+    /**
+     * Get performance metrics for a period
+     */
+    private function getPerformanceMetrics(string $period): array
+    {
+        // Calculate period in days
+        $periodDays = match($period) {
+            '7days' => 7,
+            '30days' => 30,
+            '90days' => 90,
+            default => 7
+        };
+        
+        // Get metrics from logs or database
+        $totalProcessed = $this->projectService->getTotalUrlsProcessed();
+        $avgProcessingTime = $this->getAverageProcessingTime();
+        $successRate = $this->getOverallSuccessRate();
+        
+        // Calculate throughput (urls per minute)
+        $throughput = $periodDays > 0 ? ($totalProcessed / ($periodDays * 24 * 60)) : 0;
+        
+        return [
+            'total_processed' => $totalProcessed,
+            'avg_processing_time' => $avgProcessingTime,
+            'success_rate' => $successRate,
+            'throughput' => $throughput,
+        ];
+    }
+
+    /**
+     * Get error analysis for a period
+     */
+    private function getErrorAnalysis(string $period): array
+    {
+        try {
+            $errorLogs = $this->logService->getLogsByLevel('error', 1, 100);
+            $errorAnalysis = [];
+            
+            foreach ($errorLogs as $log) {
+                $message = $log['message'] ?? '';
+                
+                // Categorize errors
+                if (strpos($message, 'timeout') !== false || strpos($message, 'connection') !== false) {
+                    $errorAnalysis['network'] = ($errorAnalysis['network'] ?? 0) + 1;
+                } elseif (strpos($message, '404') !== false || strpos($message, 'not found') !== false) {
+                    $errorAnalysis['not_found'] = ($errorAnalysis['not_found'] ?? 0) + 1;
+                } elseif (strpos($message, '500') !== false || strpos($message, 'server error') !== false) {
+                    $errorAnalysis['server'] = ($errorAnalysis['server'] ?? 0) + 1;
+                } elseif (strpos($message, 'database') !== false || strpos($message, 'sql') !== false) {
+                    $errorAnalysis['database'] = ($errorAnalysis['database'] ?? 0) + 1;
+                } else {
+                    $errorAnalysis['other'] = ($errorAnalysis['other'] ?? 0) + 1;
+                }
+            }
+            
+            return $errorAnalysis;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get top performing projects
+     */
+    private function getTopProjects(string $period): array
+    {
+        $projects = $this->projectService->getProjects();
+        $topProjects = [];
+        
+        foreach ($projects as $project) {
+            $projectId = $project['id'] ?? 0;
+            $processedUrls = $this->getProjectProcessedUrls($projectId);
+            $totalUrls = $this->getProjectTotalUrls($projectId);
+            $successRate = $totalUrls > 0 ? ($processedUrls / $totalUrls) * 100 : 0;
+            
+            $topProjects[] = [
+                'id' => $projectId,
+                'name' => $project['name'] ?? 'Unknown',
+                'processed_urls' => $processedUrls,
+                'success_rate' => $successRate,
+            ];
+        }
+        
+        // Sort by processed URLs descending
+        usort($topProjects, fn($a, $b) => $b['processed_urls'] - $a['processed_urls']);
+        
+        return array_slice($topProjects, 0, 5); // Top 5 projects
+    }
+
+    /**
+     * Get projects summary for table
+     */
+    private function getProjectsSummary(array $projects): array
+    {
+        $summary = [];
+        
+        foreach ($projects as $project) {
+            $projectId = $project['id'] ?? 0;
+            $totalUrls = $this->getProjectTotalUrls($projectId);
+            $processedUrls = $this->getProjectProcessedUrls($projectId);
+            $pendingUrls = $this->getProjectPendingUrls($projectId);
+            $failedUrls = $this->getProjectFailedUrls($projectId);
+            $successRate = $totalUrls > 0 ? ($processedUrls / $totalUrls) * 100 : 0;
+            
+            $summary[] = [
+                'id' => $projectId,
+                'name' => $project['name'] ?? 'Unknown',
+                'description' => $project['description'] ?? '',
+                'status' => $project['status'] ?? 'unknown',
+                'total_urls' => $totalUrls,
+                'processed_urls' => $processedUrls,
+                'pending_urls' => $pendingUrls,
+                'failed_urls' => $failedUrls,
+                'success_rate' => round($successRate, 1),
+                'last_run' => $this->getProjectLastRun($projectId),
+                'next_run' => $this->getProjectNextRun($projectId),
+            ];
+        }
+        
+        return $summary;
+    }
+
+    /**
+     * Get selected project details
+     */
+    private function getSelectedProjectDetails(int $projectId, string $period): array
+    {
+        $project = $this->projectService->getProject($projectId);
+        
+        if (!$project) {
+            return [];
+        }
+        
+        $totalUrls = $this->getProjectTotalUrls($projectId);
+        $processedUrls = $this->getProjectProcessedUrls($projectId);
+        $pendingUrls = $this->getProjectPendingUrls($projectId);
+        $failedUrls = $this->getProjectFailedUrls($projectId);
+        $successRate = $totalUrls > 0 ? ($processedUrls / $totalUrls) * 100 : 0;
+        
+        return [
+            'id' => $projectId,
+            'name' => $project['name'] ?? 'Unknown',
+            'description' => $project['description'] ?? '',
+            'status' => $project['status'] ?? 'unknown',
+            'created_at' => $project['created_at'] ?? 'Unknown',
+            'schedule' => $this->getProjectSchedule($projectId),
+            'total_urls' => $totalUrls,
+            'processed_urls' => $processedUrls,
+            'pending_urls' => $pendingUrls,
+            'failed_urls' => $failedUrls,
+            'success_rate' => round($successRate, 1),
+            'avg_response_time' => $this->getProjectAverageResponseTime($projectId),
+            'last_run' => $this->getProjectLastRun($projectId),
+            'next_run' => $this->getProjectNextRun($projectId),
+            'recent_activity' => $this->getProjectRecentActivity($projectId),
+            'error_analysis' => $this->getProjectErrorAnalysis($projectId),
+        ];
+    }
+
+    /**
+     * Get project pending URLs
+     */
+    private function getProjectPendingUrls(int $projectId): int
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_urls';
+        
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table WHERE tooth_id = %d AND status = 'pending'",
+            $projectId
+        ));
+        
+        return (int) $count;
+    }
+
+    /**
+     * Get project failed URLs
+     */
+    private function getProjectFailedUrls(int $projectId): int
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_urls';
+        
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table WHERE tooth_id = %d AND status = 'failed'",
+            $projectId
+        ));
+        
+        return (int) $count;
+    }
+
+    /**
+     * Get average processing time
+     */
+    private function getAverageProcessingTime(): float
+    {
+        // Mock implementation - would typically calculate from logs
+        return 2.5;
+    }
+
+    /**
+     * Get overall success rate
+     */
+    private function getOverallSuccessRate(): float
+    {
+        $totalProcessed = $this->projectService->getTotalUrlsProcessed();
+        $totalFailed = $this->projectService->getTotalUrlsFailed();
+        $total = $totalProcessed + $totalFailed;
+        
+        return $total > 0 ? ($totalProcessed / $total) * 100 : 0;
+    }
+
+    /**
+     * Get project average response time
+     */
+    private function getProjectAverageResponseTime(int $projectId): float
+    {
+        // Mock implementation - would typically calculate from project logs
+        return 2.5;
+    }
+
+    /**
+     * Get project recent activity
+     */
+    private function getProjectRecentActivity(int $projectId): array
+    {
+        try {
+            $logs = $this->logService->getLogs(1, 20);
+            $projectActivity = [];
+            
+            foreach ($logs as $log) {
+                $message = $log['message'] ?? '';
+                if (strpos($message, "project {$projectId}") !== false) {
+                    $type = 'info';
+                    if (strpos($message, 'error') !== false) $type = 'error';
+                    elseif (strpos($message, 'warning') !== false) $type = 'warning';
+                    elseif (strpos($message, 'success') !== false) $type = 'success';
+                    
+                    $projectActivity[] = [
+                        'type' => $type,
+                        'time' => $log['created_at'] ?? '',
+                        'message' => $message,
+                    ];
+                }
+            }
+            
+            return array_slice($projectActivity, 0, 10);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get project error analysis
+     */
+    private function getProjectErrorAnalysis(int $projectId): array
+    {
+        try {
+            $errorLogs = $this->logService->getLogsByLevel('error', 1, 50);
+            $projectErrors = [];
+            
+            foreach ($errorLogs as $log) {
+                $message = $log['message'] ?? '';
+                if (strpos($message, "project {$projectId}") !== false) {
+                    $errorType = 'other';
+                    if (strpos($message, 'timeout') !== false) $errorType = 'timeout';
+                    elseif (strpos($message, '404') !== false) $errorType = 'not_found';
+                    elseif (strpos($message, '500') !== false) $errorType = 'server';
+                    
+                    $projectErrors[$errorType][] = [
+                        'time' => $log['created_at'] ?? '',
+                        'message' => $message,
+                    ];
+                }
+            }
+            
+            return $projectErrors;
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Get project timeline chart data
+     */
+    private function getProjectTimelineChart(int $projectId, string $period): array
+    {
+        // Mock implementation - would typically generate timeline data
+        return [
+            'labels' => ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+            'datasets' => [
+                [
+                    'label' => 'Processed URLs',
+                    'data' => [45, 52, 48, 55, 50, 47, 53],
+                    'borderColor' => '#46b450',
+                    'backgroundColor' => 'rgba(70, 180, 80, 0.1)',
+                ],
+                [
+                    'label' => 'Failed URLs',
+                    'data' => [5, 3, 7, 2, 4, 6, 3],
+                    'borderColor' => '#d63638',
+                    'backgroundColor' => 'rgba(214, 54, 56, 0.1)',
+                ]
+            ]
+        ];
+    }
+
+    /**
+     * Get error rate chart data
+     */
+    private function getErrorRateChart(string $period): array
+    {
+        // Mock implementation - would typically query database for error trends
+        return [
+            'labels' => ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+            'datasets' => [
+                [
+                    'label' => 'Error Rate (%)',
+                    'data' => [5, 3, 7, 2, 4, 6, 3],
+                    'borderColor' => '#d63638',
+                    'backgroundColor' => 'rgba(214, 54, 56, 0.1)',
+                ]
+            ]
+        ];
+    }
+
+    /**
+     * Get resource usage chart data
+     */
+    private function getResourceUsageChart(string $period): array
+    {
+        // Mock implementation - would typically collect system metrics
+        return [
+            'labels' => ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+            'datasets' => [
+                [
+                    'label' => 'Memory Usage (%)',
+                    'data' => [45, 52, 48, 55, 50, 47, 53],
+                    'borderColor' => '#0073aa',
+                    'backgroundColor' => 'rgba(0, 115, 170, 0.1)',
+                ],
+                [
+                    'label' => 'CPU Usage (%)',
+                    'data' => [30, 35, 32, 38, 33, 31, 36],
+                    'borderColor' => '#00a0d2',
+                    'backgroundColor' => 'rgba(0, 160, 210, 0.1)',
+                ]
+            ]
+        ];
     }
 
     /**

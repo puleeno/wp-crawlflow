@@ -20,7 +20,7 @@ class CronScheduler
     /**
      * @var ProjectService
      */
-    private ProjectService $projectService;
+    protected ProjectService $projectService;
 
     /**
      * @var FlowService
@@ -101,7 +101,8 @@ class CronScheduler
         add_action(self::SYSTEM_MAINTENANCE_HOOK, [$this, 'executeSystemMaintenance']);
         
         // Schedule system maintenance after init to avoid translation loading too early
-        add_action('init', [$this, 'scheduleSystemMaintenance'], 10);
+        // Use higher priority to ensure cron schedules are registered first
+        add_action('init', [$this, 'scheduleSystemMaintenance'], 15);
         
         // Register phase hooks
         add_action(self::PHASE_1_CRAWL_HOOK, [$this, 'executePhase1'], 10, 1);
@@ -231,7 +232,7 @@ class CronScheduler
             throw new \RuntimeException("Failed to schedule project {$projectId} phases");
         }
 
-        error_log("CrawlFlow: Scheduled project {$projectId} with bonus + 3 phases - Bonus: {$bonusHook}, Phase1: {$phase1Hook}, Phase2: {$phase2Hook}, Phase3: {$phase3Hook}");
+        error_log("[CRON SCHEDULE MODE] CrawlFlow: Scheduled project {$projectId} with bonus + 3 phases - Bonus: {$bonusHook}, Phase1: {$phase1Hook}, Phase2: {$phase2Hook}, Phase3: {$phase3Hook}");
     }
 
     /**
@@ -328,7 +329,7 @@ class CronScheduler
             wp_unschedule_event($timestamp, $phase3Hook, [$projectId]);
         }
 
-        error_log("CrawlFlow: Unscheduled all phases for project {$projectId}");
+        error_log("[CRON SCHEDULE MODE] CrawlFlow: Unscheduled all phases for project {$projectId}");
     }
 
     /**
@@ -380,15 +381,32 @@ class CronScheduler
     }
 
     /**
+     * Get project service instance (for CronServiceProvider)
+     * 
+     * @return ProjectService
+     */
+    public function getProjectService(): ProjectService
+    {
+        return $this->projectService;
+    }
+
+    /**
      * Execute Phase 1: Crawl (called by WordPress cron)
      * 
      * @param mixed $arg Project ID (passed from wp_schedule_event args) or hook name
      */
     public function executePhase1($arg = null): void
     {
+        // Determine execution mode
+        $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
+        $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
         $eventName = current_filter() ?: 'crawlflow_phase1_crawl';
+        
+        error_log("CrawlFlow: Starting Phase 1 (Crawl) - Event: {$eventName} [{$mode}]");
+        
         $lockId = $this->acquireEventLock($eventName);
         if ($lockId === null) {
+            error_log("CrawlFlow: Phase 1 (Crawl) - Could not acquire lock, skipping [{$mode}]");
             return;
         }
 
@@ -432,7 +450,9 @@ class CronScheduler
             $result = $this->phase1Service->execute($projectId);
             $this->logPhaseExecution($projectId, 'phase1_crawl', $result);
             
-            error_log("CrawlFlow Phase 1: Completed for project {$projectId} - " . json_encode($result));
+            $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
+            $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
+            error_log("CrawlFlow Phase 1: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
             $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
@@ -587,6 +607,7 @@ class CronScheduler
     {
         // Only run in cron context (when called from wp-cron.php)
         if (!defined('DOING_CRON') || !DOING_CRON) {
+            error_log('[TEST MODE] CrawlFlow: Test cron mode detected but not in DOING_CRON context, skipping');
             return;
         }
 
@@ -597,21 +618,39 @@ class CronScheduler
         }
         $ran = true;
 
-        error_log('CrawlFlow: Test cron mode detected, executing all phases for active projects in init hook');
+        error_log('[TEST MODE] CrawlFlow: Test cron mode detected, executing all phases for active projects in init hook');
 
         $projects = $this->projectService->getAllProjects();
+        error_log('[TEST MODE] CrawlFlow: Found ' . count($projects) . ' total projects for test cron execution');
+        
         foreach ($projects as $project) {
             $projectId = (int)($project['id'] ?? 0);
             if (!$projectId || ($project['status'] ?? '') !== 'active') {
+                error_log("[TEST MODE] CrawlFlow: Skipping project {$projectId} - status: " . ($project['status'] ?? 'unknown'));
                 continue;
             }
 
+            error_log("[TEST MODE] CrawlFlow: Starting sequential phase execution for project {$projectId}");
+
             // Execute phases sequentially
             // All phases run in 'init' hook context, ensuring plugins/data types are loaded
-            $this->executePhase1($projectId);
-            $this->executePhase2($projectId);
-            $this->executePhase3($projectId);
+            try {
+                error_log("[TEST MODE] CrawlFlow: Executing Phase 1 (Crawl) for project {$projectId}");
+                $this->executePhase1($projectId);
+                
+                error_log("[TEST MODE] CrawlFlow: Executing Phase 2 (Process) for project {$projectId}");
+                $this->executePhase2($projectId);
+                
+                error_log("[TEST MODE] CrawlFlow: Executing Phase 3 (Resources) for project {$projectId}");
+                $this->executePhase3($projectId);
+                
+                error_log("[TEST MODE] CrawlFlow: Completed all phases for project {$projectId}");
+            } catch (\Exception $e) {
+                error_log("[TEST MODE] CrawlFlow: Error executing phases for project {$projectId}: " . $e->getMessage());
+            }
         }
+        
+        error_log('[TEST MODE] CrawlFlow: Test cron execution completed for all active projects');
     }
 
     /**
@@ -621,9 +660,16 @@ class CronScheduler
      */
     public function executePhase2($arg = null): void
     {
+        // Determine execution mode
+        $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
+        $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
         $eventName = current_filter() ?: 'crawlflow_phase2_process';
+        
+        error_log("CrawlFlow: Starting Phase 2 (Process) - Event: {$eventName} [{$mode}]");
+        
         $lockId = $this->acquireEventLock($eventName);
         if ($lockId === null) {
+            error_log("CrawlFlow: Phase 2 (Process) - Could not acquire lock, skipping [{$mode}]");
             return;
         }
 
@@ -658,7 +704,9 @@ class CronScheduler
             $result = $this->phase2Service->execute($projectId);
             $this->logPhaseExecution($projectId, 'phase2_process', $result);
             
-            error_log("CrawlFlow Phase 2: Completed for project {$projectId}");
+            $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
+            $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
+            error_log("CrawlFlow Phase 2: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
             $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
@@ -674,9 +722,16 @@ class CronScheduler
      */
     public function executePhase3($arg = null): void
     {
+        // Determine execution mode
+        $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
+        $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
         $eventName = current_filter() ?: 'crawlflow_phase3_resources';
+        
+        error_log("CrawlFlow: Starting Phase 3 (Resources) - Event: {$eventName} [{$mode}]");
+        
         $lockId = $this->acquireEventLock($eventName);
         if ($lockId === null) {
+            error_log("CrawlFlow: Phase 3 (Resources) - Could not acquire lock, skipping [{$mode}]");
             return;
         }
 
@@ -711,7 +766,9 @@ class CronScheduler
             $result = $this->phase3Service->execute($projectId);
             $this->logPhaseExecution($projectId, 'phase3_resources', $result);
             
-            error_log("CrawlFlow Phase 3: Completed for project {$projectId}");
+            $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
+            $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
+            error_log("CrawlFlow Phase 3: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
             $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
@@ -760,6 +817,45 @@ class CronScheduler
             'execution_time' => $executionTime,
             'executed_at' => current_time('mysql'),
         ]);
+    }
+
+    /**
+     * Register custom cron schedules globally
+     * This ensures schedules are available when WordPress tries to reschedule events
+     */
+    public function registerCustomSchedules(): void
+    {
+        add_filter('cron_schedules', function ($schedules) {
+            // Get all active projects and register their schedules
+            try {
+                // Use existing projectService to avoid conflicts with test cron
+                $projects = $this->projectService->getAllProjects();
+                
+                foreach ($projects as $project) {
+                    if (($project['status'] ?? '') === 'active') {
+                        $projectId = $project['id'] ?? 0;
+                        $projectCacheService = new ProjectCacheService();
+                        $flowConfig = $projectCacheService->getFlowConfig($projectId);
+                        $projectSettings = $flowConfig['projectSettings'] ?? [];
+                        
+                        if ($projectSettings['enabled'] ?? false) {
+                            $crawlDelayMs = (int)($projectSettings['crawlDelay'] ?? 300000);
+                            $intervalSeconds = max(60, (int)round($crawlDelayMs / 1000));
+                            $scheduleSlug = 'crawlflow_project_' . $projectId;
+                            
+                            $schedules[$scheduleSlug] = [
+                                'interval' => $intervalSeconds,
+                                'display' => "CrawlFlow Project interval ({$intervalSeconds}s)",
+                            ];
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                error_log("CrawlFlow: Error registering custom schedules: " . $e->getMessage());
+            }
+            
+            return $schedules;
+        });
     }
 
     /**
@@ -871,9 +967,9 @@ class CronScheduler
         );
 
         if ($scheduled === false) {
-            error_log("CrawlFlow: Failed to schedule system maintenance");
+            error_log("[CRON SCHEDULE MODE] CrawlFlow: Failed to schedule system maintenance");
         } else {
-            error_log("CrawlFlow: Scheduled system maintenance (every 5 minutes)");
+            error_log("[CRON SCHEDULE MODE] CrawlFlow: Scheduled system maintenance (every 5 minutes)");
         }
     }
 
@@ -883,13 +979,13 @@ class CronScheduler
     public function executeSystemMaintenance(): void
     {
         try {
-            error_log("CrawlFlow: System maintenance task executed at " . date('Y-m-d H:i:s'));
+            error_log("[CRON SCHEDULE MODE] CrawlFlow: System maintenance task executed at " . date('Y-m-d H:i:s'));
             
             // Add your maintenance tasks here
             // For example: cleanup old logs, check project status, etc.
             
         } catch (\Exception $e) {
-            error_log("CrawlFlow: System maintenance failed - " . $e->getMessage());
+            error_log("[CRON SCHEDULE MODE] CrawlFlow: System maintenance failed - " . $e->getMessage());
         }
     }
 }

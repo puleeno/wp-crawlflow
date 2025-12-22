@@ -1221,22 +1221,526 @@ class DashboardRenderer
                 </form>
             </div>
 
+            <!-- Detailed Overview Statistics -->
+            <div class="crawlflow-detailed-overview">
+                <h2>Detailed Overview Statistics</h2>
+                <div class="overview-grid">
+                    <!-- System Health -->
+                    <div class="overview-section">
+                        <h3>System Health</h3>
+                        <div class="health-metrics">
+                            <div class="health-item">
+                                <div class="health-label">Cron System</div>
+                                <div class="health-status health-<?php echo esc_attr($data['system_health']['cron_status'] ?? 'unknown'); ?>">
+                                    <?php echo esc_html(ucfirst($data['system_health']['cron_status'] ?? 'Unknown')); ?>
+                                </div>
+                            </div>
+                            <div class="health-item">
+                                <div class="health-label">Database</div>
+                                <div class="health-status health-<?php echo esc_attr($data['system_health']['database_status'] ?? 'unknown'); ?>">
+                                    <?php echo esc_html(ucfirst($data['system_health']['database_status'] ?? 'Unknown')); ?>
+                                </div>
+                            </div>
+                            <div class="health-item">
+                                <div class="health-label">Memory</div>
+                                <div class="health-status health-<?php echo esc_attr($data['system_health']['memory_status'] ?? 'unknown'); ?>">
+                                    <?php echo esc_html(ucfirst($data['system_health']['memory_status'] ?? 'Unknown')); ?>
+                                </div>
+                            </div>
+                            <div class="health-item">
+                                <div class="health-label">Disk Space</div>
+                                <div class="health-status health-<?php echo esc_attr($data['system_health']['disk_status'] ?? 'unknown'); ?>">
+                                    <?php echo esc_html(ucfirst($data['system_health']['disk_status'] ?? 'Unknown')); ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Metrics -->
+                    <div class="overview-section">
+                        <h3>Performance Metrics (<?php echo esc_html($data['period']); ?>)</h3>
+                        <div class="performance-grid">
+                            <div class="metric-item">
+                                <div class="metric-value"><?php echo esc_html(number_format($data['performance_metrics']['total_processed'] ?? 0)); ?></div>
+                                <div class="metric-label">URLs Processed</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value"><?php echo esc_html(round($data['performance_metrics']['avg_processing_time'] ?? 0, 2)); ?>s</div>
+                                <div class="metric-label">Avg Processing Time</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value"><?php echo esc_html(round($data['performance_metrics']['success_rate'] ?? 0, 1)); ?>%</div>
+                                <div class="metric-label">Success Rate</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value"><?php echo esc_html(round($data['performance_metrics']['throughput'] ?? 0, 2)); ?>/min</div>
+                                <div class="metric-label">Throughput</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Analysis -->
+                    <div class="overview-section">
+                        <h3>Error Analysis</h3>
+                        <div class="error-breakdown">
+                            <?php if (!empty($data['error_analysis'])): ?>
+                                <?php foreach ($data['error_analysis'] as $errorType => $count): ?>
+                                    <div class="error-item">
+                                        <div class="error-type"><?php echo esc_html(ucfirst($errorType)); ?></div>
+                                        <div class="error-count"><?php echo esc_html($count); ?></div>
+                                        <div class="error-percentage">
+                                            <?php 
+                                            $totalErrors = array_sum($data['error_analysis']);
+                                            $percentage = $totalErrors > 0 ? ($count / $totalErrors) * 100 : 0;
+                                            echo esc_html(round($percentage, 1)) . '%';
+                                            ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <p>No errors recorded in this period.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Top Projects -->
+                    <div class="overview-section">
+                        <h3>Top Performing Projects</h3>
+                        <div class="top-projects">
+                            <?php if (!empty($data['top_projects'])): ?>
+                                <?php foreach ($data['top_projects'] as $index => $project): ?>
+                                    <div class="top-project-item">
+                                        <div class="project-rank"><?php echo esc_html($index + 1); ?></div>
+                                        <div class="project-info">
+                                            <div class="project-name"><?php echo esc_html($project['name'] ?? 'Unknown'); ?></div>
+                                            <div class="project-stats">
+                                                <span class="stat"><?php echo esc_html(number_format($project['processed_urls'] ?? 0)); ?> URLs</span>
+                                                <span class="stat"><?php echo esc_html(round($project['success_rate'] ?? 0, 1)); ?>% success</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <p>No project data available.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project-Specific Analytics -->
+            <div class="crawlflow-project-analytics">
+                <h2>Project-Specific Analytics</h2>
+                
+                <!-- Project Filter -->
+                <div class="project-filter">
+                    <form method="get" class="filter-form">
+                        <input type="hidden" name="page" value="crawlflow-analytics">
+                        <select name="project_id" class="project-select">
+                            <option value="">All Projects</option>
+                            <?php if (!empty($data['all_projects'])): ?>
+                                <?php foreach ($data['all_projects'] as $project): ?>
+                                    <option value="<?php echo esc_attr($project['id']); ?>" 
+                                            <?php selected($data['selected_project_id'] ?? '', $project['id']); ?>>
+                                        <?php echo esc_html($project['name']); ?> (<?php echo esc_html(ucfirst($project['status'] ?? 'unknown')); ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <input type="submit" value="Filter" class="button">
+                    </form>
+                </div>
+
+                <!-- Project Details -->
+                <?php if (!empty($data['selected_project'])): ?>
+                    <div class="project-detail-section">
+                        <h3><?php echo esc_html($data['selected_project']['name']); ?> - Detailed Analytics</h3>
+                        
+                        <!-- Project Overview -->
+                        <div class="project-overview-cards">
+                            <div class="project-card">
+                                <h4>Basic Info</h4>
+                                <div class="project-meta">
+                                    <div class="meta-item">
+                                        <span class="meta-label">Status:</span>
+                                        <span class="meta-value status-<?php echo esc_attr($data['selected_project']['status']); ?>">
+                                            <?php echo esc_html(ucfirst($data['selected_project']['status'])); ?>
+                                        </span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Created:</span>
+                                        <span class="meta-value"><?php echo esc_html($data['selected_project']['created_at'] ?? 'Unknown'); ?></span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Schedule:</span>
+                                        <span class="meta-value"><?php echo esc_html($data['selected_project']['schedule'] ?? 'N/A'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="project-card">
+                                <h4>URL Statistics</h4>
+                                <div class="url-stats">
+                                    <div class="url-stat">
+                                        <div class="stat-number"><?php echo esc_html(number_format($data['selected_project']['total_urls'] ?? 0)); ?></div>
+                                        <div class="stat-text">Total URLs</div>
+                                    </div>
+                                    <div class="url-stat">
+                                        <div class="stat-number"><?php echo esc_html(number_format($data['selected_project']['processed_urls'] ?? 0)); ?></div>
+                                        <div class="stat-text">Processed</div>
+                                    </div>
+                                    <div class="url-stat">
+                                        <div class="stat-number"><?php echo esc_html(number_format($data['selected_project']['pending_urls'] ?? 0)); ?></div>
+                                        <div class="stat-text">Pending</div>
+                                    </div>
+                                    <div class="url-stat">
+                                        <div class="stat-number"><?php echo esc_html(number_format($data['selected_project']['failed_urls'] ?? 0)); ?></div>
+                                        <div class="stat-text">Failed</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="project-card">
+                                <h4>Performance</h4>
+                                <div class="performance-stats">
+                                    <div class="perf-stat">
+                                        <span class="perf-label">Success Rate:</span>
+                                        <span class="perf-value"><?php echo esc_html(round($data['selected_project']['success_rate'] ?? 0, 1)); ?>%</span>
+                                    </div>
+                                    <div class="perf-stat">
+                                        <span class="perf-label">Avg Response Time:</span>
+                                        <span class="perf-value"><?php echo esc_html(round($data['selected_project']['avg_response_time'] ?? 0, 2)); ?>s</span>
+                                    </div>
+                                    <div class="perf-stat">
+                                        <span class="perf-label">Last Run:</span>
+                                        <span class="perf-value"><?php echo esc_html($data['selected_project']['last_run'] ?? 'Never'); ?></span>
+                                    </div>
+                                    <div class="perf-stat">
+                                        <span class="perf-label">Next Run:</span>
+                                        <span class="perf-value"><?php echo esc_html($data['selected_project']['next_run'] ?? 'Not scheduled'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Project Timeline Chart -->
+                        <div class="project-timeline-chart">
+                            <h4>Processing Timeline</h4>
+                            <div class="chart-container">
+                                <canvas id="project-timeline-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity for this Project -->
+                        <div class="project-activity">
+                            <h4>Recent Activity</h4>
+                            <div class="activity-list">
+                                <?php if (!empty($data['selected_project']['recent_activity'])): ?>
+                                    <?php foreach ($data['selected_project']['recent_activity'] as $activity): ?>
+                                        <div class="activity-item activity-<?php echo esc_attr($activity['type'] ?? 'info'); ?>">
+                                            <div class="activity-time"><?php echo esc_html($activity['time'] ?? ''); ?></div>
+                                            <div class="activity-content">
+                                                <?php echo esc_html($activity['message'] ?? ''); ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p>No recent activity for this project.</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- Error Analysis for this Project -->
+                        <?php if (!empty($data['selected_project']['error_analysis'])): ?>
+                            <div class="project-errors">
+                                <h4>Error Analysis</h4>
+                                <div class="error-breakdown">
+                                    <?php foreach ($data['selected_project']['error_analysis'] as $errorType => $errors): ?>
+                                        <div class="error-category">
+                                            <h5><?php echo esc_html(ucfirst($errorType)); ?> Errors (<?php echo esc_html(count($errors)); ?>)</h5>
+                                            <div class="error-list">
+                                                <?php foreach (array_slice($errors, 0, 5) as $error): ?>
+                                                    <div class="error-item">
+                                                        <div class="error-time"><?php echo esc_html($error['time'] ?? ''); ?></div>
+                                                        <div class="error-message"><?php echo esc_html($error['message'] ?? ''); ?></div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                                <?php if (count($errors) > 5): ?>
+                                                    <div class="error-more">
+                                                        ... and <?php echo esc_html(count($errors) - 5); ?> more errors
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
+                    <!-- All Projects Summary Table -->
+                    <div class="projects-summary-table">
+                        <h4>All Projects Summary</h4>
+                        <table class="wp-list-table widefat fixed striped">
+                            <thead>
+                                <tr>
+                                    <th>Project Name</th>
+                                    <th>Status</th>
+                                    <th>Total URLs</th>
+                                    <th>Processed</th>
+                                    <th>Pending</th>
+                                    <th>Failed</th>
+                                    <th>Success Rate</th>
+                                    <th>Last Run</th>
+                                    <th>Next Run</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!empty($data['projects_summary'])): ?>
+                                    <?php foreach ($data['projects_summary'] as $project): ?>
+                                        <tr>
+                                            <td>
+                                                <strong><?php echo esc_html($project['name'] ?? 'Unknown'); ?></strong>
+                                                <?php if (!empty($project['description'])): ?>
+                                                    <br><small><?php echo esc_html($project['description']); ?></small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span class="status-badge status-<?php echo esc_attr($project['status'] ?? 'unknown'); ?>">
+                                                    <?php echo esc_html(ucfirst($project['status'] ?? 'unknown')); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo esc_html(number_format($project['total_urls'] ?? 0)); ?></td>
+                                            <td><?php echo esc_html(number_format($project['processed_urls'] ?? 0)); ?></td>
+                                            <td><?php echo esc_html(number_format($project['pending_urls'] ?? 0)); ?></td>
+                                            <td><?php echo esc_html(number_format($project['failed_urls'] ?? 0)); ?></td>
+                                            <td><?php echo esc_html(round($project['success_rate'] ?? 0, 1)); ?>%</td>
+                                            <td><?php echo esc_html($project['last_run'] ?? 'Never'); ?></td>
+                                            <td><?php echo esc_html($project['next_run'] ?? 'Not scheduled'); ?></td>
+                                            <td>
+                                                <a href="<?php echo admin_url('admin.php?page=crawlflow-analytics&project_id=' . ($project['id'] ?? '')); ?>" 
+                                                   class="button button-small">View Details</a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="10">No projects found.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="crawlflow-analytics-summary">
+                <div class="crawlflow-summary-card">
+                    <h3>Projects Status</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Active Projects:</span>
+                            <span class="stat-value stat-active"><?php echo esc_html($data['active_projects'] ?? 0); ?></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Draft Projects:</span>
+                            <span class="stat-value stat-draft"><?php echo esc_html($data['draft_projects'] ?? 0); ?></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Projects:</span>
+                            <span class="stat-value"><?php echo esc_html($data['total_projects'] ?? 0); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="crawlflow-summary-card">
+                    <h3>Cron Jobs Status</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Scheduled Jobs:</span>
+                            <span class="stat-value stat-scheduled"><?php echo esc_html($data['scheduled_jobs'] ?? 0); ?></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Running Jobs:</span>
+                            <span class="stat-value stat-running"><?php echo esc_html($data['running_jobs'] ?? 0); ?></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Failed Jobs:</span>
+                            <span class="stat-value stat-failed"><?php echo esc_html($data['failed_jobs'] ?? 0); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="crawlflow-summary-card">
+                    <h3>Processing Progress</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total URLs:</span>
+                            <span class="stat-value"><?php echo esc_html(number_format($data['total_urls'] ?? 0)); ?></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Processed:</span>
+                            <span class="stat-value stat-success"><?php echo esc_html(number_format($data['processed_urls'] ?? 0)); ?></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Pending:</span>
+                            <span class="stat-value stat-pending"><?php echo esc_html(number_format($data['pending_urls'] ?? 0)); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="crawlflow-summary-card">
+                    <h3>System Performance</h3>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Avg Response Time:</span>
+                            <span class="stat-value"><?php echo esc_html(round($data['avg_response_time'] ?? 0, 2)); ?>s</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Success Rate:</span>
+                            <span class="stat-value"><?php echo esc_html(round($data['success_rate'] ?? 0, 1)); ?>%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Memory Usage:</span>
+                            <span class="stat-value"><?php echo esc_html($data['memory_usage'] ?? 'N/A'); ?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Tracking Section -->
+            <div class="crawlflow-progress-section">
+                <h2>Active Projects Progress</h2>
+                <div class="crawlflow-projects-progress">
+                    <?php if (!empty($data['projects_progress'])): ?>
+                        <?php foreach ($data['projects_progress'] as $project): ?>
+                            <div class="project-progress-item">
+                                <div class="project-header">
+                                    <h4><?php echo esc_html($project['name'] ?? 'Unknown Project'); ?></h4>
+                                    <span class="project-status status-<?php echo esc_attr($project['status'] ?? 'unknown'); ?>">
+                                        <?php echo esc_html(ucfirst($project['status'] ?? 'unknown')); ?>
+                                    </span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-info">
+                                        <span>Progress: <?php echo esc_html($project['progress_percentage'] ?? 0); ?>%</span>
+                                        <span><?php echo esc_html($project['processed_count'] ?? 0); ?> / <?php echo esc_html($project['total_count'] ?? 0); ?> URLs</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: <?php echo esc_attr($project['progress_percentage'] ?? 0); ?>%;"></div>
+                                    </div>
+                                </div>
+                                <div class="project-details">
+                                    <div class="detail-item">
+                                        <span class="detail-label">Next Run:</span>
+                                        <span class="detail-value"><?php echo esc_html($project['next_run'] ?? 'Not scheduled'); ?></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Last Run:</span>
+                                        <span class="detail-value"><?php echo esc_html($project['last_run'] ?? 'Never'); ?></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Schedule:</span>
+                                        <span class="detail-value"><?php echo esc_html($project['schedule'] ?? 'N/A'); ?></span>
+                                    </div>
+                                </div>
+                                <?php if (!empty($project['recent_errors'])): ?>
+                                    <div class="project-errors">
+                                        <h5>Recent Errors:</h5>
+                                        <ul>
+                                            <?php foreach (array_slice($project['recent_errors'], 0, 3) as $error): ?>
+                                                <li><?php echo esc_html($error['message'] ?? 'Unknown error'); ?> (<?php echo esc_html($error['time'] ?? ''); ?>)</li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p>No active projects found.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
             <div class="crawlflow-analytics-charts">
                 <div class="crawlflow-chart">
-                    <h3>URLs Processed</h3>
+                    <h3>URLs Processed Over Time</h3>
                     <div class="chart-container">
-                        <!-- Chart will be rendered here via JavaScript -->
+                        <canvas id="urls-chart"></canvas>
                     </div>
                 </div>
 
                 <div class="crawlflow-chart">
                     <h3>Project Performance</h3>
                     <div class="chart-container">
-                        <!-- Chart will be rendered here via JavaScript -->
+                        <canvas id="performance-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="crawlflow-chart">
+                    <h3>Error Rate Trends</h3>
+                    <div class="chart-container">
+                        <canvas id="error-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="crawlflow-chart">
+                    <h3>System Resource Usage</h3>
+                    <div class="chart-container">
+                        <canvas id="resource-chart"></canvas>
                     </div>
                 </div>
             </div>
+
+            <!-- Recent Activity -->
+            <div class="crawlflow-recent-activity">
+                <h2>Recent Activity</h2>
+                <div class="activity-list">
+                    <?php if (!empty($data['recent_activity'])): ?>
+                        <?php foreach ($data['recent_activity'] as $activity): ?>
+                            <div class="activity-item activity-<?php echo esc_attr($activity['type'] ?? 'info'); ?>">
+                                <div class="activity-time"><?php echo esc_html($activity['time'] ?? ''); ?></div>
+                                <div class="activity-content">
+                                    <strong><?php echo esc_html($activity['project'] ?? 'System'); ?></strong>
+                                    <?php echo esc_html($activity['message'] ?? ''); ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p>No recent activity found.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
+
+        <script>
+        // Initialize charts with data
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartData = <?php echo json_encode($data['chart_data'] ?? []); ?>;
+            
+            // URLs Chart
+            if (chartData.urls_chart) {
+                // Chart.js implementation would go here
+                console.log('URLs Chart Data:', chartData.urls_chart);
+            }
+            
+            // Performance Chart
+            if (chartData.performance_chart) {
+                console.log('Performance Chart Data:', chartData.performance_chart);
+            }
+            
+            // Error Chart
+            if (chartData.error_chart) {
+                console.log('Error Chart Data:', chartData.error_chart);
+            }
+            
+            // Resource Chart
+            if (chartData.resource_chart) {
+                console.log('Resource Chart Data:', chartData.resource_chart);
+            }
+        });
+        </script>
         <?php
     }
 
