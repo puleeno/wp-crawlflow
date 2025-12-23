@@ -15,6 +15,29 @@ use CrawlFlow\Worker\Worker;
 abstract class AbstractDataSourceHandler
 {
     /**
+     * Cache whether rake_data_origins has is_archive column
+     */
+    private static ?bool $hasIsArchiveColumn = null;
+
+    /**
+     * Check if origins table has is_archive column (cached)
+     */
+    private function originsHasIsArchiveColumn(): bool
+    {
+        if (self::$hasIsArchiveColumn !== null) {
+            return self::$hasIsArchiveColumn;
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_data_origins';
+        $col = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'is_archive'",
+            $table
+        ));
+        self::$hasIsArchiveColumn = ((int) $col) > 0;
+        return self::$hasIsArchiveColumn;
+    }
+    /**
      * Get the data source type this handler supports
      * 
      * @return string Data source type (e.g., 'url', 'rss', 'api')
@@ -123,6 +146,36 @@ abstract class AbstractDataSourceHandler
     }
 
     /**
+     * Detect archive flag for a URL based on the first matched worker
+     *
+     * @return int 1 if archive, 0 otherwise
+     */
+    protected function detectIsArchive(int $projectId, array $flowConfig, string $url): int
+    {
+        try {
+            $workerCacheService = new WorkerCacheService();
+            $reception = $workerCacheService->getReception($projectId, $flowConfig);
+            $workers = $reception->getWorkers();
+
+            $mockRawItem = [
+                'id' => 0,
+                'guid' => $url,
+                'raw_data' => '',
+            ];
+
+            foreach ($workers as $worker) {
+                if ($worker->canHandle($mockRawItem)) {
+                    return $worker->isArchive() ? 1 : 0;
+                }
+            }
+        } catch (\Exception $e) {
+            error_log("CrawlFlow Phase 1: Error detecting archive flag for URL {$url}: " . $e->getMessage());
+        }
+
+        return 0;
+    }
+
+    /**
      * Save data to rake_data_origins
      * 
      * @param int $projectId Project ID
@@ -149,10 +202,14 @@ abstract class AbstractDataSourceHandler
         // Only set crawled when inserting new records with raw_data
         $metadataJson = !empty($metadata) ? json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null;
         
-        // Detect worker priority if flowConfig is provided and guid is a URL
+        // Detect worker priority/is_archive if flowConfig is provided and guid is a URL
         $priority = 100; // Default priority
+        $isArchive = 0;
         if ($flowConfig !== null && !empty($guid) && filter_var($guid, FILTER_VALIDATE_URL)) {
             $priority = $this->detectWorkerPriority($projectId, $flowConfig, $guid);
+            if ($this->originsHasIsArchiveColumn()) {
+                $isArchive = $this->detectIsArchive($projectId, $flowConfig, $guid);
+            }
         }
 
         if ($existing) {
@@ -173,6 +230,9 @@ abstract class AbstractDataSourceHandler
             // Update priority if flowConfig is provided
             if ($flowConfig !== null && !empty($guid) && filter_var($guid, FILTER_VALIDATE_URL)) {
                 $updateData['priority'] = $priority;
+                if ($this->originsHasIsArchiveColumn()) {
+                    $updateData['is_archive'] = $isArchive;
+                }
             }
             
             $wpdb->update(
@@ -199,6 +259,10 @@ abstract class AbstractDataSourceHandler
             'priority' => $priority,
             // ignored will use default value 0 from schema
         ];
+
+        if ($this->originsHasIsArchiveColumn()) {
+            $insertData['is_archive'] = $isArchive;
+        }
         
         // Only include source_id if it's not null and exists in database
         if ($sourceId !== null && $sourceId > 0) {

@@ -196,6 +196,16 @@ class Phase1CrawlService
             
             Logger::info("[{$mode}] CrawlFlow Phase 1: Executed " . count($actionResults) . " action(s)");
 
+            // Log executed action IDs for easy verification (e.g., data_update_checker)
+            $actionSummary = [];
+            foreach ($actionResults as $actionId => $actionResult) {
+                $actionSummary[$actionId] = [
+                    'success' => (bool) ($actionResult['success'] ?? false),
+                    'error' => $actionResult['error'] ?? null,
+                ];
+            }
+            Logger::info("[{$mode}] CrawlFlow Phase 1: Action results summary: " . json_encode($actionSummary));
+
             return $results;
 
         } catch (\Exception $e) {
