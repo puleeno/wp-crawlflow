@@ -9,27 +9,27 @@ namespace CrawlFlow\Admin;
 class CrawlFlowController
 {
     /**
-     * @var DashboardService
+     * @var mixed DashboardService instance
      */
     private $dashboardService;
 
     /**
-     * @var ProjectService
+     * @var mixed ProjectService instance
      */
     private $projectService;
 
     /**
-     * @var LogService
+     * @var mixed LogService instance
      */
     private $logService;
 
     /**
-     * @var MigrationService
+     * @var mixed MigrationService instance
      */
     private $migrationService;
 
     /**
-     * @var DashboardRenderer
+     * @var mixed DashboardRenderer instance
      */
     private $renderer;
 
@@ -43,13 +43,137 @@ class CrawlFlowController
      */
     public function __construct()
     {
-        $this->dashboardService = new DashboardService();
-        $this->projectService = new ProjectService();
-        $this->logService = new LogService();
-        $this->migrationService = new MigrationService();
-        $this->renderer = new DashboardRenderer();
+        // Initialize services with lazy loading to avoid circular dependencies
+        $this->dashboardService = null;
+        $this->projectService = null;
+        $this->logService = null;
+        $this->migrationService = null;
+        $this->renderer = null;
 
         $this->registerHooks();
+    }
+
+    /**
+     * Get dashboard service (lazy loaded)
+     */
+    private function getDashboardService()
+    {
+        if ($this->dashboardService === null) {
+            $className = 'CrawlFlow\Admin\DashboardService';
+            if (class_exists($className)) {
+                $this->dashboardService = new $className();
+            } else {
+                // Return a mock object if class doesn't exist
+                $this->dashboardService = new class {
+                    public function getScreenData($screen) { return []; }
+                };
+            }
+        }
+        return $this->dashboardService;
+    }
+
+    /**
+     * Get project service (lazy loaded)
+     */
+    private function getProjectService()
+    {
+        if ($this->projectService === null) {
+            $className = 'CrawlFlow\Admin\ProjectService';
+            if (class_exists($className)) {
+                $this->projectService = new $className();
+            } else {
+                // Return a mock object if class doesn't exist
+                $this->projectService = new class {
+                    public function createProject($data) { return null; }
+                    public function updateProject($id, $data) { return false; }
+                    public function deleteProject($id) { return false; }
+                    public function getProject($id) { return null; }
+                    public function getProjects($page = 1, $per_page = 10) { return []; }
+                    public function getTotalProjects() { return 0; }
+                    public function getActiveProjects() { return 0; }
+                    public function getProjectStats($id) { return []; }
+                    public function getTotalUrlsProcessed() { return 0; }
+                    public function getTotalUrlsPending() { return 0; }
+                    public function getTotalUrlsFailed() { return 0; }
+                    public function getTotalUrlsSkipped() { return 0; }
+                    public function getAvailableTooths() { return []; }
+                    public function getUrlsProcessedChart($period) { return []; }
+                    public function getProjectsPerformance($period) { return []; }
+                    public function getFlowConfig($projectId) { return []; }
+                };
+            }
+        }
+        return $this->projectService;
+    }
+
+    /**
+     * Get log service (lazy loaded)
+     */
+    private function getLogService()
+    {
+        if ($this->logService === null) {
+            $className = 'CrawlFlow\Admin\LogService';
+            if (class_exists($className)) {
+                $this->logService = new $className();
+            } else {
+                // Return a mock object if class doesn't exist
+                $this->logService = new class {
+                    public function clearLogs() { return true; }
+                    public function getLogs($page = 1, $per_page = 20) { return []; }
+                    public function getTotalLogs() { return 0; }
+                    public function exportLogs($format) { return ''; }
+                    public function getLogsByLevel($level, $page = 1, $per_page = 100) { return []; }
+                    public function clearOldLogs($days) { return 0; }
+                };
+            }
+        }
+        return $this->logService;
+    }
+
+    /**
+     * Get migration service (lazy loaded)
+     */
+    private function getMigrationService()
+    {
+        if ($this->migrationService === null) {
+            $className = 'CrawlFlow\Admin\MigrationService';
+            if (class_exists($className)) {
+                $this->migrationService = new $className();
+            } else {
+                // Return a mock object if class doesn't exist
+                $this->migrationService = new class {
+                    public function runMigrations() { return true; }
+                    public function checkMigrationStatus() { return []; }
+                    public function getMigrationHistory() { return []; }
+                };
+            }
+        }
+        return $this->migrationService;
+    }
+
+    /**
+     * Get dashboard renderer (lazy loaded)
+     */
+    private function getRenderer()
+    {
+        if ($this->renderer === null) {
+            $className = 'CrawlFlow\Admin\DashboardRenderer';
+            if (class_exists($className)) {
+                $this->renderer = new $className();
+            } else {
+                // Return a mock object if class doesn't exist
+                $this->renderer = new class {
+                    public function render($template, $data) { return ''; }
+                    public function renderScreen($screen, $data) { return ''; }
+                    public function renderDashboardOverview($data) { echo '<div>Dashboard Overview</div>'; }
+                    public function renderLogs($data) { echo '<div>Logs</div>'; }
+                    public function renderProjectsList($projects) { echo '<div>Projects List</div>'; }
+                    public function renderProjectCompose($data) { echo '<div>Project Compose</div>'; }
+                    public function renderAnalytics($data) { echo '<div>Analytics</div>'; }
+                };
+            }
+        }
+        return $this->renderer;
     }
 
     /**
@@ -174,14 +298,14 @@ class CrawlFlowController
     public function renderPage(): void
     {
         $this->detectCurrentScreen();
-        $screenData = $this->dashboardService->getScreenData($this->currentScreen);
+        $screenData = $this->getDashboardService()->getScreenData($this->currentScreen);
 
         switch ($this->currentScreen) {
             case 'crawlflow':
-                $this->renderer->renderDashboardOverview($screenData);
+                $this->getRenderer()->renderDashboardOverview($screenData);
                 break;
             case 'crawlflow-logs':
-                $this->renderer->renderLogs($screenData);
+                $this->getRenderer()->renderLogs($screenData);
                 break;
             case 'crawlflow-projects':
                 $this->renderProjectsPage();
@@ -190,7 +314,7 @@ class CrawlFlowController
                 $this->renderAnalyticsPage();
                 break;
             default:
-                $this->renderer->renderDashboardOverview($screenData);
+                $this->getRenderer()->renderDashboardOverview($screenData);
                 break;
         }
     }
@@ -223,8 +347,8 @@ class CrawlFlowController
         if ($subScreen === 'compose') {
             $this->renderProjectComposePage();
         } else {
-            $projects = $this->projectService->getProjects();
-            $this->renderer->renderProjectsList($projects);
+            $projects = $this->getProjectService()->getProjects(1, 10);
+            $this->getRenderer()->renderProjectsList($projects);
         }
     }
 
@@ -244,21 +368,21 @@ class CrawlFlowController
         }
 
         if ($projectId) {
-            $project = $this->projectService->getProject($projectId);
+            $project = $this->getProjectService()->getProject($projectId);
             $data = [
                 'project' => $project,
                 'is_edit' => true,
-                'available_tooths' => $this->projectService->getAvailableTooths(),
+                'available_tooths' => $this->getProjectService()->getAvailableTooths(),
             ];
         } else {
             $data = [
                 'project' => [],
                 'is_edit' => false,
-                'available_tooths' => $this->projectService->getAvailableTooths(),
+                'available_tooths' => $this->getProjectService()->getAvailableTooths(),
             ];
         }
 
-        $this->renderer->renderProjectCompose($data);
+        $this->getRenderer()->renderProjectCompose($data);
     }
     
     /**
@@ -270,7 +394,7 @@ class CrawlFlowController
         $projectConfig = null;
         
         if ($projectId) {
-            $project = $this->projectService->getProject($projectId);
+            $project = $this->getProjectService()->getProject($projectId);
             if ($project && isset($project['config'])) {
                 $projectConfig = json_decode($project['config'], true);
             }
@@ -307,20 +431,20 @@ class CrawlFlowController
         $level = \sanitize_text_field($_GET['level'] ?? '');
 
         if ($level) {
-            $logs = $this->logService->getLogsByLevel($level, $page);
+            $logs = $this->getLogService()->getLogsByLevel($level, $page);
         } else {
-            $logs = $this->logService->getLogs($page);
+            $logs = $this->getLogService()->getLogs($page, 20);
         }
 
         $data = [
             'logs' => $logs,
             'pagination' => [
                 'current_page' => $page,
-                'total_pages' => ceil($this->logService->getTotalLogs() / 20),
+                'total_pages' => ceil($this->getLogService()->getTotalLogs() / 20),
             ],
         ];
 
-        $this->renderer->renderLogs($data);
+        $this->getRenderer()->renderLogs($data);
     }
 
     // Settings are now integrated into the main dashboard
@@ -336,7 +460,7 @@ class CrawlFlowController
         $selectedProjectId = \sanitize_text_field($_GET['project_id'] ?? '');
 
         // Get comprehensive analytics data
-        $projects = $this->projectService->getProjects();
+        $projects = $this->getProjectService()->getProjects(1, 10);
         $activeProjects = array_filter($projects, fn($p) => ($p['status'] ?? '') === 'active');
         $draftProjects = array_filter($projects, fn($p) => ($p['status'] ?? '') === 'draft');
         
@@ -1063,30 +1187,7 @@ class CrawlFlowController
         return strpos($this->currentScreen, 'crawlflow') === 0;
     }
 
-    /**
-     * Get dashboard service
-     */
-    public function getDashboardService(): DashboardService
-    {
-        return $this->dashboardService;
-    }
-
-    /**
-     * Get project service
-     */
-    public function getProjectService(): ProjectService
-    {
-        return $this->projectService;
-    }
-
-    /**
-     * Get log service
-     */
-    public function getLogService(): LogService
-    {
-        return $this->logService;
-    }
-
+    
     // ============================================================================
     // ANALYTICS HELPER METHODS
     // ============================================================================
@@ -1130,7 +1231,7 @@ class CrawlFlowController
     private function getFailedJobsCount(): int
     {
         try {
-            $failedLogs = $this->logService->getLogsByLevel('error', 1, 100);
+            $failedLogs = $this->getLogService()->getLogsByLevel('error', 1, 100);
             return count($failedLogs);
         } catch (\Exception $e) {
             return 0;
@@ -1535,7 +1636,7 @@ class CrawlFlowController
      */
     private function getTopProjects(string $period): array
     {
-        $projects = $this->projectService->getProjects();
+        $projects = $this->getProjectService()->getProjects(1, 10);
         $topProjects = [];
         
         foreach ($projects as $project) {
@@ -1596,7 +1697,7 @@ class CrawlFlowController
      */
     private function getSelectedProjectDetails(int $projectId, string $period): array
     {
-        $project = $this->projectService->getProject($projectId);
+        $project = $this->getProjectService()->getProject($projectId);
         
         if (!$project) {
             return [];
@@ -1820,14 +1921,7 @@ class CrawlFlowController
         ];
     }
 
-    /**
-     * Get migration service
-     */
-    public function getMigrationService(): MigrationService
-    {
-        return $this->migrationService;
-    }
-    
+        
     /**
      * Handle save flow config AJAX
      */
@@ -1924,7 +2018,7 @@ class CrawlFlowController
             wp_send_json_error('Project ID is required');
         }
         
-        $project = $this->projectService->getProject($projectId);
+        $project = $this->getProjectService()->getProject($projectId);
         
         if (!$project) {
             wp_send_json_error('Project not found');

@@ -177,6 +177,9 @@ class WP_CrawlFlow {
         // Set default options
         $this->setDefaultOptions();
 
+        // Initialize database status checker
+        $this->initializeDatabaseStatusChecker();
+
         // Run Rake migrations
         $this->runRakeMigrations();
 
@@ -605,6 +608,25 @@ class WP_CrawlFlow {
         }
         
         \Rake\Facade\Logger::info('CrawlFlow: Custom migrations handled by Rake framework schema definitions');
+    }
+
+    /**
+     * Initialize database status checker
+     */
+    private function initializeDatabaseStatusChecker()
+    {
+        try {
+            $dbChecker = new \CrawlFlow\Helper\DatabaseStatusChecker();
+            $dbChecker->registerHooks();
+            
+            // Log initial status
+            $status = $dbChecker->checkDatabaseStatus();
+            if (!$status['healthy']) {
+                \Rake\Facade\Logger::warning('CrawlFlow: Database issues detected - ' . $status['migration_count'] . ' migrations needed');
+            }
+        } catch (\Exception $e) {
+            \Rake\Facade\Logger::error('CrawlFlow: Failed to initialize database status checker - ' . $e->getMessage());
+        }
     }
 }
 

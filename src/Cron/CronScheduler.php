@@ -624,18 +624,14 @@ class CronScheduler
 
     /**
      * Test-cron mode: when CRAWLFLOW_TEST_CRON=true, execute all phases immediately for all active projects
-     * Runs in both cron context and admin context for testing
+     * Only runs in actual cron context (DOING_CRON=true)
      */
     public function maybeRunTestCron(): void
     {
-        // Allow running in both cron context and admin context for testing
+        // Only run in actual cron context
         if (!defined('DOING_CRON') || !DOING_CRON) {
-            // Check if we're in admin context to allow manual testing
-            if (!is_admin()) {
-                error_log('[TEST MODE] CrawlFlow: Test cron mode detected but not in DOING_CRON or admin context, skipping');
-                return;
-            }
-            error_log('[TEST MODE] CrawlFlow: Test cron mode detected in admin context, proceeding for testing');
+            error_log('[TEST MODE] CrawlFlow: Test cron mode detected but not in DOING_CRON context, skipping');
+            return;
         }
 
         // Ensure we run only once per request
@@ -786,7 +782,16 @@ class CronScheduler
             // Use cached project data
             $projectCacheService = new ProjectCacheService();
             $project = $projectCacheService->getProject($projectId);
-            if (!$project || $project['status'] !== 'active') {
+            
+            error_log("CrawlFlow Phase 3: Project data for {$projectId}: " . json_encode($project));
+            
+            if (!$project) {
+                error_log("CrawlFlow Phase 3: Project {$projectId} not found");
+                return;
+            }
+            
+            if ($project['status'] !== 'active') {
+                error_log("CrawlFlow Phase 3: Project {$projectId} status is '{$project['status']}', not 'active'");
                 return;
             }
 

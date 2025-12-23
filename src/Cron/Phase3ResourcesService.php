@@ -76,10 +76,12 @@ class Phase3ResourcesService
                 'errors' => [],
             ];
 
-            foreach ($resources as $resource) {
+            foreach ($resources as $index => $resource) {
                 try {
+                    Logger::info("CrawlFlow Phase 3: Processing resource {$index}/" . count($resources) . " (ID: {$resource['id']}, Type: {$resource['data_type']}) for project {$projectId}");
                     $resourceResult = $this->processResource($projectId, $resource);
                     $results['resources_processed']++;
+                    Logger::info("CrawlFlow Phase 3: Completed resource {$index} for project {$projectId}");
                     
                     if ($resourceResult['type'] === 'image' && $resourceResult['imported']) {
                         $results['images_imported']++;
@@ -95,6 +97,7 @@ class Phase3ResourcesService
                         $results['urls_sent_to_origins']++;
                     }
                 } catch (\Exception $e) {
+                    Logger::error("CrawlFlow Phase 3: Error processing resource {$index} (ID: {$resource['id']}) for project {$projectId}: " . $e->getMessage());
                     $results['errors'][] = [
                         'resource_id' => $resource['id'],
                         'error' => $e->getMessage(),
@@ -236,12 +239,15 @@ class Phase3ResourcesService
 
         switch ($resourceType) {
             case 'image':
+                Logger::info("CrawlFlow Phase 3: Processing image resource ID {$resource['id']} with URL: {$url}");
                 $result = $this->processImage($projectId, $resource, $url);
                 break;
             case 'file':
+                Logger::info("CrawlFlow Phase 3: Processing file resource ID {$resource['id']} with URL: {$url}");
                 $result = $this->processFile($projectId, $resource, $url);
                 break;
             case 'url':
+                Logger::info("CrawlFlow Phase 3: Processing URL resource ID {$resource['id']} with URL: {$url}");
                 $result = $this->processUrl($projectId, $resource, $url);
                 break;
         }
