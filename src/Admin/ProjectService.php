@@ -36,6 +36,40 @@ class ProjectService
     }
 
     /**
+     * Get project statistics including completion tracking
+     */
+    public function getProjectStatistics(): array
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rake_tooths';
+
+        $stats = $wpdb->get_row(
+            "SELECT 
+                COUNT(*) as total_projects,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_projects,
+                SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running_projects,
+                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_projects,
+                SUM(CASE WHEN status = 'partial' THEN 1 ELSE 0 END) as partial_projects,
+                SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as paused_projects,
+                AVG(completion_percentage) as avg_completion_percentage,
+                MAX(completion_percentage) as max_completion_percentage
+            FROM $table",
+            ARRAY_A
+        );
+
+        return $stats ?: [
+            'total_projects' => 0,
+            'completed_projects' => 0,
+            'running_projects' => 0,
+            'failed_projects' => 0,
+            'partial_projects' => 0,
+            'paused_projects' => 0,
+            'avg_completion_percentage' => 0,
+            'max_completion_percentage' => 0
+        ];
+    }
+
+    /**
      * Get number of active projects
      */
     public function getActiveProjects(): int

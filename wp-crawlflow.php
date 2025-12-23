@@ -146,6 +146,25 @@ class WP_CrawlFlow {
      * @throws \Exception If Rake is not initialized
      */
     private function initAdmin(): void {
+        // Load ProjectStatusService for completion tracking
+        require_once CRAWLFLOW_PLUGIN_DIR . 'src/Admin/ProjectStatusService.php';
+        
+        // Initialize project status tracking
+        $projectStatusService = new \CrawlFlow\Admin\ProjectStatusService();
+        
+        // Schedule automatic status updates
+        if (!wp_next_scheduled('crawlflow_update_project_statuses')) {
+            wp_schedule_event(time(), 'hourly', 'crawlflow_update_project_statuses');
+        }
+        
+        // Hook for automatic status updates
+        add_action('crawlflow_update_project_statuses', function() use ($projectStatusService) {
+            $updated = $projectStatusService->autoUpdateProjectStatuses();
+            if (!empty($updated)) {
+                error_log('CrawlFlow: Auto-updated project statuses: ' . json_encode($updated));
+            }
+        });
+        
         // Controller is already initialized by AdminServiceProvider
         // This method is kept for future admin-specific initialization
         // that doesn't belong in service providers
