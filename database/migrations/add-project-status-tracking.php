@@ -50,8 +50,8 @@ function crawlflow_add_project_status_tracking()
     // Add constraints for data integrity
     crawlflow_add_table_constraints($toothsTable, $toothsSchema);
     
-    // Log migration
-    error_log('CrawlFlow: Project status tracking migration completed (Rake schema compliant)');
+    // Log migration (disabled in production to prevent unexpected output)
+    // error_log('CrawlFlow: Project status tracking migration completed (Rake schema compliant)');
 }
 
 /**
@@ -120,7 +120,7 @@ function crawlflow_create_table_from_schema($tableName, $schema)
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
     
-    error_log("CrawlFlow: Created table {$tableName} from schema");
+    // error_log("CrawlFlow: Created table {$tableName} from schema");
 }
 
 /**
@@ -141,7 +141,7 @@ function crawlflow_update_table_from_schema($tableName, $schema)
             $fieldSql = crawlflow_build_field_sql($fieldName, $fieldDef);
             if ($fieldSql) {
                 $wpdb->query("ALTER TABLE `{$tableName}` ADD COLUMN {$fieldSql}");
-                error_log("CrawlFlow: Added column {$fieldName} to {$tableName}");
+                // error_log("CrawlFlow: Added column {$fieldName} to {$tableName}");
             }
         }
     }
@@ -158,8 +158,13 @@ function crawlflow_update_table_from_schema($tableName, $schema)
                 $indexFields = implode(', ', array_map(function($field) {
                     return "`{$field}`";
                 }, $index['fields']));
-                $wpdb->query("ALTER TABLE `{$tableName}` ADD INDEX `{$indexName}` ({$indexFields})");
-                error_log("CrawlFlow: Added index {$indexName} to {$tableName}");
+                try {
+                    $wpdb->query("ALTER TABLE `{$tableName}` ADD INDEX `{$indexName}` ({$indexFields})");
+                    // error_log("CrawlFlow: Added index {$indexName} to {$tableName}");
+                } catch (Exception $e) {
+                    // Index might already exist or column doesn't exist, continue
+                    // error_log("CrawlFlow: Index error: " . $e->getMessage());
+                }
             }
         }
     }
@@ -252,8 +257,13 @@ function crawlflow_add_table_constraints($tableName, $schema)
             );
             
             if ($exists == 0) {
-                $wpdb->query("ALTER TABLE `{$tableName}` ADD CONSTRAINT `{$constraintName}` {$constraintSql}");
-                error_log("CrawlFlow: Added constraint {$constraintName} to {$tableName}");
+                try {
+                    $wpdb->query("ALTER TABLE `{$tableName}` ADD CONSTRAINT `{$constraintName}` {$constraintSql}");
+                    // error_log("CrawlFlow: Added constraint {$constraintName} to {$tableName}");
+                } catch (Exception $e) {
+                    // Constraint might already exist or syntax error, continue
+                    // error_log("CrawlFlow: Constraint error: " . $e->getMessage());
+                }
             }
         }
     }
@@ -280,7 +290,7 @@ function crawlflow_add_project_status_indexes()
             $wpdb->query($sql);
         } catch (Exception $e) {
             // Index might already exist, continue
-            error_log("CrawlFlow: Index $indexName might already exist: " . $e->getMessage());
+            // error_log("CrawlFlow: Index $indexName might already exist: " . $e->getMessage());
         }
     }
 }

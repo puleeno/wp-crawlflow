@@ -361,11 +361,24 @@ class Phase3ResourcesService
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/image.php');
 
-        // Download file
-        $tmp = download_url($url);
-        if (is_wp_error($tmp)) {
+        // Increase execution time limit for large downloads
+        $originalTimeLimit = ini_get('max_execution_time');
+        set_time_limit(300); // 5 minutes
+        
+        try {
+            // Download file with shorter timeout
+            $tmp = download_url($url, 30); // 30 second timeout
+            if (is_wp_error($tmp)) {
+                return null;
+            }
+        } catch (\Exception $e) {
+            // Restore original time limit on error
+            set_time_limit($originalTimeLimit);
             return null;
         }
+        
+        // Restore original time limit
+        set_time_limit($originalTimeLimit);
 
         // Prepare file array
         $file_array = [

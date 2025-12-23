@@ -87,9 +87,9 @@ class ProjectService
     public function getTotalUrlsProcessed(): int
     {
         global $wpdb;
-        $table = $wpdb->prefix . 'rake_urls';
+        $originsTable = $wpdb->prefix . 'rake_data_origins';
 
-        $result = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE status = 'done'");
+        $result = $wpdb->get_var("SELECT COUNT(*) FROM $originsTable WHERE crawled = 1");
         return (int) $result;
     }
 
@@ -99,9 +99,9 @@ class ProjectService
     public function getTotalUrlsPending(): int
     {
         global $wpdb;
-        $table = $wpdb->prefix . 'rake_urls';
+        $originsTable = $wpdb->prefix . 'rake_data_origins';
 
-        $result = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE status = 'pending'");
+        $result = $wpdb->get_var("SELECT COUNT(*) FROM $originsTable WHERE (crawled = 0 OR crawled IS NULL) AND (ignored = 0 OR ignored IS NULL)");
         return (int) $result;
     }
 
@@ -111,9 +111,9 @@ class ProjectService
     public function getTotalUrlsSkipped(): int
     {
         global $wpdb;
-        $table = $wpdb->prefix . 'rake_urls';
+        $originsTable = $wpdb->prefix . 'rake_data_origins';
 
-        $result = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE skipped = 1");
+        $result = $wpdb->get_var("SELECT COUNT(*) FROM $originsTable WHERE ignored = 1");
         return (int) $result;
     }
 
@@ -123,9 +123,9 @@ class ProjectService
     public function getTotalUrlsFailed(): int
     {
         global $wpdb;
-        $table = $wpdb->prefix . 'rake_urls';
+        $originsTable = $wpdb->prefix . 'rake_data_origins';
 
-        $result = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE status = 'failed'");
+        $result = $wpdb->get_var("SELECT COUNT(*) FROM $originsTable WHERE ignored = 1 AND (crawled = 0 OR crawled IS NULL)");
         return (int) $result;
     }
 
@@ -461,18 +461,19 @@ class ProjectService
     public function getUrlsProcessedChart(string $period = '7days'): array
     {
         global $wpdb;
-        $table = $wpdb->prefix . 'rake_urls';
+        $originsTable = $wpdb->prefix . 'rake_data_origins';
+        $sourcesTable = $wpdb->prefix . 'rake_data_sources';
 
         $dateFormat = $period === '7days' ? '%Y-%m-%d' : '%Y-%m';
         $daysBack = $period === '7days' ? 7 : 30;
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DATE_FORMAT(crawled_at, %s) as date, COUNT(*) as count
-                 FROM $table
-                 WHERE crawled_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
-                 AND status = 'done'
-                 GROUP BY DATE_FORMAT(crawled_at, %s)
+                "SELECT DATE_FORMAT(o.created_at, %s) as date, COUNT(*) as count
+                 FROM $originsTable o
+                 WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
+                 AND o.crawled = 1
+                 GROUP BY DATE_FORMAT(o.created_at, %s)
                  ORDER BY date",
                 $dateFormat,
                 $daysBack,
@@ -491,20 +492,22 @@ class ProjectService
     {
         global $wpdb;
         $toothsTable = $wpdb->prefix . 'rake_tooths';
-        $urlsTable = $wpdb->prefix . 'rake_urls';
+        $originsTable = $wpdb->prefix . 'rake_data_origins';
+        $sourcesTable = $wpdb->prefix . 'rake_data_sources';
 
         $daysBack = $period === '7days' ? 7 : 30;
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT t.name,
-                        COUNT(u.id) as total_urls,
-                        SUM(CASE WHEN u.status = 'done' THEN 1 ELSE 0 END) as processed_urls,
-                        SUM(CASE WHEN u.status = 'failed' THEN 1 ELSE 0 END) as failed_urls,
-                        SUM(CASE WHEN u.skipped = 1 THEN 1 ELSE 0 END) as skipped_urls
+                        COUNT(o.id) as total_urls,
+                        SUM(CASE WHEN o.crawled = 1 THEN 1 ELSE 0 END) as processed_urls,
+                        SUM(CASE WHEN o.ignored = 1 AND (o.crawled = 0 OR o.crawled IS NULL) THEN 1 ELSE 0 END) as failed_urls,
+                        SUM(CASE WHEN o.ignored = 1 THEN 1 ELSE 0 END) as skipped_urls
                  FROM $toothsTable t
-                 LEFT JOIN $urlsTable u ON t.id = u.tooth_id
-                 WHERE u.crawled_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
+                 LEFT JOIN $sourcesTable s ON t.id = s.tooth_id
+                 LEFT JOIN $originsTable o ON s.id = o.source_id
+                 WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
                  GROUP BY t.id, t.name
                  ORDER BY processed_urls DESC",
                 $daysBack

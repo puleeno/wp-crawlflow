@@ -324,6 +324,7 @@ class WP_CrawlFlow {
      * Enqueue admin assets
      */
     public function enqueueAdminAssets($hook) {
+        // Load on all CrawlFlow pages including analytics
         if (strpos($hook, 'crawlflow') !== false) {
             wp_enqueue_style(
                 'crawlflow-admin',
@@ -331,6 +332,28 @@ class WP_CrawlFlow {
                 [],
                 CRAWLFLOW_VERSION
             );
+            
+            // Also enqueue admin JS for functionality
+            wp_enqueue_script(
+                'crawlflow-admin-js',
+                CRAWLFLOW_PLUGIN_URL . 'assets/js/admin.js',
+                ['jquery'],
+                CRAWLFLOW_VERSION,
+                true
+            );
+            
+            // Localize script for AJAX calls
+            wp_localize_script('crawlflow-admin-js', 'crawlflowAdmin', [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'adminUrl' => admin_url(),
+                'nonce' => wp_create_nonce('crawlflow_admin_nonce'),
+                'strings' => [
+                    'confirmDelete' => __('Are you sure you want to delete this item?', 'crawlflow'),
+                    'saving' => __('Saving...', 'crawlflow'),
+                    'saved' => __('Saved successfully!', 'crawlflow'),
+                    'error' => __('An error occurred.', 'crawlflow'),
+                ],
+            ]);
             
             // Check if we're on the React Flow editor page
             $subScreen = sanitize_text_field($_GET['sub'] ?? '');
@@ -573,8 +596,14 @@ class WP_CrawlFlow {
      * Note: Most migrations have been moved to Rake framework schema definitions
      */
     private function runCrawlFlowMigrations(): void {
-        // All migrations have been converted to Rake framework schema definitions
-        // They will be handled automatically by Rake migration system
+        // Load and run project status tracking migration
+        require_once CRAWLFLOW_PLUGIN_DIR . 'database/migrations/add-project-status-tracking.php';
+        
+        if (function_exists('crawlflow_run_project_status_migration')) {
+            crawlflow_run_project_status_migration();
+            \Rake\Facade\Logger::info('CrawlFlow: Project status tracking migration completed');
+        }
+        
         \Rake\Facade\Logger::info('CrawlFlow: Custom migrations handled by Rake framework schema definitions');
     }
 }

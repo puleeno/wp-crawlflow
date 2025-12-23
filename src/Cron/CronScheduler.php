@@ -506,7 +506,13 @@ class CronScheduler
 
         if ($existing) {
             $alive = $this->isProcessAlive((int)$existing['process_id'], $existing['updated_at'] ?? null);
-            if ($alive) {
+            
+            // In test mode, allow overriding stale locks after 5 minutes
+            $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
+            $lockAge = strtotime($now) - strtotime($existing['updated_at']);
+            $isStaleLock = $lockAge > 300; // 5 minutes
+            
+            if ($alive && !($isTestMode && $isStaleLock)) {
                 // Insert cancel record for current process and skip
                 $wpdb->insert($table, [
                     'event_name' => $eventName,
@@ -518,8 +524,8 @@ class CronScheduler
                 error_log("CrawlFlow Cron: Event {$eventName} already running by PID {$existing['process_id']}, skipping current PID {$pid}");
                 return null;
             }
-
-            // Mark stale process as error
+            
+            // Mark stale process as error (or in test mode with stale lock)
             $wpdb->update(
                 $table,
                 [
@@ -530,6 +536,10 @@ class CronScheduler
                 ['%s', '%s'],
                 ['%d']
             );
+            
+            if ($isTestMode && $isStaleLock) {
+                error_log("CrawlFlow Cron: TEST MODE - Overriding stale lock for event {$eventName} (PID {$existing['process_id']}, age: {$lockAge}s)");
+            }
         }
 
         // Insert new running record
@@ -572,6 +582,20 @@ class CronScheduler
             return false;
         }
 
+        // Windows process check using tasklist command
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $command = "tasklist /FI \"PID eq {$pid}\" /FO CSV /NH";
+            $output = shell_exec($command);
+            if ($output === null || $output === false) {
+                // Command failed, fallback to timestamp check
+            } else {
+                // Check if process exists AND is PHP process
+                $hasPid = strpos($output, "\"{$pid}\"") !== false;
+                $isPhpProcess = strpos($output, "php.exe") !== false || strpos($output, "php-cgi.exe") !== false;
+                return $hasPid && $isPhpProcess;
+            }
+        }
+
         // POSIX check
         if (function_exists('posix_kill')) {
             return @posix_kill($pid, 0);
@@ -599,16 +623,19 @@ class CronScheduler
     }
 
     /**
-     * Test-cron mode: when CRAWLFLOW_TEST_CRON=true and running inside wp-cron.php,
-     * execute all three phases immediately for all active projects (ignore schedules).
-     * Runs in 'init' hook to ensure all plugins and data types (like taxonomies) are loaded.
+     * Test-cron mode: when CRAWLFLOW_TEST_CRON=true, execute all phases immediately for all active projects
+     * Runs in both cron context and admin context for testing
      */
     public function maybeRunTestCron(): void
     {
-        // Only run in cron context (when called from wp-cron.php)
+        // Allow running in both cron context and admin context for testing
         if (!defined('DOING_CRON') || !DOING_CRON) {
-            error_log('[TEST MODE] CrawlFlow: Test cron mode detected but not in DOING_CRON context, skipping');
-            return;
+            // Check if we're in admin context to allow manual testing
+            if (!is_admin()) {
+                error_log('[TEST MODE] CrawlFlow: Test cron mode detected but not in DOING_CRON or admin context, skipping');
+                return;
+            }
+            error_log('[TEST MODE] CrawlFlow: Test cron mode detected in admin context, proceeding for testing');
         }
 
         // Ensure we run only once per request
