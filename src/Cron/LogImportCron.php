@@ -112,29 +112,57 @@ class LogImportCron
                 continue;
             }
             
-            // Parse filename
-            if (!preg_match('/^crawlflow-(\d+)--(\d+)-(\d{4}-\d{2}-\d{2})\.log$/', $basename, $matches)) {
+            // Parse filename - handle both formats:
+            // Format 1: crawlflow-<project_id>--<process_id>-YYYY-MM-DD.log
+            // Format 2: crawlflow--<process_id>-YYYY-MM-DD.log (no project_id)
+            
+            // Try format 2 first (no project_id)
+            if (preg_match('/^crawlflow--(\d+)-(\d{4}-\d{2}-\d{2})\.log$/', $basename, $matches)) {
+                $projectId = null;
+                $processId = (int) $matches[1];
+                $logDate = $matches[2];
+            }
+            // Try format 1 (with project_id)
+            elseif (preg_match('/^crawlflow-(\d+)--(\d+)-(\d{4}-\d{2}-\d{2})\.log$/', $basename, $matches)) {
+                $projectId = (int) $matches[1];
+                $processId = (int) $matches[2];
+                $logDate = $matches[3];
+            }
+            else {
                 $skippedCount++;
                 continue;
             }
             
-            $projectId = (int) $matches[1];
-            $processId = (int) $matches[2];
-            $logDate = $matches[3];
-            
             // Check if process is still running
             $isRunning = false;
+            echo "DEBUG: Checking PID {$processId} for file {$basename}\n";
+            
             if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
                 $output = [];
                 $returnCode = 0;
                 exec("tasklist /FI \"PID eq {$processId}\" /FO CSV", $output, $returnCode);
-                $isRunning = ($returnCode === 0 && !empty($output));
+                echo "DEBUG: tasklist return code: {$returnCode}\n";
+                echo "DEBUG: tasklist output: " . print_r($output, true) . "\n";
+                
+                // Parse CSV output properly - check if we have actual process data
+                $hasProcessData = false;
+                foreach ($output as $line) {
+                    if (strpos($line, '"httpd.exe"') !== false || strpos($line, '"php.exe"') !== false) {
+                        if (strpos($line, "\"{$processId}\"") !== false) {
+                            $hasProcessData = true;
+                            break;
+                        }
+                    }
+                }
+                $isRunning = ($returnCode === 0 && $hasProcessData);
             } else {
                 $output = [];
                 $returnCode = 0;
                 exec("ps -p {$processId} -o pid= 2>/dev/null", $output, $returnCode);
                 $isRunning = ($returnCode === 0 && !empty($output));
             }
+            
+            echo "DEBUG: Process {$processId} is " . ($isRunning ? 'RUNNING' : 'STOPPED') . "\n";
             
             if ($isRunning) {
                 $skippedCount++;
@@ -178,7 +206,7 @@ class LogImportCron
     /**
      * Import a single log file
      */
-    private static function importLogFile(string $logFile, int $projectId, $wpdb): int
+    private static function importLogFile(string $logFile, ?int $projectId, $wpdb): int
     {
         $table = $wpdb->prefix . 'rake_logs';
         $importedLines = 0;
@@ -206,7 +234,7 @@ class LogImportCron
                 'level' => $parsed['level'],
                 'message' => $parsed['message'],
                 'context' => $parsed['context'],
-                'tooth_id' => $projectId,
+                'tooth_id' => $projectId, // Can be null for files without project_id
                 'created_at' => $parsed['created_at'],
             ];
             

@@ -191,11 +191,20 @@ abstract class AbstractDataSourceHandler
         global $wpdb;
         $table = $wpdb->prefix . 'rake_data_origins';
 
-        // Check if already exists (by guid, unique)
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE guid = %s",
-            $guid
-        ));
+        // Check if already exists (by source_id and guid combination)
+        if ($sourceId !== null && $sourceId > 0) {
+            $existing = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table} WHERE source_id = %d AND guid = %s",
+                $sourceId,
+                $guid
+            ));
+        } else {
+            // For records without source_id, check only guid
+            $existing = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table} WHERE source_id IS NULL AND guid = %s",
+                $guid
+            ));
+        }
 
         $now = current_time('mysql');
         // Phase 1 does not change crawled or ignored flags for existing records

@@ -950,7 +950,7 @@ class CrawlFlowController
             wp_send_json_error('Security check failed');
         }
 
-        $status = $this->migrationService->checkMigrationStatus();
+        $status = $this->getMigrationService()->checkMigrationStatus();
         wp_send_json_success($status);
     }
 
@@ -1049,7 +1049,7 @@ class CrawlFlowController
             wp_die('Insufficient permissions');
         }
 
-        $result = $this->migrationService->runMigrations();
+        $result = $this->getMigrationService()->runMigrations();
 
         $redirectUrl = add_query_arg([
             'page' => 'crawlflow',
