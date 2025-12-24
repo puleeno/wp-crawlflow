@@ -216,6 +216,35 @@ class CronScheduler
         $timestamp = time();
         $scheduledBonus = wp_schedule_event($timestamp, $schedule, $bonusHook, [$projectId]);
 
+        // Check if Data Update Checker has separate schedule
+        $dataUpdateCheckerSchedule = $projectSettings['dataUpdateCheckerSchedule'] ?? null;
+        if ($dataUpdateCheckerSchedule && in_array('data_update_checker', $projectSettings['phase1Actions'] ?? [])) {
+            // Create separate schedule for Data Update Checker using WordPress schedules
+            $dataUpdateCheckerHook = self::PHASE_BONUS_HOOK . '_data_update_checker_' . $hash;
+            
+            // Register custom schedule for 15 days if needed
+            if ($dataUpdateCheckerSchedule === '15days') {
+                add_filter('cron_schedules', function ($schedules) {
+                    $schedules['15days'] = [
+                        'interval' => 15 * 24 * 60 * 60, // 15 days in seconds
+                        'display' => 'Mỗi 15 ngày',
+                    ];
+                    return $schedules;
+                });
+            }
+            
+            // Schedule Data Update Checker separately
+            if (!has_action($dataUpdateCheckerHook, [$this, 'executeDataUpdateChecker'])) {
+                add_action($dataUpdateCheckerHook, [$this, 'executeDataUpdateChecker'], 10, 1);
+            }
+            
+            $scheduledDataUpdateChecker = wp_schedule_event($timestamp, $dataUpdateCheckerSchedule, $dataUpdateCheckerHook, [$projectId]);
+            
+            if ($scheduledDataUpdateChecker !== false) {
+                \Rake\Facade\Logger::info("[CRON SCHEDULE MODE] CrawlFlow: Scheduled Data Update Checker for project {$projectId} with schedule: {$dataUpdateCheckerSchedule}");
+            }
+        }
+
         // Schedule Phase 1 (Crawl) - runs after bonus (delay by 30s)
         $timestamp1 = $timestamp + 30;
         $scheduled1 = wp_schedule_event($timestamp1, $schedule, $phase1Hook, [$projectId]);
@@ -242,30 +271,49 @@ class CronScheduler
     {
         $scheduleType = $projectSettings['scheduleType'] ?? 'interval';
         
-        if ($scheduleType === 'interval') {
-            // Interval in minutes
-            $intervalMinutes = (int)($projectSettings['scheduleInterval'] ?? 60);
-            
-            // Map to WordPress schedules
-            if ($intervalMinutes <= 5) {
-                return 'every_5_minutes';
-            } elseif ($intervalMinutes <= 15) {
-                return 'every_15_minutes';
-            } elseif ($intervalMinutes <= 30) {
-                return 'every_30_minutes';
-            } elseif ($intervalMinutes <= 60) {
-                return 'hourly';
-            } elseif ($intervalMinutes <= 360) {
-                return 'every_6_hours';
-            } elseif ($intervalMinutes <= 720) {
-                return 'twicedaily';
-            } else {
-                return 'daily';
-            }
+        if ($scheduleType === 'cron') {
+            return $projectSettings['cronExpression'] ?? '*/5 * * * *';
         }
         
-        // Default to hourly
-        return 'hourly';
+        // Default to interval-based scheduling
+        $crawlDelayMs = (int)($projectSettings['crawlDelay'] ?? 300000); // default 5 minutes
+        $intervalSeconds = max(60, (int)round($crawlDelayMs / 1000)); // enforce minimum 60s
+        return $intervalSeconds . 's';
+    }
+
+    /**
+     * Execute Data Update Checker separately
+     */
+    public function executeDataUpdateChecker(int $projectId): void
+    {
+        \Rake\Facade\Logger::info("[CRON EXECUTION MODE] CrawlFlow: Executing Data Update Checker for project {$projectId}");
+        
+        try {
+            // Load project configuration
+            $projectCacheService = new ProjectCacheService();
+            $flowConfig = $projectCacheService->getFlowConfig($projectId);
+            $projectSettings = $flowConfig['projectSettings'] ?? [];
+            
+            // Check if Data Update Checker is enabled
+            if (!in_array('data_update_checker', $projectSettings['phase1Actions'] ?? [])) {
+                \Rake\Facade\Logger::info("Data Update Checker not enabled for project {$projectId}");
+                return;
+            }
+            
+            // Execute Data Update Checker action
+            $dataUpdateChecker = new \Rake\Actions\DataUpdateCheckerAction();
+            $context = new \Rake\Actions\ActionContext($projectId, $flowConfig);
+            $result = $dataUpdateChecker->execute($context);
+            
+            if ($result->isSuccess()) {
+                \Rake\Facade\Logger::info("Data Update Checker completed successfully for project {$projectId}");
+            } else {
+                \Rake\Facade\Logger::error("Data Update Checker failed for project {$projectId}: " . $result->getMessage());
+            }
+            
+        } catch (\Exception $e) {
+            \Rake\Facade\Logger::error("Data Update Checker execution error for project {$projectId}: " . $e->getMessage());
+        }
     }
 
     /**

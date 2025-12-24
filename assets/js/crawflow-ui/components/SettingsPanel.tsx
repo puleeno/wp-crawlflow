@@ -2,7 +2,7 @@
 import React, { useState, useRef, ChangeEvent, useEffect, useMemo } from 'react';
 import { Node } from 'reactflow';
 import { XMarkIcon, Cog6ToothIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, TrashIcon, ChevronDownIcon, ChevronUpIcon, CursorArrowRaysIcon, CloudIcon } from './icons';
-import { NodeData, StartNodeData, ClickNodeData, ExtractionRule, FileInputMethod, MySQLConnection, ProjectSettings, LoopNodeData, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, WorkerRule, WorkerRuleType, URLFormatRule, HTMLContainsRule, DOMValueRule, TagAttributeRule, ExtractFrom, URLSourceSettings, APISourceSettings, APIKeyAuth, BearerTokenAuth, BasicAuth, XMLSourceSettings, JSONSourceSettings, PagePagination, OffsetLimitPagination, NextURLPagination, RuleCondition, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings, CSVExtractorNodeData, ColumnMapping, JSONExtractorNodeData, PathMapping, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData, DataSourceTypeRule } from '../types';
+import { NodeData, StartNodeData, ClickNodeData, ExtractionRule, FileInputMethod, MySQLConnection, ProjectSettings, LoopNodeData, WorkerNodeData, HTMLDataExtractorNodeData, ProcessorNodeData, WorkerRule, WorkerRuleType, URLFormatRule, HTMLContainsRule, DOMValueRule, TagAttributeRule, ExtractFrom, URLSourceSettings, APISourceSettings, APIKeyAuth, BearerTokenAuth, BasicAuth, XMLSourceSettings, JSONSourceSettings, PagePagination, OffsetLimitPagination, NextURLPagination, RuleCondition, SaveToDbSettings, SendToApiSettings, GenerateCsvSettings, SendEmailSettings, CSVExtractorNodeData, ColumnMapping, JSONExtractorNodeData, PathMapping, XMLExtractorNodeData, MySQLExtractorNodeData, ShapeNodeData, DataSourceTypeRule, PresetType } from '../types';
 import { PRESETS } from '../presets';
 import { useRegistry } from '../hooks/useRegistry';
 
@@ -1779,6 +1779,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                     <div className="space-y-2">
                         {phase1Actions.map(action => {
                             const selected = (projectSettings.phase1Actions ?? (phase1Actions.find(a => a.id === 'data_update_checker') ? ['data_update_checker'] : [])).includes(action.id);
+                            const isDataUpdateChecker = action.id === 'data_update_checker';
                             return (
                                 <label
                                     key={action.id}
@@ -1798,6 +1799,32 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                                             <div className="text-sm text-gray-600 mt-1">{action.description}</div>
                                         )}
                                         <div className="text-xs text-gray-500 mt-1">Priority: {action.priority}</div>
+                                        {isDataUpdateChecker && selected && (
+                                            <div className="mt-3 pt-3 border-t border-slate-200">
+                                                <label className="text-sm font-medium text-gray-700 block mb-1">
+                                                    Data Update Checker Schedule
+                                                </label>
+                                                <select 
+                                                    value={projectSettings.dataUpdateCheckerSchedule || ''} 
+                                                    onChange={e => onUpdateProjectSettings({ dataUpdateCheckerSchedule: e.target.value || undefined })} 
+                                                    className={smallInputClasses}
+                                                >
+                                                    <option value="">Sử dụng schedule của project</option>
+                                                    <option value="every_5_minutes">Mỗi 5 phút</option>
+                                                    <option value="every_15_minutes">Mỗi 15 phút</option>
+                                                    <option value="every_30_minutes">Mỗi 30 phút</option>
+                                                    <option value="hourly">Mỗi 1 giờ</option>
+                                                    <option value="twicedaily">Mỗi 12 giờ</option>
+                                                    <option value="daily">Mỗi ngày</option>
+                                                    <option value="weekly">Mỗi tuần</option>
+                                                    <option value="15days">Mỗi 15 ngày</option>
+                                                    <option value="monthly">Mỗi tháng</option>
+                                                </select>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Nếu không chọn, Data Update Checker sẽ sử dụng schedule của project
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </label>
                             );

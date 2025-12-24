@@ -23,6 +23,7 @@ export interface ProjectSettings {
   concurrency: number;
   httpClient?: string; // HTTP client name from registry
   phase1Actions?: string[]; // Selected context actions for Phase 1 (including bonus phase)
+  dataUpdateCheckerSchedule?: string; // Separate schedule for Data Update Checker
 }
 
 

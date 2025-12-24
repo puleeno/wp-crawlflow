@@ -293,22 +293,11 @@ class ProjectService
                 $decoded = json_decode($projectDataJson, true);
                 if ($decoded !== null && json_last_error() === JSON_ERROR_NONE) {
                     // This is the new flow-based config
-                    return $decoded;
+                    $config = $decoded;
                 }
             } elseif (is_array($projectDataJson)) {
-                return $projectDataJson;
+                $config = $projectDataJson;
             }
-        }
-
-        // Legacy support: Merge additional fields into config if they exist
-        if (isset($projectData['tooth_type'])) {
-            $config['tooth_type'] = $projectData['tooth_type'];
-        }
-        if (isset($projectData['base_url'])) {
-            $config['base_url'] = $projectData['base_url'];
-        }
-        if (isset($projectData['max_urls'])) {
-            $config['max_urls'] = $projectData['max_urls'];
         }
 
         return $config;
