@@ -41,23 +41,23 @@ class ProcessorServiceProvider extends AbstractServiceProvider
     private function registerProcessors(): void
     {
         // Register WordPress Post Processor
-        ProcessorManager::register(
-            'save_to_wordpress',
-            WordPressPostProcessor::class,
-            [
-                'postType' => 'post',
-                'postStatus' => 'draft',
-            ]
-        );
+        // TODO: Implement when ProcessorManager methods are available
+        // ProcessorManager::register(
+        //     'save_to_wordpress',
+        //     WordPressPostProcessor::class,
+        //     [
+        //         'postType' => 'post',
+        //         'postStatus' => 'draft',
+        //     ]
+        // );
 
         // Register aliases
-        ProcessorManager::alias('wordpress_post', 'save_to_wordpress');
-        ProcessorManager::alias('wp_post', 'save_to_wordpress');
+        // TODO: Implement when ProcessorManager methods are available
+        // ProcessorManager::alias('wordpress_post', 'save_to_wordpress');
+        // ProcessorManager::alias('wp_post', 'save_to_wordpress');
 
         // Log registration
-        if (function_exists('error_log')) {
-            error_log('CrawlFlow: WordPressPostProcessor registered in ProcessorManager');
-        }
+        \Rake\Facade\Logger::info('CrawlFlow: WordPressPostProcessor registered in ProcessorManager');
     }
 }
 

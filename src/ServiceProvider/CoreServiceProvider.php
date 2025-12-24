@@ -20,8 +20,7 @@ class CoreServiceProvider extends AbstractServiceProvider
     {
         // Register Database Adapter
         $this->app->singleton(DatabaseAdapterInterface::class, function ($app) {
-            global $wpdb;
-            return new WordPressDatabaseAdapter($wpdb);
+            return new \Puleeno\Rake\WordPress\Adapter\WordPressDatabaseAdapter();
         });
 
         // Register LoggerService
@@ -39,7 +38,7 @@ class CoreServiceProvider extends AbstractServiceProvider
                 ],
                 'logging' => [
                     'level' => get_option('crawlflow_log_level', 'info'),
-                    'path' => WP_CONTENT_DIR . '/crawlflow/logs/',
+                    'path' => WP_CONTENT_DIR . '/crawlflow/',
                 ],
             ];
         });
@@ -54,7 +53,7 @@ class CoreServiceProvider extends AbstractServiceProvider
         try {
             \CrawlFlow\LoggerService::init();
         } catch (\Exception $e) {
-            error_log('CrawlFlow: Failed to initialize logger - ' . $e->getMessage());
+            \Rake\Facade\Logger::error('CrawlFlow: Failed to initialize logger - ' . $e->getMessage());
         }
     }
 }

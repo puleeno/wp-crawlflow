@@ -47,16 +47,16 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
             $sourceId = $this->ensureDataSourceInDb($projectId, $source);
             
             $url = $sourceConfig['url'];
-            error_log("CrawlFlow Phase 1 (URL): Handler started for URL: {$url}");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1 (URL): Handler started for URL: {$url}");
             
             // Phase 1: Only save URL to database, do NOT fetch/crawl data
             // Save source URL to rake_data_origins (without raw_data)
             $originId = $this->saveToDataOrigins($projectId, $sourceId > 0 ? $sourceId : null, $url, '', [], $flowConfig);
             if ($originId > 0) {
                 $result['items_saved']++;
-                error_log("CrawlFlow Phase 1 (URL): Saved source URL to origins: {$url}");
+                \Rake\Facade\Logger::info("CrawlFlow Phase 1 (URL): Saved source URL to origins: {$url}");
             } else {
-                error_log("CrawlFlow Phase 1 (URL): Failed to save origin for URL: {$url}");
+                \Rake\Facade\Logger::error("CrawlFlow Phase 1 (URL): Failed to save origin for URL: {$url}");
                 $result['errors'][] = "Failed to save origin for URL: {$url}";
                 return $result;
             }
@@ -68,15 +68,15 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
 
             if (isset($response['status_code']) && $response['status_code'] === 200) {
                 $body = $response['body'] ?? '';
-                error_log("CrawlFlow Phase 1 (URL): Fetched " . strlen($body) . " bytes from {$url} to extract URLs (not saving raw_data)");
+                \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): Fetched " . strlen($body) . " bytes from {$url} to extract URLs (not saving raw_data)");
                 
                 // Extract URLs from HTML (but don't save the HTML)
                 // Get URL settings from data source config
                 $urlSettings = $this->getUrlSettingsFromSourceConfig($source);
-                error_log("CrawlFlow Phase 1 (URL): URL settings from source config: " . json_encode($urlSettings));
+                \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): URL settings from source config: " . json_encode($urlSettings));
                 
                 $urls = $this->extractUrls($body, $url, $urlSettings);
-                error_log("CrawlFlow Phase 1 (URL): Extracted " . count($urls) . " URLs from {$url} (after filtering)");
+                \Rake\Facade\Logger::info("CrawlFlow Phase 1 (URL): Extracted " . count($urls) . " URLs from {$url} (after filtering)");
                 
                 // Save ALL extracted URLs to dpc_rake_data_origins (without raw_data)
                 $savedCount = 0;
@@ -119,17 +119,17 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
                     }
                 }
                 
-                error_log("CrawlFlow Phase 1 (URL): Saved " . $savedCount . " new URLs to origins (total: " . count($urls) . ")");
-                error_log("CrawlFlow Phase 1 (URL): Phase 1 complete - URLs saved, no data fetched. Phase 2 will fetch raw_data.");
+                \Rake\Facade\Logger::info("CrawlFlow Phase 1 (URL): Saved " . $savedCount . " new URLs to origins (total: " . count($urls) . ")");
+                \Rake\Facade\Logger::info("CrawlFlow Phase 1 (URL): Phase 1 complete - URLs saved, no data fetched. Phase 2 will fetch raw_data.");
             } else {
                 $statusCode = $response['status_code'] ?? 'unknown';
-                error_log("CrawlFlow Phase 1 (URL): Failed to fetch {$url} for URL extraction - Status: {$statusCode}");
+                \Rake\Facade\Logger::error("CrawlFlow Phase 1 (URL): Failed to fetch {$url} for URL extraction - Status: {$statusCode}");
                 // Don't treat this as error - we still saved the source URL
                 // Phase 2 will try to fetch it
             }
 
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 1 (URL): Error processing source - " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1 (URL): Error processing source - " . $e->getMessage());
             $result['errors'][] = $e->getMessage();
         }
 
@@ -161,10 +161,10 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
         $filteredCount = 0;
         $duplicateCount = 0;
         
-        error_log("CrawlFlow Phase 1 (URL): Found {$totalLinks} links in HTML");
-        error_log("CrawlFlow Phase 1 (URL): Whitelist patterns: " . json_encode($whitelistPatterns));
-        error_log("CrawlFlow Phase 1 (URL): Exclude patterns: " . json_encode($excludePatterns));
-        error_log("CrawlFlow Phase 1 (URL): Domain policy: {$domainPolicy}");
+        \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): Found {$totalLinks} links in HTML");
+        \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): Whitelist patterns: " . json_encode($whitelistPatterns));
+        \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): Exclude patterns: " . json_encode($excludePatterns));
+        \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): Domain policy: {$domainPolicy}");
         
         $sampleUrls = [];
         $filteredReasons = ['no_absolute' => 0, 'duplicate' => 0, 'exclude_extension' => 0, 'exclude_pattern' => 0, 'whitelist_mismatch' => 0, 'domain_policy' => 0];
@@ -224,14 +224,14 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
             
             $urls[] = $absoluteUrl;
             if (count($urls) <= 5) {
-                error_log("CrawlFlow Phase 1 (URL): Accepted URL: {$absoluteUrl}");
+                \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): Accepted URL: {$absoluteUrl}");
             }
         }
         
-        error_log("CrawlFlow Phase 1 (URL): Extracted {$totalLinks} links, filtered {$filteredCount}, duplicates {$duplicateCount}, kept " . count($urls));
-        error_log("CrawlFlow Phase 1 (URL): Filter reasons: " . json_encode($filteredReasons));
+        \Rake\Facade\Logger::info("CrawlFlow Phase 1 (URL): Extracted {$totalLinks} links, filtered {$filteredCount}, duplicates {$duplicateCount}, kept " . count($urls));
+        \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): Filter reasons: " . json_encode($filteredReasons));
         if (!empty($sampleUrls)) {
-            error_log("CrawlFlow Phase 1 (URL): Sample filtered URLs: " . json_encode(array_slice($sampleUrls, 0, 5)));
+            \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (URL): Sample filtered URLs: " . json_encode(array_slice($sampleUrls, 0, 5)));
         }
 
         // Extract images (but apply same filters)

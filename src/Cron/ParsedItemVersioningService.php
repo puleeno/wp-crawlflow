@@ -42,7 +42,7 @@ class ParsedItemVersioningService
 
         if (!$dataChanged && $latestVersion > 0) {
             // Data unchanged, return existing version
-            error_log("CrawlFlow ParsedItem: Origin {$originId} - Data unchanged, keeping version {$latestVersion}");
+            \Rake\Facade\Logger::debug("CrawlFlow ParsedItem: Origin {$originId} - Data unchanged, keeping version {$latestVersion}");
             return $latestVersion;
         }
 
@@ -65,7 +65,7 @@ class ParsedItemVersioningService
             'updated_at' => current_time('mysql'),
         ]);
 
-        error_log(sprintf(
+        \Rake\Facade\Logger::info(sprintf(
             "CrawlFlow ParsedItem: Origin %d - Created version %d by %s (%s) - has_change=true",
             $originId,
             $newVersion,
@@ -113,7 +113,7 @@ class ParsedItemVersioningService
         );
 
         if ($updated) {
-            error_log("CrawlFlow ParsedItem: Origin {$originId} version {$version} marked as saved (has_change=false)");
+            \Rake\Facade\Logger::debug("CrawlFlow ParsedItem: Origin {$originId} version {$version} marked as saved (has_change=false)");
         }
 
         return $updated !== false;
@@ -192,7 +192,7 @@ class ParsedItemVersioningService
 
         $flags = JSON_UNESCAPED_UNICODE;
         if (defined('JSON_SORT_KEYS')) {
-            $flags |= JSON_SORT_KEYS;
+            $flags |= constant('JSON_SORT_KEYS');
         }
         return json_encode($cleaned, $flags);
     }

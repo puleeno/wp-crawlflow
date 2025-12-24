@@ -31,7 +31,7 @@ class WorkerCacheService
     {
         // Check cache first
         if (isset(self::$receptionCache[$projectId])) {
-            error_log("CrawlFlow WorkerCache: Using cached Reception for project {$projectId}");
+            \Rake\Facade\Logger::debug("CrawlFlow WorkerCache: Using cached Reception for project {$projectId}");
             return self::$receptionCache[$projectId];
         }
 
@@ -43,7 +43,7 @@ class WorkerCacheService
         
         // Cache it
         self::$receptionCache[$projectId] = $reception;
-        error_log("CrawlFlow WorkerCache: Cached Reception for project {$projectId}");
+        \Rake\Facade\Logger::debug("CrawlFlow WorkerCache: Cached Reception for project {$projectId}");
 
         return $reception;
     }
@@ -59,7 +59,7 @@ class WorkerCacheService
     {
         // Check cache first
         if (isset(self::$workersConfigCache[$projectId])) {
-            error_log("CrawlFlow WorkerCache: Using cached workers config for project {$projectId}");
+            \Rake\Facade\Logger::debug("CrawlFlow WorkerCache: Using cached workers config for project {$projectId}");
             return self::$workersConfigCache[$projectId];
         }
 
@@ -68,7 +68,7 @@ class WorkerCacheService
 
         // Cache it
         self::$workersConfigCache[$projectId] = $workersConfig;
-        error_log("CrawlFlow WorkerCache: Cached workers config for project {$projectId}");
+        \Rake\Facade\Logger::debug("CrawlFlow WorkerCache: Cached workers config for project {$projectId}");
 
         return $workersConfig;
     }
@@ -82,7 +82,7 @@ class WorkerCacheService
     {
         unset(self::$receptionCache[$projectId]);
         unset(self::$workersConfigCache[$projectId]);
-        error_log("CrawlFlow WorkerCache: Cleared cache for project {$projectId}");
+        \Rake\Facade\Logger::info("CrawlFlow WorkerCache: Cleared cache for project {$projectId}");
     }
 
     /**
@@ -92,7 +92,7 @@ class WorkerCacheService
     {
         self::$receptionCache = [];
         self::$workersConfigCache = [];
-        error_log("CrawlFlow WorkerCache: Cleared all cache");
+        \Rake\Facade\Logger::info("CrawlFlow WorkerCache: Cleared all cache");
     }
 
     /**
@@ -268,7 +268,7 @@ class WorkerCacheService
                 } elseif (!empty($nodeData['presets'])) {
                     // If using presets, we need to expand them
                     // For now, just log that presets are used
-                    error_log("CrawlFlow WorkerCache: Extractor node {$sourceNodeId} uses presets, but preset expansion not implemented yet");
+                    \Rake\Facade\Logger::warning("CrawlFlow WorkerCache: Extractor node {$sourceNodeId} uses presets, but preset expansion not implemented yet");
                 }
                 
                 break;

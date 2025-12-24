@@ -198,27 +198,27 @@ class Worker implements WorkerInterface
         }
 
         if (empty($url)) {
-            error_log("CrawlFlow Worker: checkUrlPattern - No URL found");
+            \Rake\Facade\Logger::debug("CrawlFlow Worker: checkUrlPattern - No URL found");
             return false;
         }
 
         $pattern = $rule['pattern'] ?? '';
         if (empty($pattern)) {
-            error_log("CrawlFlow Worker: checkUrlPattern - No pattern in rule");
+            \Rake\Facade\Logger::debug("CrawlFlow Worker: checkUrlPattern - No pattern in rule");
             return false;
         }
         
         // Normalize pattern (handle excessive escaping)
         $normalizedPattern = $this->normalizeRegexPattern($pattern);
         if (!$normalizedPattern) {
-            error_log("CrawlFlow Worker: checkUrlPattern - Failed to normalize pattern: {$pattern}");
+            \Rake\Facade\Logger::error("CrawlFlow Worker: checkUrlPattern - Failed to normalize pattern: {$pattern}");
             return false;
         }
         
         $match = @preg_match($normalizedPattern, $url);
         $condition = $rule['condition'] ?? 'matches';
         
-        error_log("CrawlFlow Worker: checkUrlPattern - Original pattern: {$pattern}, Normalized: {$normalizedPattern}, URL: {$url}, Match: " . ($match === 1 ? 'YES' : 'NO'));
+        \Rake\Facade\Logger::debug("CrawlFlow Worker: checkUrlPattern - Original pattern: {$pattern}, Normalized: {$normalizedPattern}, URL: {$url}, Match: " . ($match === 1 ? 'YES' : 'NO'));
         
         if ($condition === 'not-matches') {
             return $match !== 1;
@@ -272,7 +272,7 @@ class Worker implements WorkerInterface
                     $normalizedPattern = '/' . $actualPattern . '/' . $flags;
                     
                     // Debug: log the normalization
-                    error_log("CrawlFlow Worker: normalizeRegexPattern - Pattern: {$pattern}, Extracted: " . substr($pattern, 1, $lastSlashPos - 1) . ", After escape: {$actualPattern}, Final: {$normalizedPattern}");
+                    \Rake\Facade\Logger::debug("CrawlFlow Worker: normalizeRegexPattern - Pattern: {$pattern}, Extracted: " . substr($pattern, 1, $lastSlashPos - 1) . ", After escape: {$actualPattern}, Final: {$normalizedPattern}");
                     
                     // Test if pattern is valid
                     if (@preg_match($normalizedPattern, '') !== false) {
@@ -289,7 +289,7 @@ class Worker implements WorkerInterface
                     
                     $normalizedPattern = '/' . $actualPattern . '/';
                     
-                    error_log("CrawlFlow Worker: normalizeRegexPattern - Pattern (no flags): {$pattern}, After escape: {$actualPattern}, Final: {$normalizedPattern}");
+                    \Rake\Facade\Logger::debug("CrawlFlow Worker: normalizeRegexPattern - Pattern (no flags): {$pattern}, After escape: {$actualPattern}, Final: {$normalizedPattern}");
                     
                     // Test if pattern is valid
                     if (@preg_match($normalizedPattern, '') !== false) {
@@ -427,7 +427,7 @@ class Worker implements WorkerInterface
             if ($item->isNull()) {
                 return [
                     'success' => false,
-                    'error' => $item->getReason(),
+                    'error' => 'Processor returned null data item',
                 ];
             }
         }
@@ -495,19 +495,21 @@ class Worker implements WorkerInterface
                         do_action('crawlflow_register_processors');
                     }
                     
-                    if (\Rake\Manager\ProcessorManager::has($type)) {
+                    // TODO: Implement when ProcessorManager methods are available
+                    // if (\Rake\Manager\ProcessorManager::has($type)) {
                         $settings = $processorConfig['settings'] ?? [];
-                        $processorManager = new \Rake\Manager\ProcessorManager();
-                        $processor = $processorManager->getProcessor($type, $settings);
-                        
-                        if ($processor) {
-                            return $processor->process($dataItem);
-                        }
-                    }
+                        // TODO: Implement when ProcessorManager methods are available
+                        // $processorManager = new \Rake\Manager\ProcessorManager();
+                        // $processor = $processorManager->getProcessor($type, $settings);
+                        // 
+                        // if ($processor) {
+                        //     return $processor->process($dataItem);
+                        // }
+                    // }
                 }
                 
                 // Unknown processor, pass through
-                error_log("CrawlFlow Worker: Unknown processor type '{$type}', passing through");
+                \Rake\Facade\Logger::warning("CrawlFlow Worker: Unknown processor type '{$type}', passing through");
                 return $dataItem;
         }
     }

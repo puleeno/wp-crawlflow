@@ -50,7 +50,7 @@ class ProjectCacheService
     {
         // Check cache first
         if (isset(self::$projectCache[$projectId])) {
-            error_log("CrawlFlow ProjectCache: Using cached project data for project {$projectId}");
+            \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Using cached project data for project {$projectId}");
             return self::$projectCache[$projectId];
         }
 
@@ -60,7 +60,7 @@ class ProjectCacheService
         if ($project) {
             // Cache it
             self::$projectCache[$projectId] = $project;
-            error_log("CrawlFlow ProjectCache: Cached project data for project {$projectId}");
+            \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Cached project data for project {$projectId}");
         }
 
         return $project;
@@ -76,7 +76,7 @@ class ProjectCacheService
     {
         // Check cache first
         if (isset(self::$flowConfigCache[$projectId])) {
-            error_log("CrawlFlow ProjectCache: Using cached flow config for project {$projectId}");
+            \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Using cached flow config for project {$projectId}");
             return self::$flowConfigCache[$projectId];
         }
 
@@ -86,7 +86,7 @@ class ProjectCacheService
         if ($flowConfig) {
             // Cache it
             self::$flowConfigCache[$projectId] = $flowConfig;
-            error_log("CrawlFlow ProjectCache: Cached flow config for project {$projectId}");
+            \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Cached flow config for project {$projectId}");
         }
 
         return $flowConfig;
@@ -103,7 +103,7 @@ class ProjectCacheService
     {
         // Check cache first
         if (isset(self::$dataSourcesCache[$projectId])) {
-            error_log("CrawlFlow ProjectCache: Using cached data sources for project {$projectId}");
+            \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Using cached data sources for project {$projectId}");
             return self::$dataSourcesCache[$projectId];
         }
 
@@ -161,7 +161,7 @@ class ProjectCacheService
 
         // Cache it
         self::$dataSourcesCache[$projectId] = $sources;
-        error_log("CrawlFlow ProjectCache: Cached data sources for project {$projectId}");
+        \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Cached data sources for project {$projectId}");
 
         return $sources;
     }
@@ -177,7 +177,7 @@ class ProjectCacheService
         unset(self::$projectCache[$projectId]);
         unset(self::$flowConfigCache[$projectId]);
         unset(self::$dataSourcesCache[$projectId]);
-        error_log("CrawlFlow ProjectCache: Cleared cache for project {$projectId}");
+        \Rake\Facade\Logger::info("CrawlFlow ProjectCache: Cleared cache for project {$projectId}");
     }
 
     /**
@@ -188,7 +188,7 @@ class ProjectCacheService
         self::$projectCache = [];
         self::$flowConfigCache = [];
         self::$dataSourcesCache = [];
-        error_log("CrawlFlow ProjectCache: Cleared all cache");
+        \Rake\Facade\Logger::info("CrawlFlow ProjectCache: Cleared all cache");
     }
 
     /**

@@ -103,8 +103,8 @@ class LoggerService
 
             self::$initialized = true;
         } catch (\Exception $e) {
-            // Fallback to error_log if Rake container is not available
-            error_log('CrawlFlow Logger Service registration failed: ' . $e->getMessage());
+            // Fallback to Rake Logger if Rake container is not available
+            \Rake\Facade\Logger::error('CrawlFlow Logger Service registration failed: ' . $e->getMessage());
         }
     }
 
@@ -130,8 +130,8 @@ class LoggerService
                 'memory_usage' => memory_get_usage(true)
             ]);
         } catch (\Exception $e) {
-            // Fallback to error_log if Rake container is not available
-            error_log('CrawlFlow Logger Service initialization failed: ' . $e->getMessage());
+            // Fallback to Rake Logger if Rake container is not available
+            \Rake\Facade\Logger::error('CrawlFlow Logger Service initialization failed: ' . $e->getMessage());
         }
     }
 

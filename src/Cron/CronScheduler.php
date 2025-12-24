@@ -232,7 +232,7 @@ class CronScheduler
             throw new \RuntimeException("Failed to schedule project {$projectId} phases");
         }
 
-        error_log("[CRON SCHEDULE MODE] CrawlFlow: Scheduled project {$projectId} with bonus + 3 phases - Bonus: {$bonusHook}, Phase1: {$phase1Hook}, Phase2: {$phase2Hook}, Phase3: {$phase3Hook}");
+        \Rake\Facade\Logger::info("[CRON SCHEDULE MODE] CrawlFlow: Scheduled project {$projectId} with bonus + 3 phases - Bonus: {$bonusHook}, Phase1: {$phase1Hook}, Phase2: {$phase2Hook}, Phase3: {$phase3Hook}");
     }
 
     /**
@@ -329,7 +329,7 @@ class CronScheduler
             wp_unschedule_event($timestamp, $phase3Hook, [$projectId]);
         }
 
-        error_log("[CRON SCHEDULE MODE] CrawlFlow: Unscheduled all phases for project {$projectId}");
+        \Rake\Facade\Logger::info("[CRON SCHEDULE MODE] CrawlFlow: Unscheduled all phases for project {$projectId}");
     }
 
     /**
@@ -353,22 +353,22 @@ class CronScheduler
         }
 
         if (!$projectId) {
-            error_log("CrawlFlow Bonus Phase: Could not determine project ID. Arg: " . print_r($arg, true) . ", Hook: " . current_filter());
+            \Rake\Facade\Logger::error("CrawlFlow Bonus Phase: Could not determine project ID. Arg: " . print_r($arg, true) . ", Hook: " . current_filter());
             return;
         }
 
         try {
-            error_log("CrawlFlow Bonus Phase: Hook triggered for project {$projectId}");
+            \Rake\Facade\Logger::info("CrawlFlow Bonus Phase: Hook triggered for project {$projectId}");
             
             $projectCacheService = new ProjectCacheService();
             $project = $projectCacheService->getProject($projectId);
             if (!$project) {
-                error_log("CrawlFlow Bonus Phase: Project {$projectId} not found");
+                \Rake\Facade\Logger::warning("CrawlFlow Bonus Phase: Project {$projectId} not found");
                 return;
             }
 
             if ($project['status'] !== 'active') {
-                error_log("CrawlFlow Bonus Phase: Project {$projectId} is not active (status: {$project['status']})");
+                \Rake\Facade\Logger::warning("CrawlFlow Bonus Phase: Project {$projectId} is not active (status: {$project['status']})");
                 return;
             }
 
@@ -376,7 +376,7 @@ class CronScheduler
             $this->phase1Service->executeBonus($projectId);
 
         } catch (\Exception $e) {
-            error_log("CrawlFlow Bonus Phase: Failed for project {$projectId} - " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Bonus Phase: Failed for project {$projectId} - " . $e->getMessage());
         }
     }
 
@@ -402,11 +402,11 @@ class CronScheduler
         $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
         $eventName = current_filter() ?: 'crawlflow_phase1_crawl';
         
-        error_log("CrawlFlow: Starting Phase 1 (Crawl) - Event: {$eventName} [{$mode}]");
+        \Rake\Facade\Logger::info("CrawlFlow: Starting Phase 1 (Crawl) - Event: {$eventName} [{$mode}]");
         
         $lockId = $this->acquireEventLock($eventName);
         if ($lockId === null) {
-            error_log("CrawlFlow: Phase 1 (Crawl) - Could not acquire lock, skipping [{$mode}]");
+            \Rake\Facade\Logger::warning("CrawlFlow: Phase 1 (Crawl) - Could not acquire lock, skipping [{$mode}]");
             return;
         }
 
@@ -426,38 +426,38 @@ class CronScheduler
         }
         
         if (!$projectId) {
-            error_log("CrawlFlow Phase 1: Could not determine project ID. Arg: " . print_r($arg, true) . ", Hook: " . current_filter());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Could not determine project ID. Arg: " . print_r($arg, true) . ", Hook: " . current_filter());
             return;
         }
 
         try {
-            error_log("CrawlFlow Phase 1: Hook triggered for project {$projectId}");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1: Hook triggered for project {$projectId}");
             
             // Use cached project data
             $projectCacheService = new ProjectCacheService();
             $project = $projectCacheService->getProject($projectId);
             if (!$project) {
-                error_log("CrawlFlow Phase 1: Project {$projectId} not found");
+                \Rake\Facade\Logger::warning("CrawlFlow Phase 1: Project {$projectId} not found");
                 return;
             }
             
             if ($project['status'] !== 'active') {
-                error_log("CrawlFlow Phase 1: Project {$projectId} is not active (status: {$project['status']})");
+                \Rake\Facade\Logger::warning("CrawlFlow Phase 1: Project {$projectId} is not active (status: {$project['status']})");
                 return;
             }
 
-            error_log("CrawlFlow Phase 1: Executing service for project {$projectId}");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1: Executing service for project {$projectId}");
             $result = $this->phase1Service->execute($projectId);
             $this->logPhaseExecution($projectId, 'phase1_crawl', $result);
             
             $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
             $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
-            error_log("CrawlFlow Phase 1: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
             $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 1: Exception for project {$projectId} - " . $e->getMessage());
-            error_log("CrawlFlow Phase 1: Stack trace: " . $e->getTraceAsString());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Exception for project {$projectId} - " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Stack trace: " . $e->getTraceAsString());
             $this->completeEventLock($lockId, 'error');
         }
     }
@@ -521,7 +521,7 @@ class CronScheduler
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
-                error_log("CrawlFlow Cron: Event {$eventName} already running by PID {$existing['process_id']}, skipping current PID {$pid}");
+                \Rake\Facade\Logger::warning("CrawlFlow Cron: Event {$eventName} already running by PID {$existing['process_id']}, skipping current PID {$pid}");
                 return null;
             }
             
@@ -538,7 +538,7 @@ class CronScheduler
             );
             
             if ($isTestMode && $isStaleLock) {
-                error_log("CrawlFlow Cron: TEST MODE - Overriding stale lock for event {$eventName} (PID {$existing['process_id']}, age: {$lockAge}s)");
+                \Rake\Facade\Logger::warning("CrawlFlow Cron: TEST MODE - Overriding stale lock for event {$eventName} (PID {$existing['process_id']}, age: {$lockAge}s)");
             }
         }
 
@@ -630,7 +630,7 @@ class CronScheduler
     {
         // Only run in actual cron context
         if (!defined('DOING_CRON') || !DOING_CRON) {
-            error_log('[TEST MODE] CrawlFlow: Test cron mode detected but not in DOING_CRON context, skipping');
+            \Rake\Facade\Logger::warning('[TEST MODE] CrawlFlow: Test cron mode detected but not in DOING_CRON context, skipping');
             return;
         }
 
@@ -641,39 +641,39 @@ class CronScheduler
         }
         $ran = true;
 
-        error_log('[TEST MODE] CrawlFlow: Test cron mode detected, executing all phases for active projects in init hook');
+        \Rake\Facade\Logger::info('[TEST MODE] CrawlFlow: Test cron mode detected, executing all phases for active projects in init hook');
 
         $projects = $this->projectService->getAllProjects();
-        error_log('[TEST MODE] CrawlFlow: Found ' . count($projects) . ' total projects for test cron execution');
+        \Rake\Facade\Logger::info('[TEST MODE] CrawlFlow: Found ' . count($projects) . ' total projects for test cron execution');
         
         foreach ($projects as $project) {
             $projectId = (int)($project['id'] ?? 0);
             if (!$projectId || ($project['status'] ?? '') !== 'active') {
-                error_log("[TEST MODE] CrawlFlow: Skipping project {$projectId} - status: " . ($project['status'] ?? 'unknown'));
+                \Rake\Facade\Logger::info("[TEST MODE] CrawlFlow: Skipping project {$projectId} - status: " . ($project['status'] ?? 'unknown'));
                 continue;
             }
 
-            error_log("[TEST MODE] CrawlFlow: Starting sequential phase execution for project {$projectId}");
+            \Rake\Facade\Logger::info("[TEST MODE] CrawlFlow: Starting sequential phase execution for project {$projectId}");
 
             // Execute phases sequentially
             // All phases run in 'init' hook context, ensuring plugins/data types are loaded
             try {
-                error_log("[TEST MODE] CrawlFlow: Executing Phase 1 (Crawl) for project {$projectId}");
+                \Rake\Facade\Logger::info("[TEST MODE] CrawlFlow: Executing Phase 1 (Crawl) for project {$projectId}");
                 $this->executePhase1($projectId);
                 
-                error_log("[TEST MODE] CrawlFlow: Executing Phase 2 (Process) for project {$projectId}");
+                \Rake\Facade\Logger::info("[TEST MODE] CrawlFlow: Executing Phase 2 (Process) for project {$projectId}");
                 $this->executePhase2($projectId);
                 
-                error_log("[TEST MODE] CrawlFlow: Executing Phase 3 (Resources) for project {$projectId}");
+                \Rake\Facade\Logger::info("[TEST MODE] CrawlFlow: Executing Phase 3 (Resources) for project {$projectId}");
                 $this->executePhase3($projectId);
                 
-                error_log("[TEST MODE] CrawlFlow: Completed all phases for project {$projectId}");
+                \Rake\Facade\Logger::info("[TEST MODE] CrawlFlow: Completed all phases for project {$projectId}");
             } catch (\Exception $e) {
-                error_log("[TEST MODE] CrawlFlow: Error executing phases for project {$projectId}: " . $e->getMessage());
+                \Rake\Facade\Logger::error("[TEST MODE] CrawlFlow: Error executing phases for project {$projectId}: " . $e->getMessage());
             }
         }
         
-        error_log('[TEST MODE] CrawlFlow: Test cron execution completed for all active projects');
+        \Rake\Facade\Logger::info('[TEST MODE] CrawlFlow: Test cron execution completed for all active projects');
     }
 
     /**
@@ -688,11 +688,11 @@ class CronScheduler
         $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
         $eventName = current_filter() ?: 'crawlflow_phase2_process';
         
-        error_log("CrawlFlow: Starting Phase 2 (Process) - Event: {$eventName} [{$mode}]");
+        \Rake\Facade\Logger::info("CrawlFlow: Starting Phase 2 (Process) - Event: {$eventName} [{$mode}]");
         
         $lockId = $this->acquireEventLock($eventName);
         if ($lockId === null) {
-            error_log("CrawlFlow: Phase 2 (Process) - Could not acquire lock, skipping [{$mode}]");
+            \Rake\Facade\Logger::warning("CrawlFlow: Phase 2 (Process) - Could not acquire lock, skipping [{$mode}]");
             return;
         }
 
@@ -710,12 +710,12 @@ class CronScheduler
         }
         
         if (!$projectId) {
-            error_log("CrawlFlow Phase 2: Could not determine project ID");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 2: Could not determine project ID");
             return;
         }
 
         try {
-            error_log("CrawlFlow Phase 2: Hook triggered for project {$projectId}");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 2: Hook triggered for project {$projectId}");
             
             // Use cached project data
             $projectCacheService = new ProjectCacheService();
@@ -729,11 +729,11 @@ class CronScheduler
             
             $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
             $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
-            error_log("CrawlFlow Phase 2: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
+            \Rake\Facade\Logger::info("CrawlFlow Phase 2: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
             $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 2: Failed for project {$projectId} - " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 2: Failed for project {$projectId} - " . $e->getMessage());
             $this->completeEventLock($lockId, 'error');
         }
     }
@@ -750,11 +750,11 @@ class CronScheduler
         $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
         $eventName = current_filter() ?: 'crawlflow_phase3_resources';
         
-        error_log("CrawlFlow: Starting Phase 3 (Resources) - Event: {$eventName} [{$mode}]");
+        \Rake\Facade\Logger::info("CrawlFlow: Starting Phase 3 (Resources) - Event: {$eventName} [{$mode}]");
         
         $lockId = $this->acquireEventLock($eventName);
         if ($lockId === null) {
-            error_log("CrawlFlow: Phase 3 (Resources) - Could not acquire lock, skipping [{$mode}]");
+            \Rake\Facade\Logger::warning("CrawlFlow: Phase 3 (Resources) - Could not acquire lock, skipping [{$mode}]");
             return;
         }
 
@@ -772,26 +772,26 @@ class CronScheduler
         }
         
         if (!$projectId) {
-            error_log("CrawlFlow Phase 3: Could not determine project ID");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 3: Could not determine project ID");
             return;
         }
 
         try {
-            error_log("CrawlFlow Phase 3: Hook triggered for project {$projectId}");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 3: Hook triggered for project {$projectId}");
             
             // Use cached project data
             $projectCacheService = new ProjectCacheService();
             $project = $projectCacheService->getProject($projectId);
             
-            error_log("CrawlFlow Phase 3: Project data for {$projectId}: " . json_encode($project));
+            \Rake\Facade\Logger::debug("CrawlFlow Phase 3: Project data for {$projectId}: " . json_encode($project));
             
             if (!$project) {
-                error_log("CrawlFlow Phase 3: Project {$projectId} not found");
+                \Rake\Facade\Logger::warning("CrawlFlow Phase 3: Project {$projectId} not found");
                 return;
             }
             
             if ($project['status'] !== 'active') {
-                error_log("CrawlFlow Phase 3: Project {$projectId} status is '{$project['status']}', not 'active'");
+                \Rake\Facade\Logger::warning("CrawlFlow Phase 3: Project {$projectId} status is '{$project['status']}', not 'active'");
                 return;
             }
 
@@ -800,11 +800,11 @@ class CronScheduler
             
             $isTestMode = defined('CRAWLFLOW_TEST_CRON') && CRAWLFLOW_TEST_CRON;
             $mode = $isTestMode ? 'TEST MODE' : 'CRON SCHEDULE MODE';
-            error_log("CrawlFlow Phase 3: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
+            \Rake\Facade\Logger::info("CrawlFlow Phase 3: Completed for project {$projectId} [{$mode}] - " . json_encode($result));
             $this->completeEventLock($lockId, 'complete');
             
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 3: Failed for project {$projectId} - " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 3: Failed for project {$projectId} - " . $e->getMessage());
             $this->completeEventLock($lockId, 'error');
         }
     }
@@ -883,7 +883,7 @@ class CronScheduler
                     }
                 }
             } catch (\Exception $e) {
-                error_log("CrawlFlow: Error registering custom schedules: " . $e->getMessage());
+                \Rake\Facade\Logger::error("CrawlFlow: Error registering custom schedules: " . $e->getMessage());
             }
             
             return $schedules;
@@ -999,9 +999,9 @@ class CronScheduler
         );
 
         if ($scheduled === false) {
-            error_log("[CRON SCHEDULE MODE] CrawlFlow: Failed to schedule system maintenance");
+            \Rake\Facade\Logger::error("[CRON SCHEDULE MODE] CrawlFlow: Failed to schedule system maintenance");
         } else {
-            error_log("[CRON SCHEDULE MODE] CrawlFlow: Scheduled system maintenance (every 5 minutes)");
+            \Rake\Facade\Logger::info("[CRON SCHEDULE MODE] CrawlFlow: Scheduled system maintenance (every 5 minutes)");
         }
     }
 
@@ -1011,13 +1011,13 @@ class CronScheduler
     public function executeSystemMaintenance(): void
     {
         try {
-            error_log("[CRON SCHEDULE MODE] CrawlFlow: System maintenance task executed at " . date('Y-m-d H:i:s'));
+            \Rake\Facade\Logger::info("[CRON SCHEDULE MODE] CrawlFlow: System maintenance task executed at " . date('Y-m-d H:i:s'));
             
             // Add your maintenance tasks here
             // For example: cleanup old logs, check project status, etc.
             
         } catch (\Exception $e) {
-            error_log("[CRON SCHEDULE MODE] CrawlFlow: System maintenance failed - " . $e->getMessage());
+            \Rake\Facade\Logger::error("[CRON SCHEDULE MODE] CrawlFlow: System maintenance failed - " . $e->getMessage());
         }
     }
 }

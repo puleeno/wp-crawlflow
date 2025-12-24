@@ -37,21 +37,21 @@ class DataSourceHandlerFactory
         ];
 
         if (!isset($handlerMap[$sourceType])) {
-            error_log("CrawlFlow Phase 1: No handler found for source type: {$sourceType}");
+            \Rake\Facade\Logger::warning("CrawlFlow Phase 1: No handler found for source type: {$sourceType}");
             return null;
         }
 
         $handlerClass = $handlerMap[$sourceType];
         
         if (!class_exists($handlerClass)) {
-            error_log("CrawlFlow Phase 1: Handler class not found: {$handlerClass}");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Handler class not found: {$handlerClass}");
             return null;
         }
 
         // Create and cache handler instance
         $handler = new $handlerClass();
         if (!$handler instanceof AbstractDataSourceHandler) {
-            error_log("CrawlFlow Phase 1: Handler class does not extend AbstractDataSourceHandler: {$handlerClass}");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Handler class does not extend AbstractDataSourceHandler: {$handlerClass}");
             return null;
         }
 
@@ -69,12 +69,12 @@ class DataSourceHandlerFactory
     public static function registerHandler(string $sourceType, string $handlerClass): bool
     {
         if (!class_exists($handlerClass)) {
-            error_log("CrawlFlow Phase 1: Cannot register handler - class not found: {$handlerClass}");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Cannot register handler - class not found: {$handlerClass}");
             return false;
         }
 
         if (!is_subclass_of($handlerClass, AbstractDataSourceHandler::class)) {
-            error_log("CrawlFlow Phase 1: Cannot register handler - class does not extend AbstractDataSourceHandler: {$handlerClass}");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Cannot register handler - class does not extend AbstractDataSourceHandler: {$handlerClass}");
             return false;
         }
 

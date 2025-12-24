@@ -43,11 +43,16 @@ class LoggerServiceProvider extends AbstractServiceProvider
         // Create Monolog logger
         $logger = new Logger('CRAWLFLOW');
 
-        // Log directory
-        $logDir = WP_CONTENT_DIR . '/crawlflow/logs/';
-        
+        // Use same log file path as LoggerService to prevent duplicates
+        $logFile = sprintf(
+            '%s/crawlflow/crawlflow-%s.log',
+            WP_CONTENT_DIR,
+            date('Y-m-d')
+        );
+
         // Ensure log directory exists
-        if (!file_exists($logDir)) {
+        $logDir = dirname($logFile);
+        if (!is_dir($logDir)) {
             wp_mkdir_p($logDir);
         }
 
@@ -59,23 +64,18 @@ class LoggerServiceProvider extends AbstractServiceProvider
             true
         );
 
-        // Add rotating file handler (keeps 30 days of logs)
-        $fileHandler = new RotatingFileHandler(
-            $logDir . 'crawlflow.log',
-            30, // Keep 30 days
-            Logger::INFO
+        // Add file handler (same as LoggerService)
+        $fileHandler = new StreamHandler(
+            $logFile,
+            Logger::DEBUG
         );
         $fileHandler->setFormatter($formatter);
         $logger->pushHandler($fileHandler);
 
-        // Add debug handler if debug mode enabled
-        if (get_option('crawlflow_debug_mode', false)) {
-            $debugHandler = new StreamHandler(
-                $logDir . 'debug.log',
-                Logger::DEBUG
-            );
-            $debugHandler->setFormatter($formatter);
-            $logger->pushHandler($debugHandler);
+        // Add stdout handler only for CLI (same as LoggerService)
+        if (php_sapi_name() === 'cli') {
+            $stdOutHandler = new StreamHandler('php://stdout', Logger::INFO);
+            $logger->pushHandler($stdOutHandler);
         }
 
         // Set logger in LoggerManager

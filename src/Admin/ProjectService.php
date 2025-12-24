@@ -261,7 +261,7 @@ class ProjectService
         if ($result === false) {
             $error = $wpdb->last_error ?: 'Unknown database error';
             $query = $wpdb->last_query ?: 'N/A';
-            error_log("CrawlFlow: Failed to create project - Error: {$error}, Query: {$query}, Data: " . json_encode($data));
+            \Rake\Facade\Logger::error("CrawlFlow: Failed to create project - Error: {$error}, Query: {$query}, Data: " . json_encode($data));
             throw new \RuntimeException('Failed to create project in database: ' . $error);
         }
 
@@ -329,7 +329,7 @@ class ProjectService
         $config = $this->cleanConfigForJson($config);
         
         // Debug: Log config structure before encoding
-        error_log('CrawlFlow: Config nodes count: ' . (isset($config['nodes']) ? count($config['nodes']) : 0));
+        \Rake\Facade\Logger::debug('CrawlFlow: Config nodes count: ' . (isset($config['nodes']) ? count($config['nodes']) : 0));
         if (isset($config['nodes']) && is_array($config['nodes'])) {
             $workerNodes = array_filter($config['nodes'], function($node) {
                 return ($node['type'] ?? '') === 'worker';
@@ -337,26 +337,26 @@ class ProjectService
             foreach ($workerNodes as $workerNode) {
                 $nodeId = $workerNode['id'] ?? 'unknown';
                 $nodeData = $workerNode['data'] ?? [];
-                error_log("CrawlFlow: Worker node {$nodeId} in config - has parser: " . (isset($nodeData['parser']) ? 'yes' : 'no'));
+                \Rake\Facade\Logger::debug("CrawlFlow: Worker node {$nodeId} in config - has parser: " . (isset($nodeData['parser']) ? 'yes' : 'no'));
             }
         }
 
         $jsonConfig = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
         if ($jsonConfig === false) {
-            error_log('CrawlFlow: Failed to encode config to JSON: ' . json_last_error_msg());
-            error_log('CrawlFlow: JSON error code: ' . json_last_error());
-            error_log('CrawlFlow: Problematic config structure: ' . print_r($config, true));
+            \Rake\Facade\Logger::error('CrawlFlow: Failed to encode config to JSON: ' . json_last_error_msg());
+            \Rake\Facade\Logger::error('CrawlFlow: JSON error code: ' . json_last_error());
+            \Rake\Facade\Logger::error('CrawlFlow: Problematic config structure: ' . print_r($config, true));
             return false;
         }
         
         // Log JSON size for debugging
         $jsonSize = strlen($jsonConfig);
-        error_log('CrawlFlow: JSON config size: ' . $jsonSize . ' bytes (' . round($jsonSize / 1024, 2) . ' KB)');
+        \Rake\Facade\Logger::debug('CrawlFlow: JSON config size: ' . $jsonSize . ' bytes (' . round($jsonSize / 1024, 2) . ' KB)');
         
         // Check if JSON is too large (should not happen with LONGTEXT, but log for monitoring)
         if ($jsonSize > 1048576) { // 1MB
-            error_log('CrawlFlow: WARNING - JSON config is very large: ' . round($jsonSize / 1024 / 1024, 2) . ' MB');
+            \Rake\Facade\Logger::warning('CrawlFlow: WARNING - JSON config is very large: ' . round($jsonSize / 1024 / 1024, 2) . ' MB');
         }
 
         $data = [
@@ -374,7 +374,7 @@ class ProjectService
         );
 
         if ($result === false) {
-            error_log('CrawlFlow: Database update failed: ' . $wpdb->last_error);
+            \Rake\Facade\Logger::error('CrawlFlow: Database update failed: ' . $wpdb->last_error);
         }
 
         return $result !== false;

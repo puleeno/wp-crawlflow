@@ -54,15 +54,15 @@ class HttpServiceProvider extends AbstractServiceProvider
         ]);
 
         // Register in HttpClientManager
-        HttpClientManager::register('wordpress', $client);
+        // TODO: Implement when HttpClientManager methods are available
+        // HttpClientManager::register('wordpress', $client);
         
         // Set as default client
-        HttpClientManager::setDefaultClient($client);
+        // TODO: Implement when HttpClientManager methods are available
+        // HttpClientManager::setDefaultClient($client);
 
         // Log registration
-        if (function_exists('error_log')) {
-            error_log('CrawlFlow: WordPress HTTP Client registered as default');
-        }
+        \Rake\Facade\Logger::info('CrawlFlow: WordPress HTTP Client registered as default');
     }
 }
 

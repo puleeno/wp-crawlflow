@@ -52,7 +52,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
             $sourceId = $this->ensureDataSourceInDb($projectId, $source);
             
             $sitemapUrl = $sourceConfig['url'];
-            error_log("CrawlFlow Phase 1 (Sitemap): Handler started for sitemap: {$sitemapUrl}");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Handler started for sitemap: {$sitemapUrl}");
             
             // Phase 1: Only save sitemap URL to database, do NOT save raw_data
             $originId = $this->saveToDataOrigins(
@@ -64,7 +64,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                 $flowConfig
             );
             $result['items_saved']++;
-            error_log("CrawlFlow Phase 1 (Sitemap): Saved sitemap URL to origins: {$sitemapUrl}");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Saved sitemap URL to origins: {$sitemapUrl}");
 
             // Phase 1: Fetch XML only to extract URLs, but do NOT save raw_data
             // This is a one-time fetch just to discover URLs
@@ -73,11 +73,11 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
 
             if (isset($response['status_code']) && $response['status_code'] === 200) {
                 $xmlContent = $response['body'] ?? '';
-                error_log("CrawlFlow Phase 1 (Sitemap): Fetched " . strlen($xmlContent) . " bytes from {$sitemapUrl} to extract URLs (not saving raw_data)");
+                \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (Sitemap): Fetched " . strlen($xmlContent) . " bytes from {$sitemapUrl} to extract URLs (not saving raw_data)");
 
                 // Parse XML and determine type
                 $sitemapType = $this->detectSitemapType($xmlContent);
-                error_log("CrawlFlow Phase 1 (Sitemap): Detected sitemap type: {$sitemapType}");
+                \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Detected sitemap type: {$sitemapType}");
 
                 if ($sitemapType === 'index') {
                     // Sitemap Index: Extract sitemap URLs (but don't save XML)
@@ -87,20 +87,20 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                     $this->processRegularSitemap($projectId, $originId, $xmlContent, $sitemapUrl, $result, $sourceId, $flowConfig);
                 } else {
                     // XML Raw Object: Mark for Phase 2 processing
-                    error_log("CrawlFlow Phase 1 (Sitemap): Treating as raw XML object for Phase 2 processing");
+                    \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Treating as raw XML object for Phase 2 processing");
                     $this->updateOriginMetadata($originId, ['type' => 'xml-raw', 'source_type' => 'sitemap']);
                 }
                 
-                error_log("CrawlFlow Phase 1 (Sitemap): Phase 1 complete - URLs saved, no data fetched. Phase 2 will fetch raw_data.");
+                \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Phase 1 complete - URLs saved, no data fetched. Phase 2 will fetch raw_data.");
             } else {
                 $statusCode = $response['status_code'] ?? 'unknown';
-                error_log("CrawlFlow Phase 1 (Sitemap): Failed to fetch {$sitemapUrl} for URL extraction - Status: {$statusCode}");
+                \Rake\Facade\Logger::error("CrawlFlow Phase 1 (Sitemap): Failed to fetch {$sitemapUrl} for URL extraction - Status: {$statusCode}");
                 // Don't treat this as error - we still saved the sitemap URL
                 // Phase 2 will try to fetch it
             }
 
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 1 (Sitemap): Error processing source - " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1 (Sitemap): Error processing source - " . $e->getMessage());
             $result['errors'][] = $e->getMessage();
         }
 
@@ -163,7 +163,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
         $xml = @simplexml_load_string($xmlContent);
         
         if ($xml === false) {
-            error_log("CrawlFlow Phase 1 (Sitemap): Failed to parse sitemap index XML");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1 (Sitemap): Failed to parse sitemap index XML");
             return;
         }
 
@@ -195,11 +195,11 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
 
         if (!empty($existingSitemaps)) {
             // Step 2: Fetch sitemap URLs and extract URLs from them
-            error_log("CrawlFlow Phase 1 (Sitemap): Step 2 - Processing " . count($existingSitemaps) . " sitemap URLs");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Step 2 - Processing " . count($existingSitemaps) . " sitemap URLs");
             $this->processSitemapUrls($projectId, $existingSitemaps, $result, $sourceId, $flowConfig);
         } else {
             // Step 1: Extract and save all sitemap URLs
-            error_log("CrawlFlow Phase 1 (Sitemap): Step 1 - Extracting sitemap URLs from index");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Step 1 - Extracting sitemap URLs from index");
             
             $sitemapUrls = [];
             if (isset($xml->sitemap)) {
@@ -220,7 +220,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                 }
             }
 
-            error_log("CrawlFlow Phase 1 (Sitemap): Found " . count($sitemapUrls) . " sitemap URLs in index");
+            \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Found " . count($sitemapUrls) . " sitemap URLs in index");
             
             // Save each sitemap URL as a child origin with type 'sitemap' (without raw_data)
             foreach ($sitemapUrls as $sitemapUrl) {
@@ -250,7 +250,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
         $xml = @simplexml_load_string($xmlContent);
         
         if ($xml === false) {
-            error_log("CrawlFlow Phase 1 (Sitemap): Failed to parse sitemap XML");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1 (Sitemap): Failed to parse sitemap XML");
             return;
         }
 
@@ -285,7 +285,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
             }
         }
 
-        error_log("CrawlFlow Phase 1 (Sitemap): Extracted " . count($urls) . " URLs from regular sitemap");
+        \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Extracted " . count($urls) . " URLs from regular sitemap");
         
         // Save each URL as a child origin with type 'url' (without raw_data)
         foreach ($urls as $url) {
@@ -319,12 +319,12 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
             
             try {
                 // Phase 1: Fetch XML only to extract URLs, do NOT save raw_data
-                error_log("CrawlFlow Phase 1 (Sitemap): Fetching sitemap URL: {$sitemapUrl} to extract URLs (not saving raw_data)");
+                \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (Sitemap): Fetching sitemap URL: {$sitemapUrl} to extract URLs (not saving raw_data)");
                 $response = $dataSource->fetch($sitemapUrl);
                 
                 if (isset($response['status_code']) && $response['status_code'] === 200) {
                     $xmlContent = $response['body'] ?? '';
-                    error_log("CrawlFlow Phase 1 (Sitemap): Fetched " . strlen($xmlContent) . " bytes from {$sitemapUrl} (not saving)");
+                    \Rake\Facade\Logger::debug("CrawlFlow Phase 1 (Sitemap): Fetched " . strlen($xmlContent) . " bytes from {$sitemapUrl} (not saving)");
                     
                     // Extract URLs from this sitemap (but don't save the XML)
                     libxml_use_internal_errors(true);
@@ -360,7 +360,7 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                             }
                         }
                         
-                        error_log("CrawlFlow Phase 1 (Sitemap): Extracted " . count($urls) . " URLs from {$sitemapUrl}");
+                        \Rake\Facade\Logger::info("CrawlFlow Phase 1 (Sitemap): Extracted " . count($urls) . " URLs from {$sitemapUrl}");
                         
                         // Save each URL as a child origin (without raw_data)
                         foreach ($urls as $url) {
@@ -380,10 +380,10 @@ class SitemapDataSourceHandler extends AbstractDataSourceHandler
                         }
                     }
                 } else {
-                    error_log("CrawlFlow Phase 1 (Sitemap): Failed to fetch {$sitemapUrl} - Status: " . ($response['status_code'] ?? 'unknown'));
+                    \Rake\Facade\Logger::error("CrawlFlow Phase 1 (Sitemap): Failed to fetch {$sitemapUrl} - Status: " . ($response['status_code'] ?? 'unknown'));
                 }
             } catch (\Exception $e) {
-                error_log("CrawlFlow Phase 1 (Sitemap): Error processing sitemap URL {$sitemapUrl}: " . $e->getMessage());
+                \Rake\Facade\Logger::error("CrawlFlow Phase 1 (Sitemap): Error processing sitemap URL {$sitemapUrl}: " . $e->getMessage());
             }
         }
     }

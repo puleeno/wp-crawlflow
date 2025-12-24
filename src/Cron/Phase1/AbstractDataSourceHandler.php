@@ -87,13 +87,13 @@ abstract class AbstractDataSourceHandler
     {
         $configJson = $source['config'] ?? null;
         if (empty($configJson)) {
-            error_log("CrawlFlow Phase 1: No config found in data source");
+            \Rake\Facade\Logger::warning("CrawlFlow Phase 1: No config found in data source");
             return [];
         }
         
         $config = json_decode($configJson, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("CrawlFlow Phase 1: Failed to parse source config JSON: " . json_last_error_msg());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Failed to parse source config JSON: " . json_last_error_msg());
             return [];
         }
         
@@ -138,7 +138,7 @@ abstract class AbstractDataSourceHandler
                 }
             }
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 1: Error detecting worker priority for URL {$url}: " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Error detecting worker priority for URL {$url}: " . $e->getMessage());
         }
         
         // Default priority if no worker matches
@@ -169,7 +169,7 @@ abstract class AbstractDataSourceHandler
                 }
             }
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 1: Error detecting archive flag for URL {$url}: " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Error detecting archive flag for URL {$url}: " . $e->getMessage());
         }
 
         return 0;
@@ -275,20 +275,20 @@ abstract class AbstractDataSourceHandler
             if ($sourceExists) {
                 $insertData['source_id'] = $sourceId;
             } else {
-                error_log("CrawlFlow Phase 1: Source ID {$sourceId} does not exist in database, skipping source_id in origin insert");
+                \Rake\Facade\Logger::warning("CrawlFlow Phase 1: Source ID {$sourceId} does not exist in database, skipping source_id in origin insert");
             }
         }
         
         $result = $wpdb->insert($table, $insertData);
 
         if ($result === false) {
-            error_log("CrawlFlow Phase 1: Failed to insert origin - " . $wpdb->last_error);
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Failed to insert origin - " . $wpdb->last_error);
             return 0;
         }
 
         $insertId = (int)$wpdb->insert_id;
         if ($insertId <= 0) {
-            error_log("CrawlFlow Phase 1: Failed to get insert ID for origin");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Failed to get insert ID for origin");
             return 0;
         }
 
@@ -307,7 +307,7 @@ abstract class AbstractDataSourceHandler
     {
         // Validate parent and child IDs - must be > 0 to satisfy foreign key constraints
         if ($parentOriginId <= 0 || $childOriginId <= 0) {
-            error_log("CrawlFlow Phase 1: Cannot save reference - invalid IDs (parent: {$parentOriginId}, child: {$childOriginId})");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Cannot save reference - invalid IDs (parent: {$parentOriginId}, child: {$childOriginId})");
             return false;
         }
 
@@ -321,7 +321,7 @@ abstract class AbstractDataSourceHandler
         ));
 
         if (!$parentExists) {
-            error_log("CrawlFlow Phase 1: Cannot save reference - parent origin ID {$parentOriginId} does not exist");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Cannot save reference - parent origin ID {$parentOriginId} does not exist");
             return false;
         }
 
@@ -332,7 +332,7 @@ abstract class AbstractDataSourceHandler
         ));
 
         if (!$childExists) {
-            error_log("CrawlFlow Phase 1: Cannot save reference - child origin ID {$childOriginId} does not exist");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Cannot save reference - child origin ID {$childOriginId} does not exist");
             return false;
         }
 
@@ -357,7 +357,7 @@ abstract class AbstractDataSourceHandler
         ]);
 
         if ($result === false) {
-            error_log("CrawlFlow Phase 1: Failed to insert reference - " . $wpdb->last_error);
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Failed to insert reference - " . $wpdb->last_error);
             return false;
         }
 
@@ -387,7 +387,7 @@ abstract class AbstractDataSourceHandler
             if ($exists) {
                 return $sourceId;
             } else {
-                error_log("CrawlFlow Phase 1: Source ID {$sourceId} from source config does not exist in database, will create new");
+                \Rake\Facade\Logger::info("CrawlFlow Phase 1: Source ID {$sourceId} from source config does not exist in database, will create new");
             }
         }
 
@@ -413,13 +413,13 @@ abstract class AbstractDataSourceHandler
         ]);
 
         if ($result === false) {
-            error_log("CrawlFlow Phase 1: Failed to create data source - " . $wpdb->last_error);
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Failed to create data source - " . $wpdb->last_error);
             return 0;
         }
 
         $insertId = (int)$wpdb->insert_id;
         if ($insertId <= 0) {
-            error_log("CrawlFlow Phase 1: Failed to get insert ID for data source");
+            \Rake\Facade\Logger::error("CrawlFlow Phase 1: Failed to get insert ID for data source");
             return 0;
         }
 

@@ -118,7 +118,7 @@ class Phase3ResourcesService
             return $results;
 
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 3: Failed for project {$projectId} - " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 3: Failed for project {$projectId} - " . $e->getMessage());
             throw $e;
         }
     }
@@ -531,7 +531,7 @@ class Phase3ResourcesService
                 }
             }
         } catch (\Exception $e) {
-            error_log("CrawlFlow Phase 3: Error detecting worker priority for URL {$url}: " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow Phase 3: Error detecting worker priority for URL {$url}: " . $e->getMessage());
         }
         
         // Insert to origins (from processor, will be fetched in Phase 1)

@@ -161,7 +161,7 @@ class WP_CrawlFlow {
         add_action('crawlflow_update_project_statuses', function() use ($projectStatusService) {
             $updated = $projectStatusService->autoUpdateProjectStatuses();
             if (!empty($updated)) {
-                error_log('CrawlFlow: Auto-updated project statuses: ' . json_encode($updated));
+                \Rake\Facade\Logger::info('CrawlFlow: Auto-updated project statuses: ' . json_encode($updated));
             }
         });
         

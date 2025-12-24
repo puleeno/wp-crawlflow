@@ -38,7 +38,7 @@ class CronServiceProvider extends AbstractServiceProvider
         add_action('init', [$this, 'scheduleActiveProjects'], 20);
         
         // Register WP CLI commands (only if WP-CLI is available)
-        if (defined('WP_CLI') && WP_CLI && class_exists('WP_CLI')) {
+        if (defined('WP_CLI') && constant('WP_CLI') && class_exists('WP_CLI')) {
             $this->registerCliCommands();
         }
     }
@@ -154,7 +154,7 @@ class CronServiceProvider extends AbstractServiceProvider
             $cronScheduler = $this->app->make('CrawlFlow\Cron\CronScheduler');
             $projects = $cronScheduler->getProjectService()->getAllProjects();
             
-            error_log('CrawlFlow: Found ' . count($projects) . ' projects for schedule registration');
+            \Rake\Facade\Logger::info('CrawlFlow: Found ' . count($projects) . ' projects for schedule registration');
             
             foreach ($projects as $project) {
                 if (($project['status'] ?? '') === 'active') {
@@ -173,16 +173,16 @@ class CronServiceProvider extends AbstractServiceProvider
                             'display' => "CrawlFlow Project interval ({$intervalSeconds}s)",
                         ];
                         
-                        error_log("CrawlFlow: Registered schedule {$scheduleSlug} with interval {$intervalSeconds}s");
+                        \Rake\Facade\Logger::info("CrawlFlow: Registered schedule {$scheduleSlug} with interval {$intervalSeconds}s");
                     } else {
-                        error_log("CrawlFlow: Project {$projectId} is not enabled, skipping schedule registration");
+                        \Rake\Facade\Logger::warning("CrawlFlow: Project {$projectId} is not enabled, skipping schedule registration");
                     }
                 } else {
-                    error_log("CrawlFlow: Project {$projectId} status is '{$project['status']}', skipping schedule registration");
+                    \Rake\Facade\Logger::warning("CrawlFlow: Project {$projectId} status is '{$project['status']}', skipping schedule registration");
                 }
             }
         } catch (\Exception $e) {
-            error_log("CrawlFlow: Error adding custom project schedules: " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow: Error adding custom project schedules: " . $e->getMessage());
         }
         
         return $schedules;
@@ -222,11 +222,11 @@ class CronServiceProvider extends AbstractServiceProvider
                 try {
                     $cronScheduler->scheduleProject($project['id']);
                 } catch (\Exception $e) {
-                    error_log("CrawlFlow: Failed to schedule project {$project['id']} - " . $e->getMessage());
+                    \Rake\Facade\Logger::error("CrawlFlow: Failed to schedule project {$project['id']} - " . $e->getMessage());
                 }
             }
         } catch (\Exception $e) {
-            error_log("CrawlFlow: Failed to schedule active projects - " . $e->getMessage());
+            \Rake\Facade\Logger::error("CrawlFlow: Failed to schedule active projects - " . $e->getMessage());
         }
     }
 }
