@@ -2,9 +2,7 @@
 
 namespace CrawlFlow\Cron;
 
-use CrawlFlow\Admin\ProjectService;
 use CrawlFlow\Cron\ProjectCacheService;
-use CrawlFlow\LoggerService;
 use Rake\Facade\Logger;
 use Rake\Rake;
 
@@ -273,7 +271,19 @@ class Phase3ResourcesService
         ];
 
         // Download and import to WordPress
+        Logger::info('CrawlFlow Phase 3: Importing image to WordPress', [
+            'project_id' => $projectId,
+            'resource_id' => $resource['id'] ?? null,
+            'url' => $url,
+        ]);
         $attachmentId = $this->importImageToWordPress($url);
+
+        Logger::info('CrawlFlow Phase 3: importImageToWordPress result', [
+            'project_id' => $projectId,
+            'resource_id' => $resource['id'] ?? null,
+            'url' => $url,
+            'attachment_id' => $attachmentId,
+        ]);
 
         if ($attachmentId) {
             $newUrl = wp_get_attachment_url($attachmentId);
@@ -283,6 +293,21 @@ class Phase3ResourcesService
             // Replace URLs in content
             $replaced = $this->replaceUrlInContent($projectId, $url, $newUrl);
             $result['url_replaced'] = $replaced > 0;
+
+            Logger::info('CrawlFlow Phase 3: Image imported and URL replaced', [
+                'project_id' => $projectId,
+                'resource_id' => $resource['id'] ?? null,
+                'attachment_id' => $attachmentId,
+                'old_url' => $url,
+                'new_url' => $newUrl,
+                'replaced_count' => $replaced,
+            ]);
+        } else {
+            Logger::warning('CrawlFlow Phase 3: Failed to import image to WordPress', [
+                'project_id' => $projectId,
+                'resource_id' => $resource['id'] ?? null,
+                'url' => $url,
+            ]);
         }
 
         return $result;
@@ -373,13 +398,24 @@ class Phase3ResourcesService
         
         try {
             // Download file with shorter timeout
+            Logger::debug('CrawlFlow Phase 3: Downloading image for sideload', [
+                'url' => $url,
+            ]);
             $tmp = download_url($url, 30); // 30 second timeout
             if (is_wp_error($tmp)) {
+                Logger::warning('CrawlFlow Phase 3: download_url failed', [
+                    'url' => $url,
+                    'error' => $tmp->get_error_message(),
+                ]);
                 return null;
             }
         } catch (\Exception $e) {
             // Restore original time limit on error
             set_time_limit($originalTimeLimit);
+            Logger::error('CrawlFlow Phase 3: Exception during download_url', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
             return null;
         }
         
@@ -397,8 +433,17 @@ class Phase3ResourcesService
 
         if (is_wp_error($attachmentId)) {
             @unlink($tmp);
+            Logger::warning('CrawlFlow Phase 3: media_handle_sideload failed', [
+                'url' => $url,
+                'error' => $attachmentId->get_error_message(),
+            ]);
             return null;
         }
+
+        Logger::debug('CrawlFlow Phase 3: media_handle_sideload succeeded', [
+            'url' => $url,
+            'attachment_id' => $attachmentId,
+        ]);
 
         return $attachmentId;
     }
