@@ -87,9 +87,9 @@ class ProjectService
     public function getTotalUrlsProcessed(): int
     {
         global $wpdb;
-        $originsTable = $wpdb->prefix . 'rake_data_origins';
+        $table = $wpdb->prefix . 'rake_urls';
 
-        $result = $wpdb->get_var("SELECT COUNT(*) FROM $originsTable WHERE crawled = 1");
+        $result = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE status = 'done'");
         return (int) $result;
     }
 
@@ -99,9 +99,9 @@ class ProjectService
     public function getTotalUrlsPending(): int
     {
         global $wpdb;
-        $originsTable = $wpdb->prefix . 'rake_data_origins';
+        $table = $wpdb->prefix . 'rake_urls';
 
-        $result = $wpdb->get_var("SELECT COUNT(*) FROM $originsTable WHERE (crawled = 0 OR crawled IS NULL) AND (ignored = 0 OR ignored IS NULL)");
+        $result = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE status = 'pending'");
         return (int) $result;
     }
 
@@ -111,9 +111,9 @@ class ProjectService
     public function getTotalUrlsSkipped(): int
     {
         global $wpdb;
-        $originsTable = $wpdb->prefix . 'rake_data_origins';
+        $table = $wpdb->prefix . 'rake_urls';
 
-        $result = $wpdb->get_var("SELECT COUNT(*) FROM $originsTable WHERE ignored = 1");
+        $result = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE skipped = 1");
         return (int) $result;
     }
 
@@ -123,9 +123,9 @@ class ProjectService
     public function getTotalUrlsFailed(): int
     {
         global $wpdb;
-        $originsTable = $wpdb->prefix . 'rake_data_origins';
+        $table = $wpdb->prefix . 'rake_urls';
 
-        $result = $wpdb->get_var("SELECT COUNT(*) FROM $originsTable WHERE ignored = 1 AND (crawled = 0 OR crawled IS NULL)");
+        $result = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE status = 'failed'");
         return (int) $result;
     }
 
@@ -261,7 +261,7 @@ class ProjectService
         if ($result === false) {
             $error = $wpdb->last_error ?: 'Unknown database error';
             $query = $wpdb->last_query ?: 'N/A';
-            \Rake\Facade\Logger::error("CrawlFlow: Failed to create project - Error: {$error}, Query: {$query}, Data: " . json_encode($data));
+            error_log("CrawlFlow: Failed to create project - Error: {$error}, Query: {$query}, Data: " . json_encode($data));
             throw new \RuntimeException('Failed to create project in database: ' . $error);
         }
 
@@ -329,7 +329,7 @@ class ProjectService
         $config = $this->cleanConfigForJson($config);
         
         // Debug: Log config structure before encoding
-        \Rake\Facade\Logger::debug('CrawlFlow: Config nodes count: ' . (isset($config['nodes']) ? count($config['nodes']) : 0));
+        error_log('CrawlFlow: Config nodes count: ' . (isset($config['nodes']) ? count($config['nodes']) : 0));
         if (isset($config['nodes']) && is_array($config['nodes'])) {
             $workerNodes = array_filter($config['nodes'], function($node) {
                 return ($node['type'] ?? '') === 'worker';
@@ -337,26 +337,26 @@ class ProjectService
             foreach ($workerNodes as $workerNode) {
                 $nodeId = $workerNode['id'] ?? 'unknown';
                 $nodeData = $workerNode['data'] ?? [];
-                \Rake\Facade\Logger::debug("CrawlFlow: Worker node {$nodeId} in config - has parser: " . (isset($nodeData['parser']) ? 'yes' : 'no'));
+                error_log("CrawlFlow: Worker node {$nodeId} in config - has parser: " . (isset($nodeData['parser']) ? 'yes' : 'no'));
             }
         }
 
         $jsonConfig = json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         
         if ($jsonConfig === false) {
-            \Rake\Facade\Logger::error('CrawlFlow: Failed to encode config to JSON: ' . json_last_error_msg());
-            \Rake\Facade\Logger::error('CrawlFlow: JSON error code: ' . json_last_error());
-            \Rake\Facade\Logger::error('CrawlFlow: Problematic config structure: ' . print_r($config, true));
+            error_log('CrawlFlow: Failed to encode config to JSON: ' . json_last_error_msg());
+            error_log('CrawlFlow: JSON error code: ' . json_last_error());
+            error_log('CrawlFlow: Problematic config structure: ' . print_r($config, true));
             return false;
         }
         
         // Log JSON size for debugging
         $jsonSize = strlen($jsonConfig);
-        \Rake\Facade\Logger::debug('CrawlFlow: JSON config size: ' . $jsonSize . ' bytes (' . round($jsonSize / 1024, 2) . ' KB)');
+        error_log('CrawlFlow: JSON config size: ' . $jsonSize . ' bytes (' . round($jsonSize / 1024, 2) . ' KB)');
         
         // Check if JSON is too large (should not happen with LONGTEXT, but log for monitoring)
         if ($jsonSize > 1048576) { // 1MB
-            \Rake\Facade\Logger::warning('CrawlFlow: WARNING - JSON config is very large: ' . round($jsonSize / 1024 / 1024, 2) . ' MB');
+            error_log('CrawlFlow: WARNING - JSON config is very large: ' . round($jsonSize / 1024 / 1024, 2) . ' MB');
         }
 
         $data = [
@@ -374,7 +374,7 @@ class ProjectService
         );
 
         if ($result === false) {
-            \Rake\Facade\Logger::error('CrawlFlow: Database update failed: ' . $wpdb->last_error);
+            error_log('CrawlFlow: Database update failed: ' . $wpdb->last_error);
         }
 
         return $result !== false;
@@ -461,19 +461,18 @@ class ProjectService
     public function getUrlsProcessedChart(string $period = '7days'): array
     {
         global $wpdb;
-        $originsTable = $wpdb->prefix . 'rake_data_origins';
-        $sourcesTable = $wpdb->prefix . 'rake_data_sources';
+        $table = $wpdb->prefix . 'rake_urls';
 
         $dateFormat = $period === '7days' ? '%Y-%m-%d' : '%Y-%m';
         $daysBack = $period === '7days' ? 7 : 30;
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DATE_FORMAT(o.created_at, %s) as date, COUNT(*) as count
-                 FROM $originsTable o
-                 WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
-                 AND o.crawled = 1
-                 GROUP BY DATE_FORMAT(o.created_at, %s)
+                "SELECT DATE_FORMAT(crawled_at, %s) as date, COUNT(*) as count
+                 FROM $table
+                 WHERE crawled_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
+                 AND status = 'done'
+                 GROUP BY DATE_FORMAT(crawled_at, %s)
                  ORDER BY date",
                 $dateFormat,
                 $daysBack,
@@ -492,22 +491,20 @@ class ProjectService
     {
         global $wpdb;
         $toothsTable = $wpdb->prefix . 'rake_tooths';
-        $originsTable = $wpdb->prefix . 'rake_data_origins';
-        $sourcesTable = $wpdb->prefix . 'rake_data_sources';
+        $urlsTable = $wpdb->prefix . 'rake_urls';
 
         $daysBack = $period === '7days' ? 7 : 30;
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT t.name,
-                        COUNT(o.id) as total_urls,
-                        SUM(CASE WHEN o.crawled = 1 THEN 1 ELSE 0 END) as processed_urls,
-                        SUM(CASE WHEN o.ignored = 1 AND (o.crawled = 0 OR o.crawled IS NULL) THEN 1 ELSE 0 END) as failed_urls,
-                        SUM(CASE WHEN o.ignored = 1 THEN 1 ELSE 0 END) as skipped_urls
+                        COUNT(u.id) as total_urls,
+                        SUM(CASE WHEN u.status = 'done' THEN 1 ELSE 0 END) as processed_urls,
+                        SUM(CASE WHEN u.status = 'failed' THEN 1 ELSE 0 END) as failed_urls,
+                        SUM(CASE WHEN u.skipped = 1 THEN 1 ELSE 0 END) as skipped_urls
                  FROM $toothsTable t
-                 LEFT JOIN $sourcesTable s ON t.id = s.tooth_id
-                 LEFT JOIN $originsTable o ON s.id = o.source_id
-                 WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
+                 LEFT JOIN $urlsTable u ON t.id = u.tooth_id
+                 WHERE u.crawled_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
                  GROUP BY t.id, t.name
                  ORDER BY processed_urls DESC",
                 $daysBack

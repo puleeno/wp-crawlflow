@@ -2,16 +2,9 @@
 
 namespace CrawlFlow\Admin;
 
-// Import services with conditional loading to avoid lint errors
-if (class_exists('CrawlFlow\Admin\MigrationService')) {
-    class_alias('CrawlFlow\Admin\MigrationService', 'MigrationService');
-}
-if (class_exists('CrawlFlow\Admin\ProjectService')) {
-    class_alias('CrawlFlow\Admin\ProjectService', 'ProjectService');
-}
-if (class_exists('CrawlFlow\Admin\LogService')) {
-    class_alias('CrawlFlow\Admin\LogService', 'LogService');
-}
+use CrawlFlow\Admin\MigrationService;
+use CrawlFlow\Admin\ProjectService;
+use CrawlFlow\Admin\LogService;
 
 /**
  * Dashboard Service for CrawlFlow
@@ -20,17 +13,17 @@ if (class_exists('CrawlFlow\Admin\LogService')) {
 class DashboardService
 {
     /**
-     * @var mixed MigrationService instance
+     * @var MigrationService
      */
     private $migrationService;
 
     /**
-     * @var mixed ProjectService instance
+     * @var ProjectService
      */
     private $projectService;
 
     /**
-     * @var mixed LogService instance
+     * @var LogService
      */
     private $logService;
 
@@ -39,79 +32,9 @@ class DashboardService
      */
     public function __construct()
     {
-        // Initialize services with lazy loading to avoid circular dependencies
-        $this->migrationService = null;
-        $this->projectService = null;
-        $this->logService = null;
-    }
-
-    /**
-     * Get migration service (lazy loaded)
-     */
-    private function getMigrationService()
-    {
-        if ($this->migrationService === null) {
-            $className = 'CrawlFlow\Admin\MigrationService';
-            if (class_exists($className)) {
-                $this->migrationService = new $className();
-            } else {
-                // Return a mock object if class doesn't exist
-                $this->migrationService = new class {
-                    public function checkMigrationStatus() {
-                        return [];
-                    }
-                };
-            }
-        }
-        return $this->migrationService;
-    }
-
-    /**
-     * Get project service (lazy loaded)
-     */
-    private function getProjectService()
-    {
-        if ($this->projectService === null) {
-            $className = 'CrawlFlow\Admin\ProjectService';
-            if (class_exists($className)) {
-                $this->projectService = new $className();
-            } else {
-                // Return a mock object if class doesn't exist
-                $this->projectService = new class {
-                    public function getTotalProjects() { return 0; }
-                    public function getActiveProjects() { return 0; }
-                    public function getTotalUrlsProcessed() { return 0; }
-                    public function getTotalUrlsPending() { return 0; }
-                    public function getTotalUrlsSkipped() { return 0; }
-                    public function getTotalUrlsFailed() { return 0; }
-                    public function getRecentProjects($limit) { return []; }
-                    public function getProjects($page, $per_page) { return []; }
-                    public function getUrlsProcessedChart($period) { return []; }
-                    public function getProjectsPerformance($period) { return []; }
-                };
-            }
-        }
-        return $this->projectService;
-    }
-
-    /**
-     * Get log service (lazy loaded)
-     */
-    private function getLogService()
-    {
-        if ($this->logService === null) {
-            $className = 'CrawlFlow\Admin\LogService';
-            if (class_exists($className)) {
-                $this->logService = new $className();
-            } else {
-                // Return a mock object if class doesn't exist
-                $this->logService = new class {
-                    public function getTotalLogs() { return 0; }
-                    public function getLogs($page, $per_page) { return []; }
-                };
-            }
-        }
-        return $this->logService;
+        $this->migrationService = new MigrationService();
+        $this->projectService = new ProjectService();
+        $this->logService = new LogService();
     }
 
     /**
@@ -148,18 +71,18 @@ class DashboardService
     {
         return [
             'title' => 'CrawlFlow Dashboard',
-            'total_projects' => $this->getProjectService()->getTotalProjects(),
-            'active_projects' => $this->getProjectService()->getActiveProjects(),
-            'total_urls_processed' => $this->getProjectService()->getTotalUrlsProcessed(),
-            'total_urls_pending' => $this->getProjectService()->getTotalUrlsPending(),
-            'total_urls_skipped' => $this->getProjectService()->getTotalUrlsSkipped(),
-            'total_urls_failed' => $this->getProjectService()->getTotalUrlsFailed(),
-            'total_logs' => $this->getLogService()->getTotalLogs(),
-            'recent_projects' => $this->getProjectService()->getRecentProjects(5),
+            'total_projects' => $this->projectService->getTotalProjects(),
+            'active_projects' => $this->projectService->getActiveProjects(),
+            'total_urls_processed' => $this->projectService->getTotalUrlsProcessed(),
+            'total_urls_pending' => $this->projectService->getTotalUrlsPending(),
+            'total_urls_skipped' => $this->projectService->getTotalUrlsSkipped(),
+            'total_urls_failed' => $this->projectService->getTotalUrlsFailed(),
+            'total_logs' => $this->logService->getTotalLogs(),
+            'recent_projects' => $this->projectService->getRecentProjects(5),
             'system_status' => $this->getSystemStatus(),
             'settings' => $this->getSettings(),
             'system_info' => $this->getSystemInfo(),
-            'migration_status' => $this->getMigrationService()->checkMigrationStatus(),
+            'migration_status' => $this->migrationService->checkMigrationStatus(),
 
         ];
     }
@@ -180,12 +103,12 @@ class DashboardService
 
         return [
             'title' => 'System Logs',
-            'logs' => $this->getLogService()->getLogs($page, $per_page),
-            'total_logs' => $this->getLogService()->getTotalLogs(),
+            'logs' => $this->logService->getLogs($page, $per_page),
+            'total_logs' => $this->logService->getTotalLogs(),
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $per_page,
-                'total_pages' => ceil($this->getLogService()->getTotalLogs() / $per_page),
+                'total_pages' => ceil($this->logService->getTotalLogs() / $per_page),
             ],
         ];
     }
@@ -200,12 +123,12 @@ class DashboardService
 
         return [
             'title' => 'Projects Management',
-            'projects' => $this->getProjectService()->getProjects($page, $per_page),
-            'total_projects' => $this->getProjectService()->getTotalProjects(),
+            'projects' => $this->projectService->getProjects($page, $per_page),
+            'total_projects' => $this->projectService->getTotalProjects(),
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $per_page,
-                'total_pages' => ceil($this->getProjectService()->getTotalProjects() / $per_page),
+                'total_pages' => ceil($this->projectService->getTotalProjects() / $per_page),
             ],
         ];
     }
@@ -220,8 +143,8 @@ class DashboardService
         return [
             'title' => 'Analytics',
             'period' => $period,
-            'urls_processed_chart' => $this->getProjectService()->getUrlsProcessedChart($period),
-            'projects_performance' => $this->getProjectService()->getProjectsPerformance($period),
+            'urls_processed_chart' => $this->projectService->getUrlsProcessedChart($period),
+            'projects_performance' => $this->projectService->getProjectsPerformance($period),
             'system_usage' => $this->getSystemUsage($period),
         ];
     }
@@ -256,7 +179,7 @@ class DashboardService
         
         // Migration status
         try {
-            $migrationStatus = $this->getMigrationService()->checkMigrationStatus();
+            $migrationStatus = $this->migrationService->checkMigrationStatus();
             if (!empty($migrationStatus)) {
                 $status['migrations'] = $migrationStatus;
             }
@@ -319,7 +242,7 @@ class DashboardService
             $wpVersion = 'Unknown';
         }
         if (empty($wpVersion)) {
-            $wpVersion = get_bloginfo('version') ?: (defined('WP_VERSION') ? constant('WP_VERSION') : 'Unknown');
+            $wpVersion = get_bloginfo('version') ?: (defined('WP_VERSION') ? WP_VERSION : 'Unknown');
         }
 
         // Get MySQL version safely

@@ -2,209 +2,292 @@
 
 namespace CrawlFlow\Admin;
 
+use Rake\Manager\Database\MigrationManager;
+use Rake\Database\SchemaGenerator;
+use Puleeno\Rake\WordPress\Adapter\WordPressDatabaseAdapter;
+use Rake\Rake;
+use Rake\Facade\Logger;
+
+/**
+ * Migration Service for CrawlFlow Plugin
+ */
 class MigrationService
 {
+    /**
+     * @var MigrationManager
+     */
+    private $migrationManager;
+
+    /**
+     * @var SchemaGenerator
+     */
+    private $schemaGenerator;
+
+    /**
+     * @var WordPressDatabaseAdapter
+     */
+    private $wordpressAdapter;
+
+    /**
+     * @var Rake
+     */
     private $app;
 
-    public function __construct($app = null)
+    /**
+     * Constructor
+     */
+    public function __construct(Rake $app = null)
     {
+        $this->wordpressAdapter = new WordPressDatabaseAdapter();
+        $this->schemaGenerator = new SchemaGenerator($this->wordpressAdapter);
+
+        // Create database config with WordPress prefix
+        $databaseConfig = $this->createWordPressDatabaseConfig();
+
+        $this->migrationManager = new MigrationManager($this->wordpressAdapter, $databaseConfig);
+
+        // Store Rake app instance for accessing bound values
         $this->app = $app;
     }
 
-    public function checkMigrationStatus(): array
+    /**
+     * Create database config using WordPress settings
+     *
+     * @return \Rake\Config\DatabaseConfig|null
+     */
+    private function createWordPressDatabaseConfig()
     {
         global $wpdb;
-        $schemas = $this->getSchemaDefinitions();
-        $status = [];
-        foreach ($schemas as $table => $schema) {
-            $fullTable = $wpdb->prefix . $table;
-            $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $fullTable)) === $fullTable;
-            if (!$exists) {
-                $status[$table] = [
-                    'current_version' => '',
-                    'required_version' => $schema['version'] ?? '',
-                    'needs_migration' => true,
-                    'table_missing' => true,
-                    'missing_columns' => array_keys($schema['fields'] ?? []),
-                    'missing_indexes' => array_map(function ($idx) { return implode(',', $idx['fields']); }, $schema['indexes'] ?? []),
-                ];
-                continue;
-            }
-            $issues = $this->getStructureIssues($fullTable, $schema);
-            $status[$table] = [
-                'current_version' => '',
-                'required_version' => $schema['version'] ?? '',
-                'needs_migration' => !empty($issues['missing_columns']) || !empty($issues['mismatched_columns']) || !empty($issues['missing_indexes']),
-                'table_missing' => false,
-                'missing_columns' => $issues['missing_columns'],
-                'mismatched_columns' => $issues['mismatched_columns'],
-                'missing_indexes' => $issues['missing_indexes'],
+
+        if (!class_exists('Rake\Config\DatabaseConfig')) {
+            // Logger::error('DatabaseConfig class not found');
+            return null;
+        }
+
+        try {
+            // Get WordPress database settings
+            $dbConfig = [
+                'driver' => 'mysql',
+                'host' => DB_HOST,
+                'port' => 3306,
+                'dbname' => DB_NAME,
+                'user' => DB_USER,
+                'password' => DB_PASSWORD,
+                'charset' => $wpdb->charset,
+                'collation' => $wpdb->collate,
+                'prefix' => $wpdb->prefix, // WordPress prefix
             ];
+
+            return new \Rake\Config\DatabaseConfig($dbConfig);
+        } catch (\Exception $e) {
+            // Logger::error('Failed to create database config: ' . $e->getMessage());
+            return null;
         }
-        return $status;
     }
 
-    public function runMigrations(): bool
+    /**
+     * Run migrations when plugin is activated
+     */
+        public function runMigrations()
     {
-        global $wpdb;
-        require_once CRAWLFLOW_PLUGIN_DIR . 'database/migrations/add-project-status-tracking.php';
-        $schemas = $this->getSchemaDefinitions();
-        foreach ($schemas as $table => $schema) {
-            $fullTable = $wpdb->prefix . $table;
-            $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $fullTable)) === $fullTable;
-            if ($exists) {
-                crawlflow_update_table_from_schema($fullTable, $schema);
+        try {
+            // Initialize logger only when needed
+            if (class_exists('CrawlFlow\LoggerService')) {
+                \CrawlFlow\LoggerService::init();
+            }
+
+            Logger::debug("CrawlFlow: Starting migrations...");
+
+            // Get schema definitions from Rake
+            $schemaDefinitions = $this->getSchemaDefinitions();
+            Logger::debug("CrawlFlow: Found " . count($schemaDefinitions) . " schema definitions");
+
+            if (empty($schemaDefinitions)) {
+                Logger::error("CrawlFlow: No schema definitions found");
+                return false;
+            }
+
+            // Get schema directory from Rake container or use default
+            $schemaDir = $this->app ? $this->app->get('migration_schema_path') : CRAWLFLOW_PLUGIN_DIR . 'vendor/ramphor/rake/schema_definitions/';
+
+            // Debug: Log migration attempt
+            Logger::debug("CrawlFlow: Migration attempt - App: " . ($this->app ? 'Yes' : 'No') . ", SchemaDir: " . $schemaDir);
+
+            // Debug: Check if schema directory exists
+            if (!is_dir($schemaDir)) {
+                Logger::error("CrawlFlow: Schema directory not found: " . $schemaDir);
+                return false;
+            }
+
+            Logger::debug("CrawlFlow: Running migration with schemaDir: " . $schemaDir);
+
+            try {
+                $result = $this->migrationManager->runMigration($this->schemaGenerator, $schemaDir);
+                Logger::debug("CrawlFlow: Migration result: " . ($result ? 'true' : 'false'));
+            } catch (\Exception $e) {
+                Logger::error("CrawlFlow: MigrationManager error: " . $e->getMessage());
+                Logger::error("CrawlFlow: MigrationManager stack trace: " . $e->getTraceAsString());
+                return false;
+            }
+
+            if ($result) {
+                Logger::debug("CrawlFlow: Database migration completed successfully");
+                return true;
             } else {
-                crawlflow_create_table_from_schema($fullTable, $schema);
+                Logger::error("CrawlFlow: Database migration failed");
+                return false;
             }
-            if (!empty($schema['constraints'])) {
-                crawlflow_add_table_constraints($fullTable, $schema);
-            }
-            $this->updateTableVersion($table, $schema['version'] ?? '1.0.0');
-        }
-        return true;
-    }
-
-    private function updateTableVersion(string $table, string $version): void
-    {
-        global $wpdb;
-        $configTable = $wpdb->prefix . 'rake_configs';
-        $wpdb->replace(
-            $configTable,
-            [
-                'config_key' => 'table_version_' . $table,
-                'config_value' => $version,
-                'updated_at' => current_time('mysql'),
-            ],
-            ['%s', '%s', '%s']
-        );
-    }
-
-    private function getSchemaDefinitions(): array
-    {
-        $dir = CRAWLFLOW_PLUGIN_DIR . 'vendor/ramphor/rake/schema_definitions';
-        $files = glob($dir . '/*.php') ?: [];
-        $schemas = [];
-        foreach ($files as $file) {
-            $def = include $file;
-            if (is_array($def) && isset($def['table'])) {
-                $schemas[$def['table']] = $def;
-            }
-        }
-        return $schemas;
-    }
-
-    private function getStructureIssues(string $fullTable, array $schema): array
-    {
-        global $wpdb;
-        $rows = $wpdb->get_results("DESCRIBE {$fullTable}", ARRAY_A) ?: [];
-        $byName = [];
-        foreach ($rows as $r) {
-            $byName[$r['Field']] = $r;
-        }
-        $missing = [];
-        $mismatched = [];
-        foreach (($schema['fields'] ?? []) as $name => $def) {
-            if (!isset($byName[$name])) {
-                $missing[] = $name;
-                continue;
-            }
-            $actual = $byName[$name];
-            $expType = $this->expectedTypePrefix($def['type'] ?? '');
-            $actType = strtolower($actual['Type'] ?? '');
-            $typeOk = $expType ? str_starts_with($actType, $expType) : true;
-            $nullable = (bool)($def['nullable'] ?? false);
-            $nullOk = $nullable ? ($actual['Null'] === 'YES') : ($actual['Null'] === 'NO');
-            $defaultOk = true;
-            if (array_key_exists('default', $def)) {
-                $expDef = strtolower((string)$def['default']);
-                $actDef = strtolower((string)$actual['Default']);
-                if ($expDef === 'current_timestamp') {
-                    $defaultOk = strpos($actDef, 'current') !== false;
-                } else {
-                    $defaultOk = $expDef === $actDef;
-                }
-            }
-            if (!$typeOk || !$nullOk || !$defaultOk) {
-                $mismatched[] = $name;
-            }
-        }
-        $missingIdx = $this->findMissingIndexes($fullTable, $schema['indexes'] ?? []);
-        return [
-            'missing_columns' => $missing,
-            'mismatched_columns' => $mismatched,
-            'missing_indexes' => $missingIdx,
-            'missing_constraints' => $this->findMissingConstraints($fullTable, $schema['constraints'] ?? []),
-        ];
-    }
-
-    private function expectedTypePrefix(string $type): string
-    {
-        switch ($type) {
-            case 'string': return 'varchar';
-            case 'text': return 'text';
-            case 'longtext': return 'longtext';
-            case 'int': return 'int';
-            case 'bigint': return 'bigint';
-            case 'decimal': return 'decimal';
-            case 'datetime': return 'datetime';
-            default: return '';
+        } catch (\Exception $e) {
+            Logger::error("CrawlFlow: Migration error - " . $e->getMessage());
+            Logger::error("CrawlFlow: Migration stack trace - " . $e->getTraceAsString());
+            return false;
         }
     }
 
-    private function findMissingIndexes(string $fullTable, array $indexes): array
+    /**
+     * Get schema definitions from Rake
+     */
+    private function getSchemaDefinitions()
     {
-        global $wpdb;
-        $rows = $wpdb->get_results("SHOW INDEX FROM `{$fullTable}`", ARRAY_A) ?: [];
-        $indexCols = [];
-        foreach ($rows as $r) {
-            $k = $r['Key_name'];
-            $indexCols[$k][] = $r['Column_name'];
-        }
-        $missing = [];
-        foreach ($indexes as $idx) {
-            $fields = $idx['fields'] ?? [];
-            $need = array_map('strval', $fields);
-            $found = false;
-            foreach ($indexCols as $cols) {
-                $colsSorted = $cols;
-                sort($colsSorted);
-                $needSorted = $need;
-                sort($needSorted);
-                if ($colsSorted === $needSorted) {
-                    $found = true;
-                    break;
-                }
-            }
-            if (!$found) {
-                $missing[] = implode(',', $need);
-            }
-        }
-        return $missing;
-    }
+        $schemaPath = $this->app ? $this->app->get('migration_schema_path') : CRAWLFLOW_PLUGIN_DIR . 'vendor/ramphor/rake/schema_definitions/';
+        Logger::debug("CrawlFlow: Getting schema definitions from: " . $schemaPath);
 
-    private function findMissingConstraints(string $fullTable, array $constraints): array
-    {
-        global $wpdb;
-        if (empty($constraints)) {
+        if (!is_dir($schemaPath)) {
+            Logger::error("CrawlFlow: Schema definitions directory not found: " . $schemaPath);
             return [];
         }
-        $missing = [];
-        $dbName = defined('DB_NAME') ? DB_NAME : '';
-        foreach ($constraints as $c) {
-            $name = $c['name'] ?? '';
-            if (!$name) {
-                continue;
-            }
-            $exists = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = %s AND CONSTRAINT_NAME = %s",
-                $dbName,
-                $name
-            ));
-            if ((int)$exists === 0) {
-                $missing[] = $name;
+
+        $definitions = [];
+        $files = glob($schemaPath . '*.php');
+        Logger::debug("CrawlFlow: Found " . count($files) . " schema files");
+
+        foreach ($files as $file) {
+            $tableName = basename($file, '.php');
+            Logger::debug("CrawlFlow: Loading schema file: " . $file);
+
+            try {
+                $definition = include $file;
+                if (is_array($definition)) {
+                    $definitions[$tableName] = $definition;
+                    Logger::debug("CrawlFlow: Loaded schema for table: " . $tableName);
+                } else {
+                    Logger::error("CrawlFlow: Invalid schema definition in file: " . $file);
+                }
+            } catch (\Exception $e) {
+                Logger::error("CrawlFlow: Error loading schema file " . $file . ": " . $e->getMessage());
             }
         }
-        return $missing;
+
+        Logger::debug("CrawlFlow: Total schema definitions loaded: " . count($definitions));
+        return $definitions;
+    }
+
+    /**
+     * Check migration status
+     */
+    public function checkMigrationStatus()
+    {
+        try {
+            $schemaDefinitions = $this->getSchemaDefinitions();
+            $status = [];
+
+            foreach ($schemaDefinitions as $table => $definition) {
+                // Use adapter to get current version from database
+                $driver = $this->wordpressAdapter->getDriver();
+                $currentVersion = '0.0.0'; // Default version
+
+                // Get prefixed table name
+                $configTable = $this->getPrefixedTableName('rake_configs');
+
+                // Try to get version from rake_configs table using config_value column
+                $result = $driver->query("SELECT config_value FROM $configTable WHERE config_key = 'table_version_$table' LIMIT 1");
+                if ($result && count($result) > 0) {
+                    $currentVersion = $result[0]['config_value'] ?? '0.0.0';
+                }
+
+                $requiredVersion = $definition['version'] ?? '1.0.0';
+
+                $status[$table] = [
+                    'current_version' => $currentVersion,
+                    'required_version' => $requiredVersion,
+                    'needs_migration' => $this->compareVersions($currentVersion, $requiredVersion) !== 0
+                ];
+            }
+
+            return $status;
+        } catch (\Exception $e) {
+            // Logger::error('Migration status check error - ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get prefixed table name
+     *
+     * @param string $tableName
+     * @return string
+     */
+    private function getPrefixedTableName(string $tableName): string
+    {
+        global $wpdb;
+        return $wpdb->prefix . $tableName;
+    }
+
+    /**
+     * Compare two version strings
+     */
+    private function compareVersions(string $version1, string $version2): int
+    {
+        $v1Parts = array_map('intval', explode('.', $version1));
+        $v2Parts = array_map('intval', explode('.', $version2));
+
+        $maxLength = max(count($v1Parts), count($v2Parts));
+
+        for ($i = 0; $i < $maxLength; $i++) {
+            $v1 = $v1Parts[$i] ?? 0;
+            $v2 = $v2Parts[$i] ?? 0;
+
+            if ($v1 > $v2) {
+                return 1;
+            }
+            if ($v1 < $v2) {
+                return -1;
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Rollback migrations
+     */
+    public function rollbackMigrations(int $steps = 1): array
+    {
+        try {
+            // For now, just return success as rollback is not implemented
+            return [
+                'success' => true,
+                'message' => 'Rollback not implemented yet',
+                'steps_rolled_back' => 0,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get migration history
+     */
+    public function getMigrationHistory()
+    {
+        try {
+            return $this->migrationManager->getAllMigrationHistory();
+        } catch (\Exception $e) {
+            // Logger::error('Migration history error - ' . $e->getMessage());
+            return [];
+        }
     }
 }
