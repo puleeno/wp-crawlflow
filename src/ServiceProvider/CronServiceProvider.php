@@ -111,6 +111,31 @@ class CronServiceProvider extends AbstractServiceProvider
                 ],
             ],
         ]);
+
+        // Register test-data-update-checker command
+        $this->addCliCommand('crawlflow cron test-data-update-checker', [$command, 'test_data_update_checker'], [
+            'shortdesc' => 'Test Data Update Checker specifically for a project',
+            'synopsis' => [
+                [
+                    'type' => 'positional',
+                    'name' => 'project_id',
+                    'optional' => false,
+                    'description' => 'Project ID to test Data Update Checker',
+                ],
+                [
+                    'type' => 'flag',
+                    'name' => 'debug',
+                    'optional' => true,
+                    'description' => 'Show debug information',
+                ],
+            ],
+        ]);
+
+        // Register list-data-update-checker-schedules command
+        $this->addCliCommand('crawlflow cron list-data-update-checker-schedules', [$command, 'list_data_update_checker_schedules'], [
+            'shortdesc' => 'List Data Update Checker schedules for all projects',
+            'synopsis' => [],
+        ]);
     }
 
     /**

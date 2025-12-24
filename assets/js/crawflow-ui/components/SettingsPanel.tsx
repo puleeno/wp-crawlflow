@@ -1477,6 +1477,53 @@ const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data
                  </span>
              </div>
 
+             {/* Content Selectors for Archive Page - only show when Is Archive Page is checked */}
+             {data.isArchive && (
+                 <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                     <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                         <CursorArrowRaysIcon className="w-4 h-4" />
+                         Content Selectors for Update Detection
+                     </h4>
+                     <p className="text-xs text-gray-600 mb-3">
+                         Define the wrapper area containing all products to check for updates
+                     </p>
+                     
+                     <div className="space-y-4">
+                         <div>
+                             <label className={commonLabelClasses}>
+                                 Products Wrapper Selector
+                             </label>
+                             <input
+                                 type="text"
+                                 value={data.archiveProductsWrapper || ''}
+                                 onChange={e => onUpdate({ ...data, archiveProductsWrapper: e.target.value })}
+                                 placeholder=".products-container, .product-list, .category-products"
+                                 className={commonInputClasses}
+                             />
+                             <span className="text-xs text-gray-500">
+                                 CSS selector for the wrapper containing all products
+                             </span>
+                         </div>
+                         
+                         <div>
+                             <label className={commonLabelClasses}>
+                                 URL Contains String (Optional)
+                             </label>
+                             <input
+                                 type="text"
+                                 value={data.archiveUrlContains || ''}
+                                 onChange={e => onUpdate({ ...data, archiveUrlContains: e.target.value })}
+                                 placeholder="product, category, item"
+                                 className={commonInputClasses}
+                             />
+                             <span className="text-xs text-gray-500">
+                                 Only check URLs containing this string (leave empty to check all URLs)
+                             </span>
+                         </div>
+                     </div>
+                 </div>
+             )}
+
              <CollapsibleSection title="Detection Rules" defaultOpen>
                 <div className="space-y-4">
                      <div className="flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded border border-slate-200">

@@ -302,13 +302,13 @@ class CronScheduler
             
             // Execute Data Update Checker action
             $dataUpdateChecker = new \Rake\Actions\DataUpdateCheckerAction();
-            $context = new \Rake\Actions\ActionContext($projectId, $flowConfig);
+            $context = new \Rake\Actions\ActionContext('data-update-checker', (int)$projectId, [], $flowConfig);
             $result = $dataUpdateChecker->execute($context);
             
             if ($result->isSuccess()) {
                 \Rake\Facade\Logger::info("Data Update Checker completed successfully for project {$projectId}");
             } else {
-                \Rake\Facade\Logger::error("Data Update Checker failed for project {$projectId}: " . $result->getMessage());
+                \Rake\Facade\Logger::error("Data Update Checker failed for project {$projectId}: " . $result->getError());
             }
             
         } catch (\Exception $e) {

@@ -217,6 +217,130 @@ class CrawlFlowCronCommand extends WP_CLI_Command
     }
 
     /**
+     * Test Data Update Checker specifically
+     *
+     * ## EXAMPLES
+     *
+     *     # Test Data Update Checker for project with ID 2
+     *     $ wp crawlflow cron test-data-update-checker 2
+     *
+     *     # Test Data Update Checker with debug info
+     *     $ wp crawlflow cron test-data-update-checker 2 --debug
+     *
+     * @param array $args Positional arguments (project_id)
+     * @param array $assoc_args Associative arguments
+     */
+    public function test_data_update_checker($args, $assoc_args)
+    {
+        if (empty($args[0])) {
+            WP_CLI::error('Project ID is required.');
+            return;
+        }
+
+        $projectId = (int)$args[0];
+        $debug = isset($assoc_args['debug']);
+
+        WP_CLI::log("Testing Data Update Checker for project {$projectId}...");
+
+        try {
+            // Get project configuration
+            $flowConfig = $this->projectService->getFlowConfig($projectId);
+            $projectSettings = $flowConfig['projectSettings'] ?? [];
+            
+            if ($debug) {
+                WP_CLI::log("Project Settings:");
+                WP_CLI::log(json_encode($projectSettings, JSON_PRETTY_PRINT));
+            }
+
+            // Check if Data Update Checker is enabled
+            $phase1Actions = $projectSettings['phase1Actions'] ?? [];
+            if (!in_array('data_update_checker', $phase1Actions)) {
+                WP_CLI::warning("Data Update Checker is not enabled in Phase 1 Actions for project {$projectId}");
+                WP_CLI::log("Current Phase 1 Actions: " . implode(', ', $phase1Actions));
+                return;
+            }
+
+            WP_CLI::success("Data Update Checker is enabled for project {$projectId}");
+
+            // Check schedule
+            $dataUpdateCheckerSchedule = $projectSettings['dataUpdateCheckerSchedule'] ?? null;
+            if ($dataUpdateCheckerSchedule) {
+                WP_CLI::log("Custom schedule: {$dataUpdateCheckerSchedule}");
+            } else {
+                WP_CLI::log("Using project schedule (no custom schedule set)");
+            }
+
+            // Execute Data Update Checker
+            WP_CLI::log("Executing Data Update Checker...");
+            $this->cronScheduler->executeDataUpdateChecker($projectId);
+            
+            WP_CLI::success("Data Update Checker test completed for project {$projectId}");
+
+        } catch (\Exception $e) {
+            WP_CLI::error("Failed to test Data Update Checker for project {$projectId}: " . $e->getMessage());
+            
+            if ($debug) {
+                WP_CLI::log("Stack trace:");
+                WP_CLI::log($e->getTraceAsString());
+            }
+        }
+    }
+
+    /**
+     * List Data Update Checker schedules for projects
+     *
+     * ## EXAMPLES
+     *
+     *     # List all Data Update Checker schedules
+     *     $ wp crawlflow cron list-data-update-checker-schedules
+     *
+     * @param array $args Positional arguments
+     * @param array $assoc_args Associative arguments
+     */
+    public function list_data_update_checker_schedules($args, $assoc_args)
+    {
+        // Get all projects
+        $projects = $this->projectService->getAllProjects();
+        
+        $items = [];
+        foreach ($projects as $project) {
+            $projectId = (int)$project['id'];
+            
+            // Get flow config
+            $flowConfig = $this->projectService->getFlowConfig($projectId);
+            $projectSettings = $flowConfig['projectSettings'] ?? [];
+            
+            // Check if Data Update Checker is enabled
+            $phase1Actions = $projectSettings['phase1Actions'] ?? [];
+            $isDataUpdateCheckerEnabled = in_array('data_update_checker', $phase1Actions);
+            
+            // Get schedule
+            $schedule = $projectSettings['dataUpdateCheckerSchedule'] ?? 'project_default';
+            
+            $item = [
+                'project_id' => $projectId,
+                'name' => $project['name'] ?? "Project {$projectId}",
+                'enabled' => $isDataUpdateCheckerEnabled ? 'yes' : 'no',
+                'schedule' => $schedule,
+            ];
+
+            $items[] = $item;
+        }
+
+        if (empty($items)) {
+            WP_CLI::warning('No projects found.');
+            return;
+        }
+
+        WP_CLI\Utils\format_items('table', $items, [
+            'project_id',
+            'name',
+            'enabled',
+            'schedule',
+        ]);
+    }
+
+    /**
      * Get hook name for a project
      *
      * @param int $projectId

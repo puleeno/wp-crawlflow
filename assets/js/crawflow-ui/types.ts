@@ -307,10 +307,17 @@ export interface DataSourceTypeRule extends BaseWorkerRule {
 export type WorkerRule = URLFormatRule | HTMLContainsRule | DOMValueRule | TagAttributeRule | DataSourceTypeRule;
 
 export interface WorkerNodeData {
+  name: string;
+  description: string;
+  enabled: boolean;
   detectionRules: WorkerRule[];
   detectionLogic: 'and' | 'or';
   priority: number;
   isArchive?: boolean; // Flag indicating if this worker handles archive pages (category pages, listing pages, etc.)
+  
+  // Archive page content selector for update detection
+  archiveProductsWrapper?: string; // CSS selector for the wrapper containing all products
+  archiveUrlContains?: string; // Only check URLs containing this string (optional)
 }
 
 // FIX: Added CompletionNodeData interface to fix import error.
