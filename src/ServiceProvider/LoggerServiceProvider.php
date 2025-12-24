@@ -5,6 +5,7 @@ namespace CrawlFlow\ServiceProvider;
 use Rake\Rake;
 use Rake\ServiceProvider\AbstractServiceProvider;
 use Rake\Manager\LoggerManager;
+use CrawlFlow\LoggerService;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\RotatingFileHandler;
@@ -44,11 +45,7 @@ class LoggerServiceProvider extends AbstractServiceProvider
         $logger = new Logger('CRAWLFLOW');
 
         // Use same log file path as LoggerService to prevent duplicates
-        $logFile = sprintf(
-            '%s/crawlflow/crawlflow-%s.log',
-            WP_CONTENT_DIR,
-            date('Y-m-d')
-        );
+        $logFile = LoggerService::getLogFilePath();
 
         // Ensure log directory exists
         $logDir = dirname($logFile);

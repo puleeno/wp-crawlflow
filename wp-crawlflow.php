@@ -185,6 +185,9 @@ class WP_CrawlFlow {
 
         // Run CrawlFlow custom migrations
         $this->runCrawlFlowMigrations();
+        
+        // Initialize log import cron
+        \CrawlFlow\Cron\LogImportCron::init();
 
         // Flush rewrite rules
         flush_rewrite_rules();

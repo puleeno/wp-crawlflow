@@ -3,6 +3,7 @@
 namespace CrawlFlow\Cron;
 
 use CrawlFlow\Cron\ProjectCacheService;
+use CrawlFlow\LoggerService;
 use Rake\Facade\Logger;
 use Rake\Rake;
 
@@ -35,6 +36,7 @@ class Phase3ResourcesService
     public function execute(int $projectId): array
     {
         try {
+            \CrawlFlow\LoggerService::setCurrentProjectId($projectId);
             Logger::info("CrawlFlow Phase 3: Starting resource processing for project {$projectId}");
 
             // Load project (cached)

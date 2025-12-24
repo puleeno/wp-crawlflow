@@ -27,6 +27,11 @@ class LoggerService
     private static $initialized = false;
 
     /**
+     * @var int|null
+     */
+    private static $currentProjectId = null;
+
+    /**
      * Get or create Monolog logger instance (lazy loading)
      *
      * @return LoggerInterface
@@ -47,12 +52,7 @@ class LoggerService
      */
     private static function createMonologLogger(): MonologLogger
     {
-        // Create log file path - one file per day
-        $logFile = sprintf(
-            '%s/crawlflow/crawlflow-%s.log',
-            WP_CONTENT_DIR,
-            date('Y-m-d')
-        );
+        $logFile = self::getLogFilePath();
 
         // Ensure log directory exists
         $logDir = dirname($logFile);
@@ -77,6 +77,36 @@ class LoggerService
         }
 
         return $logger;
+    }
+
+    /**
+     * Set current project ID for log file naming.
+     * Recreates the underlying logger so subsequent logs go to the correct file.
+     */
+    public static function setCurrentProjectId(int $projectId): void
+    {
+        if (self::$currentProjectId === $projectId) {
+            return;
+        }
+
+        self::$currentProjectId = $projectId;
+
+        if (!is_null(self::$logger)) {
+            self::$logger = self::createMonologLogger();
+            try {
+                RakeLogger::setLogger(self::$logger);
+            } catch (\Exception $e) {
+                // Ignore if Rake is not available in current context
+            }
+        }
+    }
+
+    /**
+     * Get current project ID for log file naming.
+     */
+    public static function getCurrentProjectId(): ?int
+    {
+        return self::$currentProjectId;
     }
 
     /**
@@ -152,10 +182,25 @@ class LoggerService
      */
     public static function getLogFilePath(): string
     {
+        $pid = getmypid();
+        $date = date('Y-m-d');
+        $projectId = self::$currentProjectId;
+
+        if (!empty($projectId)) {
+            return sprintf(
+                '%s/crawlflow/crawlflow-%d--%d-%s.log',
+                WP_CONTENT_DIR,
+                $projectId,
+                $pid,
+                $date
+            );
+        }
+
         return sprintf(
-            '%s/crawlflow/crawlflow-%s.log',
+            '%s/crawlflow/crawlflow--%d-%s.log',
             WP_CONTENT_DIR,
-            date('Y-m-d')
+            $pid,
+            $date
         );
     }
 
@@ -179,5 +224,6 @@ class LoggerService
     {
         self::$logger = null;
         self::$initialized = false;
+        self::$currentProjectId = null;
     }
 }

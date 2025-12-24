@@ -60,6 +60,7 @@ class Phase2ProcessService
     public function execute(int $projectId): array
     {
         try {
+            \CrawlFlow\LoggerService::setCurrentProjectId($projectId);
             Logger::info("CrawlFlow Phase 2: Starting processing for project {$projectId}");
             
             // Update missing ignore reasons for existing ignored items

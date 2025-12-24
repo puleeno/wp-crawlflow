@@ -45,6 +45,7 @@ class Phase1CrawlService
     public function execute(int $projectId): array
     {
         try {
+            \CrawlFlow\LoggerService::setCurrentProjectId($projectId);
             Logger::info("CrawlFlow Phase 1: Starting crawl for project {$projectId}");
 
             // Load project (cached)
