@@ -657,12 +657,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/puleeno/rake-wordpress-adapter.git",
-                "reference": "013c4c19fbacd12106d2d85ba46aa252f3d00809"
+                "reference": "a9bc3084e640381f1ccb2f7e503fa838ea8fbff2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/013c4c19fbacd12106d2d85ba46aa252f3d00809",
-                "reference": "013c4c19fbacd12106d2d85ba46aa252f3d00809",
+                "url": "https://api.github.com/repos/puleeno/rake-wordpress-adapter/zipball/a9bc3084e640381f1ccb2f7e503fa838ea8fbff2",
+                "reference": "a9bc3084e640381f1ccb2f7e503fa838ea8fbff2",
                 "shasum": ""
             },
             "require": {
@@ -691,7 +691,7 @@
                 "issues": "https://github.com/puleeno/rake-wordpress-adapter/issues",
                 "source": "https://github.com/puleeno/rake-wordpress-adapter/tree/v2"
             },
-            "time": "2025-12-23T17:21:39+00:00"
+            "time": "2025-12-24T03:37:11+00:00"
         },
         {
             "name": "ramphor/rake",
@@ -699,12 +699,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ramphor/rake-php.git",
-                "reference": "1f1e8921efd0ca1b37e8032ba7b98daf662d6fa6"
+                "reference": "7f1682b3dbcbb48e7d355467e3e7a0b31b91604d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/1f1e8921efd0ca1b37e8032ba7b98daf662d6fa6",
-                "reference": "1f1e8921efd0ca1b37e8032ba7b98daf662d6fa6",
+                "url": "https://api.github.com/repos/ramphor/rake-php/zipball/7f1682b3dbcbb48e7d355467e3e7a0b31b91604d",
+                "reference": "7f1682b3dbcbb48e7d355467e3e7a0b31b91604d",
                 "shasum": ""
             },
             "require": {
@@ -736,7 +736,7 @@
                 "issues": "https://github.com/ramphor/rake-php/issues",
                 "source": "https://github.com/ramphor/rake-php/tree/v2.x"
             },
-            "time": "2025-12-23T07:21:02+00:00"
+            "time": "2025-12-24T06:49:24+00:00"
         },
         {
             "name": "symfony/clock",
