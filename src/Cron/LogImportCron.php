@@ -36,6 +36,7 @@ class LogImportCron
      */
     public static function importLogsCallback(): void
     {
+        // Allow running in both cron and CLI mode
         $lockFile = WP_CONTENT_DIR . '/crawlflow/.log-import.lock';
         
         // Check if import is already running
@@ -288,6 +289,42 @@ class LogImportCron
         $sql = "INSERT INTO {$table} (level, message, context, tooth_id, created_at) VALUES " . implode(',', $placeholders);
         
         $wpdb->query($sql, ...$values);
+    }
+
+    /**
+     * Test method to run log import manually (bypasses cron context)
+     */
+    public static function runImportManually(): array
+    {
+        $lockFile = WP_CONTENT_DIR . '/crawlflow/.log-import.lock';
+        
+        // Check if import is already running
+        if (file_exists($lockFile)) {
+            $lockTime = filemtime($lockFile);
+            $now = time();
+            
+            // If lock is older than 30 minutes, remove it (stale lock)
+            if (($now - $lockTime) > 1800) {
+                unlink($lockFile);
+            } else {
+                return ['success' => false, 'message' => 'Import already running', 'imported' => 0, 'skipped' => 0];
+            }
+        }
+
+        // Create lock file
+        file_put_contents($lockFile, getmypid());
+
+        try {
+            $result = self::executeLogImport();
+            return $result;
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage(), 'imported' => 0, 'skipped' => 0];
+        } finally {
+            // Remove lock file
+            if (file_exists($lockFile)) {
+                unlink($lockFile);
+            }
+        }
     }
 
     /**
