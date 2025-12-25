@@ -306,7 +306,28 @@ class CronScheduler
             $result = $dataUpdateChecker->execute($context);
             
             if ($result->isSuccess()) {
+                $resultData = $result->getData();
+                $newUrlsCount = $resultData['urls_saved'] ?? 0;
+                
                 \Rake\Facade\Logger::info("Data Update Checker completed successfully for project {$projectId}");
+                \Rake\Facade\Logger::info("New URLs detected and saved: {$newUrlsCount}");
+                
+                // If new URLs were found, continue with Phase 2 and 3 processing
+                if ($newUrlsCount > 0) {
+                    \Rake\Facade\Logger::info("New URLs detected, continuing with Phase 2 and 3 processing for project {$projectId}");
+                    
+                    // Execute Phase 2 (Process)
+                    \Rake\Facade\Logger::info("Executing Phase 2 (Process) for new URLs from Data Update Checker");
+                    $this->executePhase2($projectId);
+                    
+                    // Execute Phase 3 (Resources)
+                    \Rake\Facade\Logger::info("Executing Phase 3 (Resources) for new URLs from Data Update Checker");
+                    $this->executePhase3($projectId);
+                    
+                    \Rake\Facade\Logger::info("Completed full processing (Phase 2 & 3) for new URLs detected by Data Update Checker for project {$projectId}");
+                } else {
+                    \Rake\Facade\Logger::info("No new URLs detected, skipping Phase 2 & 3 processing for project {$projectId}");
+                }
             } else {
                 \Rake\Facade\Logger::error("Data Update Checker failed for project {$projectId}: " . $result->getError());
             }
