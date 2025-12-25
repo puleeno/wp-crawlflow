@@ -4,6 +4,7 @@ namespace CrawlFlow\Bootstrapper;
 
 use Rake\Rake;
 use Rake\Bootstrapper\BootstrapperInterface;
+use CrawlFlow\Bootstrapper\ApplicationBootstrapper;
 
 /**
  * Console Bootstrapper for CrawlFlow
@@ -20,7 +21,10 @@ class CrawlFlowConsoleBootstrapper implements BootstrapperInterface
      */
     public function bootstrap(Rake $app): void
     {
-        // Register console services
+        // Load full application services including processors
+        new ApplicationBootstrapper($app);
+        
+        // Register console-specific services
         $this->registerConsoleServices($app);
     }
 
@@ -32,7 +36,7 @@ class CrawlFlowConsoleBootstrapper implements BootstrapperInterface
      */
     protected function registerConsoleServices(Rake $app): void
     {
-        // Register ConsoleService or other console-related services if needed
+        // Register console-specific services if needed
         // $app->singleton('CrawlFlow\Console\ConsoleService', function () use ($app) {
         //     return new \CrawlFlow\Console\ConsoleService();
         // });

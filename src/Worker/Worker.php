@@ -5,6 +5,8 @@ namespace CrawlFlow\Worker;
 use CrawlFlow\Contracts\WorkerInterface;
 use CrawlFlow\DataExtractors\HtmlDataExtractor;
 use CrawlFlow\Processors\WordPressPostProcessor;
+use Rake\Manager\ProcessorManager;
+use Rake\Rake;
 
 /**
  * Worker
@@ -449,68 +451,16 @@ class Worker implements WorkerInterface
     {
         $type = $processorConfig['type'] ?? '';
 
-        switch ($type) {
-            case 'save_to_wordpress':
-            case 'wordpress':
-                $options = $processorConfig['settings'] ?? $processorConfig['options'] ?? [];
-                $processor = new WordPressPostProcessor($options);
-                
-                // Process returns DataItemInterface
-                return $processor->process($dataItem);
+        $processorManager = Rake::getInstance()->make(ProcessorManager::class);
 
-            case 'transform':
-                // Transform data based on mapping
-                $mapping = $processorConfig['mapping'] ?? [];
-                
-                foreach ($mapping as $from => $to) {
-                    if ($dataItem->has($from)) {
-                        $dataItem->set($to, $dataItem->get($from));
-                    }
-                }
-                
-                return $dataItem;
-
-            case 'filter':
-                // Filter data based on conditions
-                return $dataItem; // Pass through for now
-
-            default:
-                // Try to get processor from ProcessorManager
-                if (class_exists('\Rake\Manager\ProcessorManager')) {
-                    // Load processor classes if needed
-                    $processorPath = WP_PLUGIN_DIR . '/wp-crawlflow/vendor/puleeno/rake-wordpress-adapter/src/Processor/';
-                    $processorsToLoad = [
-                        'import_woocommerce_product_category' => 'ImportWooCommerceProductCategoryProcessor.php',
-                        'import_woocommerce_product' => 'ImportWooCommerceProductProcessor.php',
-                        'scan_category_pages' => 'ScanCategoryPagesProcessor.php',
-                        'collect_resources' => 'CollectResourcesProcessor.php',
-                    ];
-                    
-                    if (isset($processorsToLoad[$type]) && file_exists($processorPath . $processorsToLoad[$type])) {
-                        require_once $processorPath . $processorsToLoad[$type];
-                    }
-                    
-                    // Trigger hook to register processors if not already done
-                    if (!did_action('crawlflow_register_processors')) {
-                        do_action('crawlflow_register_processors');
-                    }
-                    
-                    // TODO: Implement when ProcessorManager methods are available
-                    // if (\Rake\Manager\ProcessorManager::has($type)) {
-                        $settings = $processorConfig['settings'] ?? [];
-                        // TODO: Implement when ProcessorManager methods are available
-                        // $processorManager = new \Rake\Manager\ProcessorManager();
-                        // $processor = $processorManager->getProcessor($type, $settings);
-                        // 
-                        // if ($processor) {
-                        //     return $processor->process($dataItem);
-                        // }
-                    // }
-                }
-                
-                // Unknown processor, pass through
-                \Rake\Facade\Logger::warning("CrawlFlow Worker: Unknown processor type '{$type}', passing through");
-                return $dataItem;
+        if ($processorManager->has($type)) {
+            $processor = $processorManager->getProcessor($type);
+            \Rake\Facade\Logger::info("CrawlFlow Worker: get processor type '{$type}'");
+            return $processor->process($dataItem);
+        } else {
+            // Unknown processor, pass through
+            \Rake\Facade\Logger::warning("CrawlFlow Worker: Unknown processor type '{$type}', passing through");
+            return $dataItem;
         }
     }
 

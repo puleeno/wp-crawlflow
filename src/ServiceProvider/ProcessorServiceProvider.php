@@ -92,6 +92,13 @@ class ProcessorServiceProvider extends AbstractServiceProvider
             []
         );
         
+        // Collect Resources Processor
+        $processorManager->register(
+            'collect_resources',
+            \Puleeno\Rake\WordPress\Processor\CollectResourcesProcessor::class,
+            []
+        );
+        
         // Register aliases
         $processorManager->alias('get_product_prices', 'get_dentalpart_product_prices');
         $processorManager->alias('woocommerce_import', 'import_woocommerce_product');
