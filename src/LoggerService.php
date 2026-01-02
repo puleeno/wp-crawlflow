@@ -52,6 +52,10 @@ class LoggerService
      */
     private static function createMonologLogger(): MonologLogger
     {
+        if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG === false) {
+            return new MonologLogger('CRAWLFLOW');
+        }
+
         $logFile = self::getLogFilePath();
 
         // Ensure log directory exists
