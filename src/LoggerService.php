@@ -52,7 +52,7 @@ class LoggerService
      */
     private static function createMonologLogger(): MonologLogger
     {
-        if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG === false) {
+        if (!defined('WP_DEBUG_LOG') || !WP_DEBUG_LOG) {
             return new MonologLogger('CRAWLFLOW');
         }
 
