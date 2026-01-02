@@ -8,27 +8,27 @@ import { useRegistry } from '../hooks/useRegistry';
 
 
 interface SettingsPanelProps {
-  node: Node | null;
-  onUpdateNode: (nodeId: string, data: NodeData) => void;
-  onDeleteNode: (nodeId: string) => void;
-  onClose: () => void;
-  projectSettings: ProjectSettings;
-  onUpdateProjectSettings: (update: Partial<ProjectSettings>) => void;
-  onExport: () => void;
-  onSave: () => void;
-  onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  isOpen: boolean;
-  // Inspector-related props
-  onShowInspector: (htmlContent: string) => void;
-  onHideInspector: () => void;
-  onStartPicking: (nodeId: string, ruleId: string) => void;
-  onStopPicking: () => void;
-  pickingRuleId: string | null;
-  onInspectSelector: (selector: string | null) => void;
-  highlightedSelector: string | null;
-  // For field mapping
-  nodes: Node[];
-  edges: any[];
+    node: Node | null;
+    onUpdateNode: (nodeId: string, data: NodeData) => void;
+    onDeleteNode: (nodeId: string) => void;
+    onClose: () => void;
+    projectSettings: ProjectSettings;
+    onUpdateProjectSettings: (update: Partial<ProjectSettings>) => void;
+    onExport: () => void;
+    onSave: () => void;
+    onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    isOpen: boolean;
+    // Inspector-related props
+    onShowInspector: (htmlContent: string) => void;
+    onHideInspector: () => void;
+    onStartPicking: (nodeId: string, ruleId: string) => void;
+    onStopPicking: () => void;
+    pickingRuleId: string | null;
+    onInspectSelector: (selector: string | null) => void;
+    highlightedSelector: string | null;
+    // For field mapping
+    nodes: Node[];
+    edges: any[];
 }
 
 const commonInputClasses = "w-full p-2 bg-white text-gray-900 border border-slate-300 rounded-md shadow-sm placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-gray-500";
@@ -107,7 +107,7 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
     const handleUpdate = <K extends keyof StartNodeData>(key: K, value: StartNodeData[K]) => {
         onUpdate({ ...data, [key]: value });
     };
-    
+
     const handleNestedUpdate = (settingsKey: 'urlSettings' | 'apiSettings' | 'xmlSettings' | 'jsonSettings', update: any) => {
         onUpdate({
             ...data,
@@ -190,22 +190,22 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                             <button onClick={() => handleNestedUpdate('urlSettings', { scope: 'entire-website' })} className={`flex-1 p-2 text-sm font-semibold rounded-md transition-colors ${settings.scope === 'entire-website' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/60'}`}>Entire Website</button>
                         </div>
                     </div>
-                    
-                    <TagInput 
+
+                    <TagInput
                         label="Exclude Extensions"
                         tags={settings.excludeExtensions || []}
                         onChange={(tags) => handleNestedUpdate('urlSettings', { excludeExtensions: tags })}
                         placeholder="e.g., pdf, jpg, zip..."
                     />
 
-                    <TagInput 
+                    <TagInput
                         label="Exclude Patterns"
                         tags={settings.excludePatterns || []}
                         onChange={(tags) => handleNestedUpdate('urlSettings', { excludePatterns: tags })}
                         placeholder="e.g., /\/admin\//i, /\/api\//i..."
                     />
 
-                    <TagInput 
+                    <TagInput
                         label="Whitelist Patterns"
                         tags={settings.whitelistPatterns || []}
                         onChange={(tags) => handleNestedUpdate('urlSettings', { whitelistPatterns: tags })}
@@ -232,7 +232,7 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
             </CollapsibleSection>
         );
     };
-    
+
     const renderAPISettings = () => {
         const settings = data.apiSettings || {} as APISourceSettings;
         const authDetails = settings.authDetails || {};
@@ -241,8 +241,8 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
             <>
                 <CollapsibleSection title="Authentication" defaultOpen>
                     <div className="space-y-3">
-                         <label className={commonLabelClasses}>Auth Type</label>
-                         <select value={settings.authType} onChange={(e) => handleNestedUpdate('apiSettings', { authType: e.target.value as any, authDetails: {} })} className={commonInputClasses}>
+                        <label className={commonLabelClasses}>Auth Type</label>
+                        <select value={settings.authType} onChange={(e) => handleNestedUpdate('apiSettings', { authType: e.target.value as any, authDetails: {} })} className={commonInputClasses}>
                             <option value="none">None</option>
                             <option value="api-key">API Key</option>
                             <option value="bearer">Bearer Token</option>
@@ -256,31 +256,31 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                                     <option value="query">Query Parameter</option>
                                 </select>
                                 <label className={commonLabelClasses}>Key Name</label>
-                                <input type="text" value={(authDetails as APIKeyAuth).keyName || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as APIKeyAuth), keyName: e.target.value }})} placeholder="X-API-KEY" className={commonInputClasses} />
+                                <input type="text" value={(authDetails as APIKeyAuth).keyName || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as APIKeyAuth), keyName: e.target.value } })} placeholder="X-API-KEY" className={commonInputClasses} />
                                 <label className={commonLabelClasses}>Key Value</label>
-                                <input type="password" value={(authDetails as APIKeyAuth).keyValue || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as APIKeyAuth), keyValue: e.target.value }})} placeholder="your-api-key" className={commonInputClasses} />
+                                <input type="password" value={(authDetails as APIKeyAuth).keyValue || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as APIKeyAuth), keyValue: e.target.value } })} placeholder="your-api-key" className={commonInputClasses} />
                             </div>
                         )}
                         {settings.authType === 'bearer' && (
-                             <div className="p-3 bg-slate-100 rounded-md space-y-3">
+                            <div className="p-3 bg-slate-100 rounded-md space-y-3">
                                 <label className={commonLabelClasses}>Bearer Token</label>
-                                <input type="password" value={(authDetails as BearerTokenAuth).token || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as BearerTokenAuth), token: e.target.value }})} placeholder="your-bearer-token" className={commonInputClasses} />
+                                <input type="password" value={(authDetails as BearerTokenAuth).token || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as BearerTokenAuth), token: e.target.value } })} placeholder="your-bearer-token" className={commonInputClasses} />
                             </div>
                         )}
                         {settings.authType === 'basic' && (
-                             <div className="p-3 bg-slate-100 rounded-md space-y-3">
+                            <div className="p-3 bg-slate-100 rounded-md space-y-3">
                                 <label className={commonLabelClasses}>Username</label>
-                                <input type="text" value={(authDetails as BasicAuth).username || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as BasicAuth), username: e.target.value }})} placeholder="username" className={commonInputClasses} />
+                                <input type="text" value={(authDetails as BasicAuth).username || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as BasicAuth), username: e.target.value } })} placeholder="username" className={commonInputClasses} />
                                 <label className={commonLabelClasses}>Password</label>
-                                <input type="password" value={(authDetails as BasicAuth).password || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as BasicAuth), password: e.target.value }})} placeholder="password" className={commonInputClasses} />
+                                <input type="password" value={(authDetails as BasicAuth).password || ''} onChange={e => handleNestedUpdate('apiSettings', { authDetails: { ...(authDetails as BasicAuth), password: e.target.value } })} placeholder="password" className={commonInputClasses} />
                             </div>
                         )}
                     </div>
                 </CollapsibleSection>
                 <CollapsibleSection title="Pagination">
-                     <div className="space-y-3">
-                         <label className={commonLabelClasses}>Pagination Type</label>
-                         <select value={settings.paginationType} onChange={(e) => handleNestedUpdate('apiSettings', { paginationType: e.target.value as any, paginationDetails: {} })} className={commonInputClasses}>
+                    <div className="space-y-3">
+                        <label className={commonLabelClasses}>Pagination Type</label>
+                        <select value={settings.paginationType} onChange={(e) => handleNestedUpdate('apiSettings', { paginationType: e.target.value as any, paginationDetails: {} })} className={commonInputClasses}>
                             <option value="none">None</option>
                             <option value="page">Page Number</option>
                             <option value="offset-limit">Offset/Limit</option>
@@ -290,31 +290,31 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                             <div className="p-3 bg-slate-100 rounded-md space-y-3">
                                 <p className="text-xs text-gray-600">Use {'`{{page}}`'} tag in the API URL.</p>
                                 <label className={commonLabelClasses}>Parameter Name</label>
-                                <input type="text" value={(settings.paginationDetails as PagePagination).paramName || 'page'} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as PagePagination), paramName: e.target.value }})} className={commonInputClasses} />
+                                <input type="text" value={(settings.paginationDetails as PagePagination).paramName || 'page'} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as PagePagination), paramName: e.target.value } })} className={commonInputClasses} />
                                 <label className={commonLabelClasses}>Starts At</label>
-                                <input type="number" value={(settings.paginationDetails as PagePagination).startsAt || 1} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as PagePagination), startsAt: parseInt(e.target.value) }})} className={commonInputClasses} />
+                                <input type="number" value={(settings.paginationDetails as PagePagination).startsAt || 1} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as PagePagination), startsAt: parseInt(e.target.value) } })} className={commonInputClasses} />
                             </div>
                         )}
-                         {settings.paginationType === 'offset-limit' && (
+                        {settings.paginationType === 'offset-limit' && (
                             <div className="p-3 bg-slate-100 rounded-md space-y-3">
                                 <p className="text-xs text-gray-600">Use {'`{{offset}}`'} and {'`{{limit}}`'} tags in the API URL.</p>
                                 <label className={commonLabelClasses}>Offset Param Name</label>
-                                <input type="text" value={(settings.paginationDetails as OffsetLimitPagination).offsetParam || 'offset'} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), offsetParam: e.target.value }})} className={commonInputClasses} />
-                                 <label className={commonLabelClasses}>Limit Param Name</label>
-                                <input type="text" value={(settings.paginationDetails as OffsetLimitPagination).limitParam || 'limit'} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), limitParam: e.target.value }})} className={commonInputClasses} />
+                                <input type="text" value={(settings.paginationDetails as OffsetLimitPagination).offsetParam || 'offset'} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), offsetParam: e.target.value } })} className={commonInputClasses} />
+                                <label className={commonLabelClasses}>Limit Param Name</label>
+                                <input type="text" value={(settings.paginationDetails as OffsetLimitPagination).limitParam || 'limit'} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), limitParam: e.target.value } })} className={commonInputClasses} />
                                 <label className={commonLabelClasses}>Limit Value</label>
-                                <input type="number" value={(settings.paginationDetails as OffsetLimitPagination).limitValue || 100} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), limitValue: parseInt(e.target.value) }})} className={commonInputClasses} />
+                                <input type="number" value={(settings.paginationDetails as OffsetLimitPagination).limitValue || 100} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), limitValue: parseInt(e.target.value) } })} className={commonInputClasses} />
                                 <label className={commonLabelClasses}>Starts At</label>
-                                <input type="number" value={(settings.paginationDetails as OffsetLimitPagination).startsAt || 0} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), startsAt: parseInt(e.target.value) }})} className={commonInputClasses} />
+                                <input type="number" value={(settings.paginationDetails as OffsetLimitPagination).startsAt || 0} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as OffsetLimitPagination), startsAt: parseInt(e.target.value) } })} className={commonInputClasses} />
                             </div>
                         )}
-                         {settings.paginationType === 'next-url' && (
+                        {settings.paginationType === 'next-url' && (
                             <div className="p-3 bg-slate-100 rounded-md space-y-3">
                                 <label className={commonLabelClasses}>JSON Path to Next URL</label>
-                                <input type="text" value={(settings.paginationDetails as NextURLPagination).jsonPath || ''} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as NextURLPagination), jsonPath: e.target.value }})} placeholder="e.g., meta.pagination.next_url" className={commonInputClasses} />
+                                <input type="text" value={(settings.paginationDetails as NextURLPagination).jsonPath || ''} onChange={e => handleNestedUpdate('apiSettings', { paginationDetails: { ...(settings.paginationDetails as NextURLPagination), jsonPath: e.target.value } })} placeholder="e.g., meta.pagination.next_url" className={commonInputClasses} />
                             </div>
                         )}
-                     </div>
+                    </div>
                 </CollapsibleSection>
             </>
         );
@@ -343,7 +343,7 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                             <button onClick={() => handleNestedUpdate('xmlSettings', { domainPolicy: 'whitelist-only' })} className={`flex-1 p-2 text-sm font-semibold rounded-md transition-colors ${settings.domainPolicy === 'whitelist-only' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/60'}`}>Whitelist Only</button>
                         </div>
                     </div>
-                    
+
                     {settings.domainPolicy === 'whitelist-only' && (
                         <TagInput
                             label="Domain Whitelist"
@@ -356,7 +356,7 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
             </CollapsibleSection>
         )
     };
-    
+
     const renderJSONSettings = () => {
         const settings = data.jsonSettings || {} as JSONSourceSettings;
         return (
@@ -371,7 +371,7 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                     </div>
                     {settings.dataHandling === 'scan-urls' && (
                         <div className="p-3 bg-slate-100 rounded-md space-y-4">
-                             <div>
+                            <div>
                                 <label className={commonLabelClasses}>URL Source</label>
                                 <div className="flex bg-slate-100 rounded-lg p-1">
                                     <button onClick={() => handleNestedUpdate('jsonSettings', { urlSource: 'all-values' })} className={`flex-1 p-2 text-sm font-semibold rounded-md transition-colors ${settings.urlSource === 'all-values' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/60'}`}>Scan All Values</button>
@@ -392,7 +392,7 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                                     <button onClick={() => handleNestedUpdate('jsonSettings', { domainPolicy: 'whitelist-only' })} className={`flex-1 p-2 text-sm font-semibold rounded-md transition-colors ${settings.domainPolicy === 'whitelist-only' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-white/60'}`}>Whitelist Only</button>
                                 </div>
                             </div>
-                            
+
                             {settings.domainPolicy === 'whitelist-only' && (
                                 <TagInput
                                     label="Domain Whitelist"
@@ -443,7 +443,7 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                     />
                 </div>
             )}
-            
+
             {data.sourceType === 'url' && renderURLSettings()}
             {data.sourceType === 'api' && renderAPISettings()}
             {data.sourceType === 'xml' && renderXMLSettings()}
@@ -462,11 +462,10 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
                             return (
                                 <div
                                     key={action.id}
-                                    className={`p-3 rounded-lg border transition-colors ${
-                                        isSelected
-                                            ? 'bg-blue-50 border-blue-200'
-                                            : 'bg-white border-slate-200 hover:border-slate-300'
-                                    }`}
+                                    className={`p-3 rounded-lg border transition-colors ${isSelected
+                                        ? 'bg-blue-50 border-blue-200'
+                                        : 'bg-white border-slate-200 hover:border-slate-300'
+                                        }`}
                                 >
                                     <label className="flex items-start gap-3 cursor-pointer">
                                         <input
@@ -508,8 +507,8 @@ const StartNodeSettings: React.FC<{ node: Node<StartNodeData>; onUpdate: (data: 
 const ClickNodeSettings: React.FC<{ node: Node<ClickNodeData>; onUpdate: (data: ClickNodeData) => void }> = ({ node, onUpdate }) => {
     return (
         <div className="space-y-4">
-             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Click Node Settings</h3>
-             <div>
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Click Node Settings</h3>
+            <div>
                 <label htmlFor="selector" className={commonLabelClasses}>CSS Selector</label>
                 <input
                     id="selector"
@@ -525,10 +524,10 @@ const ClickNodeSettings: React.FC<{ node: Node<ClickNodeData>; onUpdate: (data: 
 };
 
 const LoopNodeSettings: React.FC<{ node: Node<LoopNodeData>; onUpdate: (data: LoopNodeData) => void }> = ({ node, onUpdate }) => {
-     return (
+    return (
         <div className="space-y-4">
-             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Loop Node Settings</h3>
-             <div>
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Loop Node Settings</h3>
+            <div>
                 <label htmlFor="iteratorSelector" className={commonLabelClasses}>Iterator CSS Selector</label>
                 <input
                     id="iteratorSelector"
@@ -573,7 +572,7 @@ const HTMLDataExtractorSettings: React.FC<{
         if (!preset) return;
 
         const isCurrentlySelected = currentPresets.includes(presetKey as PresetType);
-        
+
         let newRules = [...(data.customRules || [])];
 
         if (isCurrentlySelected) {
@@ -602,7 +601,7 @@ const HTMLDataExtractorSettings: React.FC<{
         });
         return ids;
     }, [data.presets]);
-    
+
     /**
      * Inject <base> tag into HTML with the domain from the URL
      */
@@ -612,7 +611,7 @@ const HTMLDataExtractorSettings: React.FC<{
             // Create base URL (scheme + host + path directory, not filename)
             // urlObj.host already includes port if present
             let baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-            
+
             // Add path (directory part, not filename)
             if (urlObj.pathname) {
                 const path = urlObj.pathname;
@@ -630,29 +629,29 @@ const HTMLDataExtractorSettings: React.FC<{
             } else {
                 baseUrl += '/';
             }
-            
+
             const baseTag = `<base href="${baseUrl}">`;
-            
+
             // Check if base tag already exists
             if (html.toLowerCase().includes('<base')) {
                 // Replace existing base tag
                 return html.replace(/<base[^>]*>/i, baseTag);
             }
-            
+
             // Try to inject into <head>
             const headMatch = html.match(/<head[^>]*>/i);
             if (headMatch && headMatch.index !== undefined) {
                 const insertPos = headMatch.index + headMatch[0].length;
                 return html.slice(0, insertPos) + '\n    ' + baseTag + '\n' + html.slice(insertPos);
             }
-            
+
             // Try to inject after <html> tag
             const htmlMatch = html.match(/<html[^>]*>/i);
             if (htmlMatch && htmlMatch.index !== undefined) {
                 const insertPos = htmlMatch.index + htmlMatch[0].length;
                 return html.slice(0, insertPos) + '\n' + baseTag + '\n' + html.slice(insertPos);
             }
-            
+
             // If no head or html tag, prepend to body
             return baseTag + '\n' + html;
         } catch (error) {
@@ -676,10 +675,10 @@ const HTMLDataExtractorSettings: React.FC<{
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             let htmlContent = await response.text();
-            
+
             // Inject <base> tag before loading into inspector
             htmlContent = injectBaseTag(htmlContent, data.inspectorUrl);
-            
+
             onUpdate({ ...data, inspectorLoading: false, inspectorHtmlContent: htmlContent });
             props.onShowInspector(htmlContent);
 
@@ -698,7 +697,7 @@ const HTMLDataExtractorSettings: React.FC<{
         onUpdate({ ...data, inspectorLoading: false, inspectorHtmlContent: pastedHtml, inspectorError: undefined });
         props.onShowInspector(pastedHtml);
     };
-    
+
     useEffect(() => {
         // If panel is closed while inspector is open, hide it
         return () => {
@@ -713,7 +712,7 @@ const HTMLDataExtractorSettings: React.FC<{
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">HTML Data Extractor Settings</h3>
-            
+
             <CollapsibleSection title="Inspector Tool" defaultOpen>
                 <div className="space-y-2">
                     <p className="text-xs text-gray-600 mb-2">
@@ -760,7 +759,7 @@ const HTMLDataExtractorSettings: React.FC<{
                             </button>
                         </div>
                     )}
-                     {data.inspectorError && <p className="text-sm text-red-600 mt-2">{data.inspectorError}</p>}
+                    {data.inspectorError && <p className="text-sm text-red-600 mt-2">{data.inspectorError}</p>}
                 </div>
             </CollapsibleSection>
 
@@ -782,7 +781,7 @@ const HTMLDataExtractorSettings: React.FC<{
             </CollapsibleSection>
 
             <CollapsibleSection title="Custom Extraction Rules" defaultOpen>
-                 <div className="space-y-3">
+                <div className="space-y-3">
                     {data.customRules.map((rule) => {
                         const isPresetRule = presetRuleIds.has(rule.id);
                         return (
@@ -895,7 +894,7 @@ const CSVExtractorSettings: React.FC<{ node: Node<CSVExtractorNodeData>; onUpdat
     const removeMapping = (id: string) => {
         onUpdate({ ...data, mappings: data.mappings.filter(m => m.id !== id) });
     };
-    
+
     const togglePreset = (presetKey: string) => {
         const currentPresets = data.presets || [];
         const preset = PRESETS[presetKey]?.csv;
@@ -917,7 +916,7 @@ const CSVExtractorSettings: React.FC<{ node: Node<CSVExtractorNodeData>; onUpdat
             onUpdate({ ...data, presets: newPresets, mappings: newMappings });
         }
     };
-    
+
     const presetMappingIds = useMemo(() => {
         const ids = new Set<string>();
         (data.presets || []).forEach(presetKey => {
@@ -945,7 +944,7 @@ const CSVExtractorSettings: React.FC<{ node: Node<CSVExtractorNodeData>; onUpdat
                 />
                 <label htmlFor="hasHeader" className="text-sm text-gray-700">First row is header</label>
             </div>
-            
+
             <CollapsibleSection title="Extraction Presets">
                 <div className="grid grid-cols-2 gap-2">
                     {availablePresets.map(([key, preset]) => (
@@ -972,7 +971,7 @@ const CSVExtractorSettings: React.FC<{ node: Node<CSVExtractorNodeData>; onUpdat
                                 {isPresetMapping && <span className="absolute top-1 right-2 text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-0.5 rounded-full">Preset</span>}
                                 <input type={data.hasHeader ? 'text' : 'number'} placeholder={data.hasHeader ? "Header Name" : "Column Index"} value={m.source} onChange={e => handleMappingChange(m.id, 'source', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
                                 <span>-&gt;</span>
-                                <input type="text" placeholder="Field Name" value={m.fieldName} onChange={e => handleMappingChange(m.id, 'fieldName', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping}/>
+                                <input type="text" placeholder="Field Name" value={m.fieldName} onChange={e => handleMappingChange(m.id, 'fieldName', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
                                 {!isPresetMapping && <button onClick={() => removeMapping(m.id)} className="text-gray-400 hover:text-red-500"><TrashIcon /></button>}
                             </div>
                         );
@@ -992,7 +991,7 @@ const PathBasedExtractorSettings: React.FC<{
     presetKey: 'json' | 'xml';
 }> = ({ node, onUpdate, title, pathPlaceholder, presetKey }) => {
     const { data } = node;
-    
+
     const handleMappingChange = (id: string, key: keyof PathMapping, value: any) => {
         const newMappings = data.mappings.map(m => m.id === id ? { ...m, [key]: value } : m);
         onUpdate({ ...data, mappings: newMappings });
@@ -1026,7 +1025,7 @@ const PathBasedExtractorSettings: React.FC<{
             onUpdate({ ...data, presets: newPresets, mappings: newMappings });
         }
     };
-    
+
     const presetMappingIds = useMemo(() => {
         const ids = new Set<string>();
         (data.presets || []).forEach(key => {
@@ -1040,7 +1039,7 @@ const PathBasedExtractorSettings: React.FC<{
     const availablePresets = useMemo(() => {
         return Object.entries(PRESETS).filter(([_, preset]) => !!preset[presetKey]);
     }, [presetKey]);
-    
+
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">{title}</h3>
@@ -1065,8 +1064,8 @@ const PathBasedExtractorSettings: React.FC<{
             <CollapsibleSection title="Path Mappings" defaultOpen>
                 <div className="space-y-2">
                     {data.mappings.map(m => {
-                         const isPresetMapping = presetMappingIds.has(m.id);
-                         return (
+                        const isPresetMapping = presetMappingIds.has(m.id);
+                        return (
                             <div key={m.id} className={`flex items-center gap-2 p-2 border rounded-md relative ${isPresetMapping ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
                                 {isPresetMapping && <span className="absolute top-1 right-2 text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-0.5 rounded-full">Preset</span>}
                                 <input type="text" placeholder={pathPlaceholder} value={m.path} onChange={e => handleMappingChange(m.id, 'path', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
@@ -1074,7 +1073,7 @@ const PathBasedExtractorSettings: React.FC<{
                                 <input type="text" placeholder="Field Name" value={m.fieldName} onChange={e => handleMappingChange(m.id, 'fieldName', e.target.value)} className={`${smallInputClasses} disabled:bg-slate-200 disabled:text-gray-600 disabled:cursor-not-allowed`} disabled={isPresetMapping} />
                                 {!isPresetMapping && <button onClick={() => removeMapping(m.id)} className="text-gray-400 hover:text-red-500"><TrashIcon /></button>}
                             </div>
-                         );
+                        );
                     })}
                 </div>
                 <button onClick={addMapping} className={`${commonButtonClasses} bg-teal-600 hover:bg-teal-700 mt-3`}>Add Mapping</button>
@@ -1119,7 +1118,7 @@ const MySQLExtractorSettings: React.FC<{ node: Node<MySQLExtractorNodeData>; onU
             onUpdate({ ...data, presets: newPresets, mappings: newMappings });
         }
     };
-    
+
     const presetMappingIds = useMemo(() => {
         const ids = new Set<string>();
         (data.presets || []).forEach(presetKey => {
@@ -1178,8 +1177,8 @@ const MySQLExtractorSettings: React.FC<{ node: Node<MySQLExtractorNodeData>; onU
 
 
 // --- Processor Node Settings ---
-const ProcessorNodeSettings: React.FC<{ 
-    node: Node<ProcessorNodeData>; 
+const ProcessorNodeSettings: React.FC<{
+    node: Node<ProcessorNodeData>;
     onUpdate: (data: ProcessorNodeData) => void;
     nodes: Node[];
     edges: any[];
@@ -1190,8 +1189,8 @@ const ProcessorNodeSettings: React.FC<{
     const handleTypeChange = (type: string) => {
         // When changing processor type, reset settings to empty object
         // Backend will provide default settings
-        onUpdate({ 
-            processorType: type as any, 
+        onUpdate({
+            processorType: type as any,
             settings: {} as any
         } as ProcessorNodeData);
     };
@@ -1281,7 +1280,7 @@ const ProcessorNodeSettings: React.FC<{
                     />
                     <span className="text-sm font-semibold text-gray-700">Auto Map Fields</span>
                 </label>
-                
+
                 <div className="space-y-2 bg-slate-50 p-2 rounded border border-slate-200">
                     <div className="text-xs font-bold text-gray-500 uppercase flex justify-between px-1">
                         <span>Extracted Field</span>
@@ -1296,9 +1295,9 @@ const ProcessorNodeSettings: React.FC<{
                                     {field}
                                 </div>
                                 <span className="text-gray-400">→</span>
-                                <input 
-                                    type="text" 
-                                    placeholder={field} 
+                                <input
+                                    type="text"
+                                    placeholder={field}
                                     value={isAutoMap ? field : ((settings.fieldMappings || {})[field] || '')}
                                     onChange={e => updateMapping(field, e.target.value)}
                                     disabled={isAutoMap}
@@ -1334,16 +1333,16 @@ const ProcessorNodeSettings: React.FC<{
                     {processors.find(p => p.type === data.processorType)?.configFields?.map(field => {
                         const settings = data.settings as any;
                         const value = settings[field.name] ?? field.default ?? '';
-                        
+
                         return (
                             <div key={field.name}>
                                 <label htmlFor={field.name} className={commonLabelClasses}>
                                     {field.label}
                                     {field.required && <span className="text-red-500 ml-1">*</span>}
                                 </label>
-                                
+
                                 {field.type === 'select' && (
-                                    <select 
+                                    <select
                                         id={field.name}
                                         value={value}
                                         onChange={e => handleSettingsChange(field.name, e.target.value)}
@@ -1364,7 +1363,7 @@ const ProcessorNodeSettings: React.FC<{
                                         )}
                                     </select>
                                 )}
-                                
+
                                 {field.type === 'textarea' && (
                                     <textarea
                                         id={field.name}
@@ -1374,7 +1373,7 @@ const ProcessorNodeSettings: React.FC<{
                                         className={`${commonInputClasses} h-24`}
                                     />
                                 )}
-                                
+
                                 {field.type === 'checkbox' && (
                                     <div className="flex items-center gap-2">
                                         <input
@@ -1387,7 +1386,7 @@ const ProcessorNodeSettings: React.FC<{
                                         <label htmlFor={field.name} className="text-sm text-gray-700">{field.placeholder || field.label}</label>
                                     </div>
                                 )}
-                                
+
                                 {['text', 'number', 'url', 'password'].includes(field.type) && (
                                     <input
                                         type={field.type}
@@ -1398,7 +1397,7 @@ const ProcessorNodeSettings: React.FC<{
                                         className={commonInputClasses}
                                     />
                                 )}
-                                
+
                                 {field.type === 'json-preview' && (
                                     <div className="mt-2">
                                         <div className="bg-gray-50 border border-gray-200 rounded-md overflow-hidden">
@@ -1411,14 +1410,14 @@ const ProcessorNodeSettings: React.FC<{
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 {field.description && (
                                     <p className="text-xs text-gray-500 mt-1">{field.description}</p>
                                 )}
                             </div>
                         );
                     })}
-                    
+
                     {!processors.find(p => p.type === data.processorType)?.configFields && (
                         <p className="text-sm text-gray-500 italic">No configuration fields available for this processor.</p>
                     )}
@@ -1427,8 +1426,8 @@ const ProcessorNodeSettings: React.FC<{
 
             {supportsFieldMapping && renderMappingSection(
                 data.processorType === 'save_to_database' || data.processorType === 'save-to-database' ? 'DB Column' :
-                data.processorType === 'send_to_api' || data.processorType === 'send-to-api' ? 'API Field' :
-                'Target Field'
+                    data.processorType === 'send_to_api' || data.processorType === 'send-to-api' ? 'API Field' :
+                        'Target Field'
             )}
         </div>
     );
@@ -1453,80 +1452,80 @@ const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data
 
     return (
         <div className="space-y-4">
-             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Worker Settings</h3>
-             <div className="flex justify-between items-center">
-                 <label className={commonLabelClasses}>Priority</label>
-                 <input type="number" value={data.priority} onChange={e => onUpdate({ ...data, priority: parseInt(e.target.value) })} className={`${commonInputClasses} w-24`} />
-             </div>
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Worker Settings</h3>
+            <div className="flex justify-between items-center">
+                <label className={commonLabelClasses}>Priority</label>
+                <input type="number" value={data.priority} onChange={e => onUpdate({ ...data, priority: parseInt(e.target.value) })} className={`${commonInputClasses} w-24`} />
+            </div>
 
-             <div className="flex justify-between items-center">
-                 <div className="flex items-center gap-2">
-                     <input
-                         type="checkbox"
-                         id="isArchive"
-                         checked={data.isArchive || false}
-                         onChange={e => onUpdate({ ...data, isArchive: e.target.checked })}
-                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                     />
-                     <label htmlFor="isArchive" className={commonLabelClasses + " mb-0 cursor-pointer"}>
-                         Is Archive Page
-                     </label>
-                 </div>
-                 <span className="text-xs text-gray-500">
-                     Category pages, listing pages that contain multiple items
-                 </span>
-             </div>
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="isArchive"
+                        checked={data.isArchive || false}
+                        onChange={e => onUpdate({ ...data, isArchive: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="isArchive" className={commonLabelClasses + " mb-0 cursor-pointer"}>
+                        Is Archive Page
+                    </label>
+                </div>
+                <span className="text-xs text-gray-500">
+                    Category pages, listing pages that contain multiple items
+                </span>
+            </div>
 
-             {/* Content Selectors for Archive Page - only show when Is Archive Page is checked */}
-             {data.isArchive && (
-                 <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
-                     <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                         <CursorArrowRaysIcon className="w-4 h-4" />
-                         Content Selectors for Update Detection
-                     </h4>
-                     <p className="text-xs text-gray-600 mb-3">
-                         Define the wrapper area containing all products to check for updates
-                     </p>
-                     
-                     <div className="space-y-4">
-                         <div>
-                             <label className={commonLabelClasses}>
-                                 Products Wrapper Selector
-                             </label>
-                             <input
-                                 type="text"
-                                 value={data.archiveProductsWrapper || ''}
-                                 onChange={e => onUpdate({ ...data, archiveProductsWrapper: e.target.value })}
-                                 placeholder=".products-container, .product-list, .category-products"
-                                 className={commonInputClasses}
-                             />
-                             <span className="text-xs text-gray-500">
-                                 CSS selector for the wrapper containing all products
-                             </span>
-                         </div>
-                         
-                         <div>
-                             <label className={commonLabelClasses}>
-                                 URL Contains String (Optional)
-                             </label>
-                             <input
-                                 type="text"
-                                 value={data.archiveUrlContains || ''}
-                                 onChange={e => onUpdate({ ...data, archiveUrlContains: e.target.value })}
-                                 placeholder="product, category, item"
-                                 className={commonInputClasses}
-                             />
-                             <span className="text-xs text-gray-500">
-                                 Only check URLs containing this string (leave empty to check all URLs)
-                             </span>
-                         </div>
-                     </div>
-                 </div>
-             )}
+            {/* Content Selectors for Archive Page - only show when Is Archive Page is checked */}
+            {data.isArchive && (
+                <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <CursorArrowRaysIcon className="w-4 h-4" />
+                        Content Selectors for Update Detection
+                    </h4>
+                    <p className="text-xs text-gray-600 mb-3">
+                        Define the wrapper area containing all products to check for updates
+                    </p>
 
-             <CollapsibleSection title="Detection Rules" defaultOpen>
+                    <div className="space-y-4">
+                        <div>
+                            <label className={commonLabelClasses}>
+                                Products Wrapper Selector
+                            </label>
+                            <input
+                                type="text"
+                                value={data.archiveProductsWrapper || ''}
+                                onChange={e => onUpdate({ ...data, archiveProductsWrapper: e.target.value })}
+                                placeholder=".products-container, .product-list, .category-products"
+                                className={commonInputClasses}
+                            />
+                            <span className="text-xs text-gray-500">
+                                CSS selector for the wrapper containing all products
+                            </span>
+                        </div>
+
+                        <div>
+                            <label className={commonLabelClasses}>
+                                URL Contains String (Optional)
+                            </label>
+                            <input
+                                type="text"
+                                value={data.archiveUrlContains || ''}
+                                onChange={e => onUpdate({ ...data, archiveUrlContains: e.target.value })}
+                                placeholder="product, category, item"
+                                className={commonInputClasses}
+                            />
+                            <span className="text-xs text-gray-500">
+                                Only check URLs containing this string (leave empty to check all URLs)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <CollapsibleSection title="Detection Rules" defaultOpen>
                 <div className="space-y-4">
-                     <div className="flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded border border-slate-200">
                         <span className="text-sm text-gray-700 font-medium">Match:</span>
                         <select value={data.detectionLogic} onChange={e => onUpdate({ ...data, detectionLogic: e.target.value as 'and' | 'or' })} className={`${smallInputClasses} w-24 border-gray-300`}>
                             <option value="and">ALL</option>
@@ -1537,11 +1536,11 @@ const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data
 
                     {data.detectionRules.map((rule, index) => (
                         <div key={rule.id} className="p-4 border border-slate-200 bg-white rounded-lg shadow-sm space-y-3 relative group transition-all hover:border-blue-300">
-                            
+
                             <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-2">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Rule {index + 1}</span>
-                                <button 
-                                    onClick={() => removeRule(rule.id)} 
+                                <button
+                                    onClick={() => removeRule(rule.id)}
                                     className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded transition-colors"
                                     title="Remove Rule"
                                 >
@@ -1568,20 +1567,20 @@ const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data
                                     </div>
                                 )}
                                 {rule.type === 'html-contains' && (
-                                     <div>
+                                    <div>
                                         <label className="block text-xs font-medium text-gray-500 mb-1">Text Content</label>
                                         <input type="text" placeholder="Text to match" value={(rule as HTMLContainsRule).text} onChange={e => updateRule(rule.id, { text: e.target.value })} className={commonInputClasses} />
                                     </div>
                                 )}
                                 {rule.type === 'dom-value' && (
                                     <>
-                                         <div>
+                                        <div>
                                             <label className="block text-xs font-medium text-gray-500 mb-1">CSS Selector</label>
                                             <input type="text" placeholder="e.g., .price" value={(rule as DOMValueRule).selector} onChange={e => updateRule(rule.id, { selector: e.target.value })} className={commonInputClasses} />
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                 <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
                                                 <select value={(rule as DOMValueRule).condition} onChange={e => updateRule(rule.id, { condition: e.target.value as RuleCondition })} className={commonInputClasses}>
                                                     <option value="exists">Exists</option>
                                                     <option value="not-exists">Not Exists</option>
@@ -1611,7 +1610,7 @@ const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
-                                                 <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
                                                 <select value={(rule as TagAttributeRule).condition} onChange={e => updateRule(rule.id, { condition: e.target.value as RuleCondition })} className={commonInputClasses}>
                                                     <option value="exists">Exists</option>
                                                     <option value="not-exists">Not Exists</option>
@@ -1647,7 +1646,7 @@ const WorkerNodeSettings: React.FC<{ node: Node<WorkerNodeData>; onUpdate: (data
                     ))}
                     <button onClick={addRule} className={`${commonButtonClasses} bg-purple-600 hover:bg-purple-700 mt-4 py-3 shadow-sm`}>+ Add Detection Rule</button>
                 </div>
-             </CollapsibleSection>
+            </CollapsibleSection>
         </div>
     )
 };
@@ -1657,8 +1656,8 @@ const ShapeNodeSettings: React.FC<{ node: Node<ShapeNodeData>; onUpdate: (data: 
 
     return (
         <div className="space-y-4">
-             <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Shape Settings</h3>
-             <div>
+            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Shape Settings</h3>
+            <div>
                 <label className={commonLabelClasses}>Label</label>
                 <input type="text" value={data.label} onChange={e => onUpdate({ ...data, label: e.target.value })} className={commonInputClasses} />
             </div>
@@ -1667,11 +1666,11 @@ const ShapeNodeSettings: React.FC<{ node: Node<ShapeNodeData>; onUpdate: (data: 
                     <label className={commonLabelClasses}>Background Color</label>
                     <input type="color" value={data.backgroundColor} onChange={e => onUpdate({ ...data, backgroundColor: e.target.value })} className="w-full h-10 p-1 rounded-md cursor-pointer border border-gray-300" />
                 </div>
-                 <div>
+                <div>
                     <label className={commonLabelClasses}>Border Color</label>
                     <input type="color" value={data.borderColor} onChange={e => onUpdate({ ...data, borderColor: e.target.value })} className="w-full h-10 p-1 rounded-md cursor-pointer border border-gray-300" />
                 </div>
-                 <div>
+                <div>
                     <label className={commonLabelClasses}>Text Color</label>
                     <input type="color" value={data.textColor} onChange={e => onUpdate({ ...data, textColor: e.target.value })} className="w-full h-10 p-1 rounded-md cursor-pointer border border-gray-300" />
                 </div>
@@ -1739,190 +1738,191 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                 : [...current, actionId];
             onUpdateProjectSettings({ phase1Actions: next });
         };
-        
-        return (
-        <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Project Settings</h3>
-            
-            <div className="flex items-center justify-between mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div className="flex flex-col">
-                    <span className="text-sm font-bold text-gray-700">Enable Project</span>
-                    <span className="text-xs text-gray-500">{projectSettings.enabled ? 'Project is active' : 'Project is disabled'}</span>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => onUpdateProjectSettings({ enabled: !projectSettings.enabled })}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${projectSettings.enabled ? 'bg-green-500' : 'bg-gray-300'}`}
-                    role="switch"
-                    aria-checked={projectSettings.enabled}
-                >
-                    <span
-                        aria-hidden="true"
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${projectSettings.enabled ? 'translate-x-5' : 'translate-x-0'}`}
-                    />
-                </button>
-            </div>
 
-            <div>
-                <label className={commonLabelClasses}>Project Name</label>
-                <input type="text" value={projectSettings.name} onChange={e => onUpdateProjectSettings({ name: e.target.value })} className={commonInputClasses} />
-            </div>
-            <div>
-                <label className={commonLabelClasses}>Description</label>
-                <textarea value={projectSettings.description} onChange={e => onUpdateProjectSettings({ description: e.target.value })} className={`${commonInputClasses} h-24`} />
-            </div>
+        return (
             <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-800 border-b pb-2">Project Settings</h3>
+
+                <div className="flex items-center justify-between mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-700">Enable Project</span>
+                        <span className="text-xs text-gray-500">{projectSettings.enabled ? 'Project is active' : 'Project is disabled'}</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => onUpdateProjectSettings({ enabled: !projectSettings.enabled })}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${projectSettings.enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                        role="switch"
+                        aria-checked={projectSettings.enabled}
+                    >
+                        <span
+                            aria-hidden="true"
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${projectSettings.enabled ? 'translate-x-5' : 'translate-x-0'}`}
+                        />
+                    </button>
+                </div>
+
                 <div>
-                    <label className={commonLabelClasses}>Schedule (khoảng cách giữa mỗi lần chạy)</label>
+                    <label className={commonLabelClasses}>Project Name</label>
+                    <input type="text" value={projectSettings.name} onChange={e => onUpdateProjectSettings({ name: e.target.value })} className={commonInputClasses} />
+                </div>
+                <div>
+                    <label className={commonLabelClasses}>Description</label>
+                    <textarea value={projectSettings.description} onChange={e => onUpdateProjectSettings({ description: e.target.value })} className={`${commonInputClasses} h-24`} />
+                </div>
+                <div className="space-y-4">
+                    <div>
+                        <label className={commonLabelClasses}>Schedule (khoảng cách giữa mỗi lần chạy)</label>
+                        <select
+                            value={projectSettings.crawlDelay ?? 300000}
+                            onChange={e => onUpdateProjectSettings({ crawlDelay: parseInt(e.target.value) })}
+                            className={commonInputClasses}
+                        >
+                            {[
+                                { value: 60000, label: 'Mỗi 1 phút' },
+                                { value: 300000, label: 'Mỗi 5 phút' }, // default
+                                { value: 600000, label: 'Mỗi 10 phút' },
+                                { value: 900000, label: 'Mỗi 15 phút' },
+                                { value: 1800000, label: 'Mỗi 30 phút' },
+                                { value: 3600000, label: 'Mỗi 1 giờ' },
+                                { value: 7200000, label: 'Mỗi 2 giờ' },
+                                { value: 10800000, label: 'Mỗi 3 giờ' },
+                                { value: 14400000, label: 'Mỗi 4 giờ' },
+                                { value: 21600000, label: 'Mỗi 6 giờ' },
+                                { value: 28800000, label: 'Mỗi 8 giờ' },
+                                { value: 43200000, label: 'Mỗi 12 giờ' },
+                                { value: 86400000, label: 'Mỗi 1 ngày' },
+                                { value: 172800000, label: 'Mỗi 2 ngày' },
+                                { value: 259200000, label: 'Mỗi 3 ngày' },
+                                { value: 432000000, label: 'Mỗi 5 ngày' },
+                                { value: 604800000, label: 'Mỗi 7 ngày' },
+                                { value: 864000000, label: 'Mỗi 10 ngày' },
+                                { value: 1296000000, label: 'Mỗi 15 ngày' },
+                                { value: 1728000000, label: 'Mỗi 20 ngày' },
+                                { value: 2592000000, label: 'Mỗi 1 tháng' },
+                            ].map(opt => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className={commonLabelClasses}>Số items tối đa mỗi lần cron xử lý</label>
+                        <input
+                            type="number"
+                            value={projectSettings.concurrency ?? 50}
+                            onChange={e => onUpdateProjectSettings({ concurrency: parseInt(e.target.value) || 50 })}
+                            className={commonInputClasses}
+                            min={1}
+                        />
+                    </div>
+                </div>
+                {phase1Actions.length > 0 && (
+                    <div className="space-y-2">
+                        <label className={commonLabelClasses}>Project Actions: Extra Phase</label>
+                        <p className="text-xs text-gray-500">
+                            Chọn các actions chạy ở Bonus/Phase 1 (ví dụ: DataUpdateCheckerAction).
+                        </p>
+                        <div className="space-y-2">
+                            {phase1Actions.map(action => {
+                                const selected = (projectSettings.phase1Actions ?? (phase1Actions.find(a => a.id === 'data_update_checker') ? ['data_update_checker'] : [])).includes(action.id);
+                                const isDataUpdateChecker = action.id === 'data_update_checker';
+                                return (
+                                    <label
+                                        key={action.id}
+                                        className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${selected ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-slate-300'
+                                            }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            onChange={() => handleProjectActionToggle(action.id)}
+                                            className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <div className="flex-1">
+                                            <div className="font-medium text-gray-900">{action.label}</div>
+                                            {action.description && (
+                                                <div className="text-sm text-gray-600 mt-1">{action.description}</div>
+                                            )}
+                                            <div className="text-xs text-gray-500 mt-1">Priority: {action.priority}</div>
+                                            {isDataUpdateChecker && selected && (
+                                                <div className="mt-3 pt-3 border-t border-slate-200">
+                                                    <label className="text-sm font-medium text-gray-700 block mb-1">
+                                                        Data Update Checker Schedule
+                                                    </label>
+                                                    <select
+                                                        value={projectSettings.dataUpdateCheckerSchedule || ''}
+                                                        onChange={e => onUpdateProjectSettings({ dataUpdateCheckerSchedule: e.target.value || undefined })}
+                                                        className={smallInputClasses}
+                                                    >
+                                                        <option value="">Sử dụng schedule của project</option>
+                                                        <option value="every_5_minutes">Mỗi 5 phút</option>
+                                                        <option value="every_15_minutes">Mỗi 15 phút</option>
+                                                        <option value="every_30_minutes">Mỗi 30 phút</option>
+                                                        <option value="hourly">Mỗi 1 giờ</option>
+                                                        <option value="twicedaily">Mỗi 12 giờ</option>
+                                                        <option value="daily">Mỗi ngày</option>
+                                                        <option value="weekly">Mỗi tuần</option>
+                                                        <option value="15days">Mỗi 15 ngày</option>
+                                                        <option value="monthly">Mỗi 1 tháng</option>
+                                                    </select>
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Nếu không chọn, Data Update Checker sẽ sử dụng schedule của project
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+                <div>
+                    <label className={commonLabelClasses}>User Agent</label>
+                    <input type="text" value={projectSettings.userAgent} onChange={e => onUpdateProjectSettings({ userAgent: e.target.value })} className={commonInputClasses} />
+                </div>
+                <div>
+                    <label className={commonLabelClasses}>HTTP Client</label>
                     <select
-                        value={projectSettings.crawlDelay ?? 300000}
-                        onChange={e => onUpdateProjectSettings({ crawlDelay: parseInt(e.target.value) })}
+                        value={projectSettings.httpClient || ''}
+                        onChange={e => onUpdateProjectSettings({ httpClient: e.target.value || undefined })}
                         className={commonInputClasses}
                     >
-                        {[
-                            { value: 60000, label: 'Mỗi 1 phút' },
-                            { value: 300000, label: 'Mỗi 5 phút' }, // default
-                            { value: 600000, label: 'Mỗi 10 phút' },
-                            { value: 900000, label: 'Mỗi 15 phút' },
-                            { value: 1800000, label: 'Mỗi 30 phút' },
-                            { value: 3600000, label: 'Mỗi 1 giờ' },
-                            { value: 7200000, label: 'Mỗi 2 giờ' },
-                            { value: 10800000, label: 'Mỗi 3 giờ' },
-                            { value: 14400000, label: 'Mỗi 4 giờ' },
-                            { value: 21600000, label: 'Mỗi 6 giờ' },
-                            { value: 28800000, label: 'Mỗi 8 giờ' },
-                            { value: 43200000, label: 'Mỗi 12 giờ' },
-                            { value: 86400000, label: 'Mỗi 1 ngày' },
-                            { value: 172800000, label: 'Mỗi 2 ngày' },
-                            { value: 259200000, label: 'Mỗi 3 ngày' },
-                            { value: 432000000, label: 'Mỗi 5 ngày' },
-                            { value: 604800000, label: 'Mỗi 7 ngày' },
-                            { value: 864000000, label: 'Mỗi 10 ngày' },
-                            { value: 1296000000, label: 'Mỗi 15 ngày' },
-                        ].map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                                {opt.label}
+                        <option value="">Default (Auto-select)</option>
+                        {httpClients.map(client => (
+                            <option key={client.name} value={client.name}>
+                                {client.icon} {client.label}
                             </option>
                         ))}
                     </select>
+                    {projectSettings.httpClient && (
+                        <p className="text-xs text-gray-500 mt-1">
+                            {httpClients.find(c => c.name === projectSettings.httpClient)?.description || ''}
+                        </p>
+                    )}
                 </div>
-                <div>
-                    <label className={commonLabelClasses}>Số items tối đa mỗi lần cron xử lý</label>
-                    <input
-                        type="number"
-                        value={projectSettings.concurrency ?? 50}
-                        onChange={e => onUpdateProjectSettings({ concurrency: parseInt(e.target.value) || 50 })}
-                        className={commonInputClasses}
-                        min={1}
-                    />
-                </div>
-            </div>
-            {phase1Actions.length > 0 && (
-                <div className="space-y-2">
-                    <label className={commonLabelClasses}>Project Actions: Extra Phase</label>
-                    <p className="text-xs text-gray-500">
-                        Chọn các actions chạy ở Bonus/Phase 1 (ví dụ: DataUpdateCheckerAction).
-                    </p>
-                    <div className="space-y-2">
-                        {phase1Actions.map(action => {
-                            const selected = (projectSettings.phase1Actions ?? (phase1Actions.find(a => a.id === 'data_update_checker') ? ['data_update_checker'] : [])).includes(action.id);
-                            const isDataUpdateChecker = action.id === 'data_update_checker';
-                            return (
-                                <label
-                                    key={action.id}
-                                    className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
-                                        selected ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-slate-300'
-                                    }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={selected}
-                                        onChange={() => handleProjectActionToggle(action.id)}
-                                        className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <div className="flex-1">
-                                        <div className="font-medium text-gray-900">{action.label}</div>
-                                        {action.description && (
-                                            <div className="text-sm text-gray-600 mt-1">{action.description}</div>
-                                        )}
-                                        <div className="text-xs text-gray-500 mt-1">Priority: {action.priority}</div>
-                                        {isDataUpdateChecker && selected && (
-                                            <div className="mt-3 pt-3 border-t border-slate-200">
-                                                <label className="text-sm font-medium text-gray-700 block mb-1">
-                                                    Data Update Checker Schedule
-                                                </label>
-                                                <select 
-                                                    value={projectSettings.dataUpdateCheckerSchedule || ''} 
-                                                    onChange={e => onUpdateProjectSettings({ dataUpdateCheckerSchedule: e.target.value || undefined })} 
-                                                    className={smallInputClasses}
-                                                >
-                                                    <option value="">Sử dụng schedule của project</option>
-                                                    <option value="every_5_minutes">Mỗi 5 phút</option>
-                                                    <option value="every_15_minutes">Mỗi 15 phút</option>
-                                                    <option value="every_30_minutes">Mỗi 30 phút</option>
-                                                    <option value="hourly">Mỗi 1 giờ</option>
-                                                    <option value="twicedaily">Mỗi 12 giờ</option>
-                                                    <option value="daily">Mỗi ngày</option>
-                                                    <option value="weekly">Mỗi tuần</option>
-                                                    <option value="15days">Mỗi 15 ngày</option>
-                                                    <option value="monthly">Mỗi tháng</option>
-                                                </select>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    Nếu không chọn, Data Update Checker sẽ sử dụng schedule của project
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </label>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-            <div>
-                <label className={commonLabelClasses}>User Agent</label>
-                <input type="text" value={projectSettings.userAgent} onChange={e => onUpdateProjectSettings({ userAgent: e.target.value })} className={commonInputClasses} />
-            </div>
-            <div>
-                <label className={commonLabelClasses}>HTTP Client</label>
-                <select 
-                    value={projectSettings.httpClient || ''} 
-                    onChange={e => onUpdateProjectSettings({ httpClient: e.target.value || undefined })} 
-                    className={commonInputClasses}
-                >
-                    <option value="">Default (Auto-select)</option>
-                    {httpClients.map(client => (
-                        <option key={client.name} value={client.name}>
-                            {client.icon} {client.label}
-                        </option>
-                    ))}
-                </select>
-                {projectSettings.httpClient && (
-                    <p className="text-xs text-gray-500 mt-1">
-                        {httpClients.find(c => c.name === projectSettings.httpClient)?.description || ''}
-                    </p>
-                )}
-            </div>
 
-            <div className="pt-6 border-t mt-6">
-                <h4 className="font-semibold text-gray-700 mb-3">Actions</h4>
-                 <div className="flex gap-2">
-                    <button onClick={onExport} className={`${commonButtonClasses} bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2`}>
-                        <ArrowDownTrayIcon /> Export JSON
+                <div className="pt-6 border-t mt-6">
+                    <h4 className="font-semibold text-gray-700 mb-3">Actions</h4>
+                    <div className="flex gap-2">
+                        <button onClick={onExport} className={`${commonButtonClasses} bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2`}>
+                            <ArrowDownTrayIcon /> Export JSON
+                        </button>
+                        <label className={`${commonButtonClasses} bg-slate-600 hover:bg-slate-700 flex items-center justify-center gap-2 cursor-pointer`}>
+                            <ArrowUpTrayIcon /> Import JSON
+                            <input type="file" onChange={onImport} className="hidden" accept=".json" />
+                        </label>
+                    </div>
+                    <button
+                        onClick={onSave}
+                        className="w-full mt-3 p-3 rounded-md font-bold text-white bg-green-600 hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-md"
+                    >
+                        <CloudIcon /> Save Project
                     </button>
-                     <label className={`${commonButtonClasses} bg-slate-600 hover:bg-slate-700 flex items-center justify-center gap-2 cursor-pointer`}>
-                        <ArrowUpTrayIcon /> Import JSON
-                        <input type="file" onChange={onImport} className="hidden" accept=".json" />
-                    </label>
                 </div>
-                <button
-                    onClick={onSave}
-                    className="w-full mt-3 p-3 rounded-md font-bold text-white bg-green-600 hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-md"
-                >
-                    <CloudIcon /> Save Project
-                </button>
             </div>
-        </div>
         );
     };
 
@@ -1934,13 +1934,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = (props) => {
                     <XMarkIcon />
                 </button>
             </div>
-            
+
             {node ? (
                 <>
                     {renderNodeSettings()}
                     {node.deletable !== false && (
-                         <div className="mt-8 pt-6 border-t">
-                            <button 
+                        <div className="mt-8 pt-6 border-t">
+                            <button
                                 onClick={() => onDeleteNode(node.id)}
                                 className="w-full p-2 bg-red-100 text-red-700 rounded-md font-semibold hover:bg-red-200 transition-colors flex items-center justify-center gap-2"
                             >
