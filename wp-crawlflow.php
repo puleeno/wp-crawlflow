@@ -3,7 +3,7 @@
  * Plugin Name: CrawlFlow - Data Migration & Crawling Framework
  * Plugin URI: https://github.com/puleeno/wp-crawlflow
  * Description: A powerful WordPress plugin for data migration and web crawling using Rake 2.0 framework
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Puleeno Nguyen
  * Author URI: https://github.com/puleeno
  * License: GPL v3
@@ -31,7 +31,8 @@ define('CRAWLFLOW_PLUGIN_BASENAME', plugin_basename(__FILE__));
 /**
  * Main CrawlFlow Plugin Class
  */
-class WP_CrawlFlow {
+class WP_CrawlFlow
+{
 
     /**
      * Plugin instance
@@ -46,7 +47,8 @@ class WP_CrawlFlow {
     /**
      * Get plugin instance (Singleton)
      */
-    public static function getInstance() {
+    public static function getInstance()
+    {
         if (self::$instance === null) {
             self::$instance = new self();
         }
@@ -56,14 +58,16 @@ class WP_CrawlFlow {
     /**
      * Constructor
      */
-    private function __construct() {
+    private function __construct()
+    {
         $this->init();
     }
 
     /**
      * Initialize plugin
      */
-    private function init() {
+    private function init()
+    {
         // Load composer autoloader
         $this->loadComposerAutoloader();
 
@@ -82,7 +86,8 @@ class WP_CrawlFlow {
     /**
      * Load Composer autoloader
      */
-    private function loadComposerAutoloader() {
+    private function loadComposerAutoloader()
+    {
         $autoloader = CRAWLFLOW_PLUGIN_DIR . 'vendor/autoload.php';
         if (file_exists($autoloader)) {
             require_once $autoloader;
@@ -94,11 +99,12 @@ class WP_CrawlFlow {
      * 
      * @throws \Exception If Rake classes are not available or initialization fails
      */
-    private function initRake(): void {
+    private function initRake(): void
+    {
         // Initialize LoggerService FIRST (CRITICAL: Do not delete or modify)
         // This ensures Rake Logger system is available before any other components
         \CrawlFlow\LoggerService::init();
-        
+
         // Use ApplicationBootstrapper for clean service provider registration
         // The constructor automatically calls parent::__construct() which handles bootstrapping
         $bootstrapper = new \CrawlFlow\Bootstrapper\ApplicationBootstrapper();
@@ -113,7 +119,8 @@ class WP_CrawlFlow {
     /**
      * Initialize WordPress hooks
      */
-    private function initHooks() {
+    private function initHooks()
+    {
         // Initialize registry hooks (for processors, data sources, etc.)
         \CrawlFlow\Hooks\RegistryHooks::init();
 
@@ -124,16 +131,16 @@ class WP_CrawlFlow {
         // Admin scripts and styles
         // Use priority 20 to ensure WordPress core scripts (like wp-hooks) are loaded first
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets'], 20);
-        
+
         // Register React Flow CSS early to ensure it's available
         add_action('admin_init', [$this, 'registerReactFlowCSS'], 1);
-        
+
         // Load React Flow CSS early in head to prevent FOUC
         add_action('admin_head', [$this, 'preloadReactFlowCSS'], 1);
 
         // Load text domain
         add_action('plugins_loaded', [$this, 'loadTextDomain']);
-        
+
         // Fix for wp.hooks and wp.svgPainter undefined errors
         // Ensure WordPress core objects exist before scripts try to use them
         add_action('admin_head', [$this, 'fixWpObjectsUndefined'], 1);
@@ -145,31 +152,32 @@ class WP_CrawlFlow {
      * 
      * @throws \Exception If Rake is not initialized
      */
-    private function initAdmin(): void {
+    private function initAdmin(): void
+    {
         // Load ProjectStatusService for completion tracking
         require_once CRAWLFLOW_PLUGIN_DIR . 'src/Admin/ProjectStatusService.php';
         require_once CRAWLFLOW_PLUGIN_DIR . 'src/Helper/DatabaseStatusChecker.php';
-        
+
         // Initialize project status tracking
         $projectStatusService = new \CrawlFlow\Admin\ProjectStatusService();
         $dbChecker = new \CrawlFlow\Helper\DatabaseStatusChecker();
-        
+
         // Schedule automatic status updates
         if (!wp_next_scheduled('crawlflow_update_project_statuses')) {
             wp_schedule_event(time(), 'hourly', 'crawlflow_update_project_statuses');
         }
-        
+
         // Hook for automatic status updates
-        add_action('crawlflow_update_project_statuses', function() use ($projectStatusService) {
+        add_action('crawlflow_update_project_statuses', function () use ($projectStatusService) {
             $updated = $projectStatusService->autoUpdateProjectStatuses();
             if (!empty($updated)) {
                 \Rake\Facade\Logger::info('CrawlFlow: Auto-updated project statuses: ' . json_encode($updated));
             }
         });
-        
+
         // Register admin notices for migration status
         $dbChecker->registerHooks();
-        
+
         // Controller is already initialized by AdminServiceProvider
         // This method is kept for future admin-specific initialization
         // that doesn't belong in service providers
@@ -178,7 +186,8 @@ class WP_CrawlFlow {
     /**
      * Plugin activation
      */
-    public function activate() {
+    public function activate()
+    {
         // Set default options
         $this->setDefaultOptions();
 
@@ -190,7 +199,7 @@ class WP_CrawlFlow {
 
         // Run CrawlFlow custom migrations
         $this->runCrawlFlowMigrations();
-        
+
         // Initialize log import cron
         \CrawlFlow\Cron\LogImportCron::init();
 
@@ -201,7 +210,8 @@ class WP_CrawlFlow {
     /**
      * Plugin deactivation
      */
-    public function deactivate() {
+    public function deactivate()
+    {
         // Clean up if needed
         flush_rewrite_rules();
     }
@@ -209,7 +219,8 @@ class WP_CrawlFlow {
     /**
      * Set default options
      */
-    private function setDefaultOptions() {
+    private function setDefaultOptions()
+    {
         $default_options = [
             'crawlflow_version' => CRAWLFLOW_VERSION,
             'crawlflow_enabled' => true,
@@ -229,11 +240,12 @@ class WP_CrawlFlow {
     /**
      * Register React Flow CSS early
      */
-    public function registerReactFlowCSS() {
+    public function registerReactFlowCSS()
+    {
         // Check if we're on the React Flow editor page
         $subScreen = sanitize_text_field($_GET['sub'] ?? '');
         $editor = sanitize_text_field($_GET['editor'] ?? '');
-        
+
         if ($subScreen === 'compose' && $editor === 'flow') {
             // Register CSS early so it's available when enqueued
             wp_register_style(
@@ -245,20 +257,21 @@ class WP_CrawlFlow {
             );
         }
     }
-    
+
     /**
      * Load React Flow CSS early in head to prevent FOUC
      */
-    public function preloadReactFlowCSS() {
+    public function preloadReactFlowCSS()
+    {
         // Check if we're on the React Flow editor page
         $subScreen = sanitize_text_field($_GET['sub'] ?? '');
         $editor = sanitize_text_field($_GET['editor'] ?? '');
-        
+
         if ($subScreen === 'compose' && $editor === 'flow') {
             // Load React Flow CSS directly in head for immediate rendering
             // This prevents Flash of Unstyled Content (FOUC)
             echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css?ver=11.11.4" media="all">' . "\n";
-            
+
             // Add inline style to hide content until CSS loads
             echo '<style id="crawlflow-react-flow-critical">
                 #crawlflow-react-flow-root {
@@ -271,7 +284,7 @@ class WP_CrawlFlow {
                     opacity: 1 !important;
                 }
             </style>' . "\n";
-            
+
             // Script to mark CSS as loaded - wait for DOM ready
             echo '<script>
                 (function() {
@@ -330,11 +343,12 @@ class WP_CrawlFlow {
             </script>' . "\n";
         }
     }
-    
+
     /**
      * Enqueue admin assets
      */
-    public function enqueueAdminAssets($hook) {
+    public function enqueueAdminAssets($hook)
+    {
         // Load on all CrawlFlow pages including analytics
         if (strpos($hook, 'crawlflow') !== false) {
             wp_enqueue_style(
@@ -343,7 +357,7 @@ class WP_CrawlFlow {
                 [],
                 CRAWLFLOW_VERSION
             );
-            
+
             // Also enqueue admin JS for functionality
             wp_enqueue_script(
                 'crawlflow-admin-js',
@@ -352,7 +366,7 @@ class WP_CrawlFlow {
                 CRAWLFLOW_VERSION,
                 true
             );
-            
+
             // Localize script for AJAX calls
             wp_localize_script('crawlflow-admin-js', 'crawlflowAdmin', [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -365,34 +379,35 @@ class WP_CrawlFlow {
                     'error' => __('An error occurred.', 'crawlflow'),
                 ],
             ]);
-            
+
             // Check if we're on the React Flow editor page
             $subScreen = sanitize_text_field($_GET['sub'] ?? '');
             $editor = sanitize_text_field($_GET['editor'] ?? '');
-            
+
             if ($subScreen === 'compose' && $editor === 'flow') {
                 $this->enqueueReactFlowAssets();
             }
         }
     }
-    
+
     /**
      * Enqueue React Flow assets
      */
-    private function enqueueReactFlowAssets() {
+    private function enqueueReactFlowAssets()
+    {
         $buildDir = CRAWLFLOW_PLUGIN_DIR . 'assets/js/crawflow-ui/dist';
         $buildUrl = CRAWLFLOW_PLUGIN_URL . 'assets/js/crawflow-ui/dist';
-        
+
         // Check if manifest exists
         $manifestPath = $buildDir . '/.vite/manifest.json';
-        
+
         if (file_exists($manifestPath)) {
             $manifest = json_decode(file_get_contents($manifestPath), true);
-            
+
             // Enqueue main entry
             if (isset($manifest['index.html'])) {
                 $entry = $manifest['index.html'];
-                
+
                 // Enqueue CSS
                 if (isset($entry['css'])) {
                     foreach ($entry['css'] as $css) {
@@ -404,7 +419,7 @@ class WP_CrawlFlow {
                         );
                     }
                 }
-                
+
                 // Enqueue JS
                 if (isset($entry['file'])) {
                     // Use file hash as version for cache busting
@@ -417,7 +432,7 @@ class WP_CrawlFlow {
                         $fileHash ?: CRAWLFLOW_VERSION,
                         true
                     );
-                    
+
                     // Localize script with WordPress AJAX URL and nonce
                     wp_localize_script(
                         'crawlflow-react-flow',
@@ -448,16 +463,16 @@ class WP_CrawlFlow {
                 wp_add_inline_script('jquery', 'console.warn("CrawlFlow: Built assets not found. Please run npm run build in assets/js/crawflow-ui");');
             }
         }
-        
+
         // Enqueue React Flow CSS (already registered in admin_init)
         // This is a fallback in case preload in admin_head didn't work
         if (!wp_style_is('reactflow-style', 'enqueued')) {
             wp_enqueue_style('reactflow-style');
         }
-        
+
         // Force CSS to load in head, not footer
         wp_style_add_data('reactflow-style', 'group', 0);
-        
+
         // Add inline style to ensure React Flow styles are not overridden
         wp_add_inline_style(
             'reactflow-style',
@@ -471,7 +486,7 @@ class WP_CrawlFlow {
             }
             '
         );
-        
+
         // Always load Tailwind CSS via CDN for React Flow UI
         // This ensures all Tailwind classes work properly
         wp_add_inline_script(
@@ -499,71 +514,73 @@ class WP_CrawlFlow {
     /**
      * Load text domain
      */
-    public function loadTextDomain() {
+    public function loadTextDomain()
+    {
         load_plugin_textdomain(
             'crawlflow',
             false,
             dirname(CRAWLFLOW_PLUGIN_BASENAME) . '/languages'
         );
     }
-    
+
     /**
      * Fix wp.hooks and wp.svgPainter undefined errors
      * This ensures WordPress core objects exist before scripts try to use them
      */
-    public function fixWpObjectsUndefined() {
+    public function fixWpObjectsUndefined()
+    {
         // Only run in admin area
         if (!is_admin()) {
             return;
         }
-        
+
         // Add safety checks to ensure WordPress core objects exist before scripts run
         // This fixes errors like "wp.hooks is undefined" and "wp.svgPainter is undefined"
         ?>
         <script>
-        (function() {
-            // Ensure wp object exists
-            if (typeof window.wp === 'undefined') {
-                window.wp = {};
-            }
-            
-            // Fix for wp.hooks - used by heartbeat.js
-            // If wp.hooks doesn't exist yet, create a minimal stub
-            // This will be replaced by the actual wp-hooks script when it loads
-            if (typeof window.wp.hooks === 'undefined') {
-                window.wp.hooks = {
-                    doAction: function() {
-                        // Stub function - will be replaced by actual wp-hooks
-                        if (console && console.warn) {
-                            console.warn('wp.hooks.doAction called before wp-hooks script loaded');
+            (function () {
+                // Ensure wp object exists
+                if (typeof window.wp === 'undefined') {
+                    window.wp = {};
+                }
+
+                // Fix for wp.hooks - used by heartbeat.js
+                // If wp.hooks doesn't exist yet, create a minimal stub
+                // This will be replaced by the actual wp-hooks script when it loads
+                if (typeof window.wp.hooks === 'undefined') {
+                    window.wp.hooks = {
+                        doAction: function () {
+                            // Stub function - will be replaced by actual wp-hooks
+                            if (console && console.warn) {
+                                console.warn('wp.hooks.doAction called before wp-hooks script loaded');
+                            }
+                        },
+                        addAction: function () { },
+                        removeAction: function () { },
+                        addFilter: function () { },
+                        removeFilter: function () { },
+                        applyFilters: function () {
+                            return arguments[1];
                         }
-                    },
-                    addAction: function() {},
-                    removeAction: function() {},
-                    addFilter: function() {},
-                    removeFilter: function() {},
-                    applyFilters: function() {
-                        return arguments[1];
-                    }
-                };
-            }
-            
-            // Fix for wp.svgPainter - used by svg-painter.js
-            // If wp.svgPainter doesn't exist yet, create a minimal stub
-            // This will be replaced by the actual svg-painter script when it loads
-            if (typeof window.wp.svgPainter === 'undefined') {
-                window.wp.svgPainter = {
-                    init: function() {
-                        // Stub function - will be replaced by actual svg-painter
-                        // This prevents errors when svg-painter.js tries to call wp.svgPainter.init()
-                    },
-                    setColors: function() {},
-                    findElements: function() {},
-                    paint: function() {},
-                    paintElement: function() {}
-                };
-            }
-        })();
+                    };
+                }
+
+                // Fix for wp.svgPainter - used by svg-painter.js
+                // If wp.svgPainter doesn't exist yet, create a minimal stub
+                // This will be replaced by the actual svg-painter script when it loads
+                if (typeof window.wp.svgPainter === 'undefined') {
+                    window.wp.svgPainter = {
+                        init: function () {
+                            // Stub function - will be replaced by actual svg-painter
+                            // This prevents errors when svg-painter.js tries to call wp.svgPainter.init()
+                        },
+                        setColors: function () { },
+                        findElements: function () { },
+                        paint: function () { },
+                        paintElement: function () { }
+                    };
+                }
+            })();
         </script>
         <?php
     }
@@ -573,13 +590,14 @@ class WP_CrawlFlow {
      * 
      * @throws \Exception If migration kernel initialization or execution fails
      */
-    private function runRakeMigrations(): void {
+    private function runRakeMigrations(): void
+    {
         global $wpdb;
-        
+
         // Suppress duplicate key/constraint warnings during Rake migrations
         // These are harmless warnings when indexes/constraints already exist
         $wpdb->hide_errors();
-        
+
         try {
             // Khởi tạo kernel migration
             $kernel = new \CrawlFlow\Kernel\CrawlFlowMigrationKernel();
@@ -606,15 +624,16 @@ class WP_CrawlFlow {
      * Runs custom migrations specific to CrawlFlow plugin
      * Note: Most migrations have been moved to Rake framework schema definitions
      */
-    private function runCrawlFlowMigrations(): void {
+    private function runCrawlFlowMigrations(): void
+    {
         // Load and run project status tracking migration
         require_once CRAWLFLOW_PLUGIN_DIR . 'database/migrations/add-project-status-tracking.php';
-        
+
         if (function_exists('crawlflow_run_project_status_migration')) {
             crawlflow_run_project_status_migration();
             \Rake\Facade\Logger::info('CrawlFlow: Project status tracking migration completed');
         }
-        
+
         \Rake\Facade\Logger::info('CrawlFlow: Custom migrations handled by Rake framework schema definitions');
     }
 
@@ -626,7 +645,7 @@ class WP_CrawlFlow {
         try {
             $dbChecker = new \CrawlFlow\Helper\DatabaseStatusChecker();
             $dbChecker->registerHooks();
-            
+
             // Log initial status
             $status = $dbChecker->checkDatabaseStatus();
             if (!$status['healthy']) {
