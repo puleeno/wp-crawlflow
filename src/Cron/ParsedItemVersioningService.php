@@ -58,7 +58,6 @@ class ParsedItemVersioningService
             'processor_id' => $processorId,
             'processor_name' => $processorName ?: $processorId,
             'parsed_data' => $parsedDataJson,
-            'status' => 'pending',
             'has_change' => 1, // Data has changed, needs saving
             'metadata' => $metadataJson,
             'created_at' => current_time('mysql'),
