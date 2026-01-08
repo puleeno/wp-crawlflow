@@ -11,6 +11,41 @@ interface Preset {
 }
 
 export const PRESETS: Record<string, Preset> = {
+  'ctt-stories': {
+    name: 'CTT Stories (MySQL)',
+    mysql: {
+      mappings: [
+        { id: 'preset-ctt-stories-1', source: 'title', fieldName: 'title' },
+        { id: 'preset-ctt-stories-2', source: 'slug', fieldName: 'slug' },
+        { id: 'preset-ctt-stories-3', source: 'description', fieldName: 'description' },
+        { id: 'preset-ctt-stories-4', source: 'content', fieldName: 'content' },
+        { id: 'preset-ctt-stories-5', source: 'thumbnail', fieldName: 'thumbnail' },
+        { id: 'preset-ctt-stories-6', source: 'author_name', fieldName: 'author_name' },
+        { id: 'preset-ctt-stories-7', source: 'source_url', fieldName: 'source_url' },
+        { id: 'preset-ctt-stories-8', source: 'source_site', fieldName: 'source_site' },
+        { id: 'preset-ctt-stories-9', source: 'format', fieldName: 'format' },
+        { id: 'preset-ctt-stories-10', source: 'status', fieldName: 'status' },
+        { id: 'preset-ctt-stories-11', source: 'rating_average', fieldName: 'rating_average' },
+        { id: 'preset-ctt-stories-12', source: 'rating_count', fieldName: 'rating_count' },
+      ]
+    }
+  },
+  'ctt-chapters': {
+    name: 'CTT Chapters (MySQL)',
+    mysql: {
+      mappings: [
+        { id: 'preset-ctt-chapters-1', source: 'story_id', fieldName: 'story_id' },
+        { id: 'preset-ctt-chapters-2', source: 'slug', fieldName: 'slug' },
+        { id: 'preset-ctt-chapters-3', source: 'chapter_number', fieldName: 'chapter_number' },
+        { id: 'preset-ctt-chapters-4', source: 'title', fieldName: 'title' },
+        { id: 'preset-ctt-chapters-5', source: 'content', fieldName: 'content' },
+        { id: 'preset-ctt-chapters-6', source: 'source_url', fieldName: 'source_url' },
+        { id: 'preset-ctt-chapters-7', source: 'content_type', fieldName: 'content_type' },
+        { id: 'preset-ctt-chapters-8', source: 'word_count', fieldName: 'word_count' },
+        { id: 'preset-ctt-chapters-9', source: 'image_count', fieldName: 'image_count' },
+      ]
+    }
+  },
   'ecommerce-product': {
     name: 'E-commerce Product',
     html: {
