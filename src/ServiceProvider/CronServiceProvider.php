@@ -29,14 +29,14 @@ class CronServiceProvider extends AbstractServiceProvider
     {
         // Register custom cron schedules
         add_filter('cron_schedules', [$this, 'addCustomSchedules']);
-        
+
         // Register cron hooks
         $cronScheduler = $this->app->make('CrawlFlow\Cron\CronScheduler');
         $cronScheduler->register();
-        
+
         // Schedule all active projects on boot (if not already scheduled)
         add_action('init', [$this, 'scheduleActiveProjects'], 20);
-        
+
         // Register WP CLI commands (only if WP-CLI is available)
         if (defined('WP_CLI') && constant('WP_CLI') && class_exists('WP_CLI')) {
             $this->registerCliCommands();
@@ -136,6 +136,44 @@ class CronServiceProvider extends AbstractServiceProvider
             'shortdesc' => 'List Data Update Checker schedules for all projects',
             'synopsis' => [],
         ]);
+
+        // Register Project Commands
+        $projectCommand = new \CrawlFlow\CLI\ProjectCommand();
+
+        $this->addCliCommand('crawlflow project list', [$projectCommand, 'list'], [
+            'shortdesc' => 'List all CrawlFlow projects',
+            'synopsis' => [],
+        ]);
+
+        $this->addCliCommand('crawlflow project test', [$projectCommand, 'test'], [
+            'shortdesc' => 'Test a CrawlFlow project operation',
+            'synopsis' => [
+                [
+                    'type' => 'positional',
+                    'name' => 'project_id',
+                    'optional' => false,
+                    'description' => 'Project ID to test',
+                ],
+                [
+                    'type' => 'flag',
+                    'name' => 'fetch',
+                    'optional' => true,
+                    'description' => 'Attempt to fetch from data source',
+                ],
+                [
+                    'type' => 'assoc',
+                    'name' => 'phase',
+                    'optional' => true,
+                    'description' => 'Specific phase to test (1, 2, or 3)',
+                ],
+                [
+                    'type' => 'flag',
+                    'name' => 'run-all',
+                    'optional' => true,
+                    'description' => 'Execute all 3 phases sequentially',
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -158,46 +196,46 @@ class CronServiceProvider extends AbstractServiceProvider
             'interval' => 5 * MINUTE_IN_SECONDS,
             'display' => 'Every 5 Minutes',
         ];
-        
+
         $schedules['every_15_minutes'] = [
             'interval' => 15 * MINUTE_IN_SECONDS,
             'display' => 'Every 15 Minutes',
         ];
-        
+
         $schedules['every_30_minutes'] = [
             'interval' => 30 * MINUTE_IN_SECONDS,
             'display' => 'Every 30 Minutes',
         ];
-        
+
         $schedules['every_6_hours'] = [
             'interval' => 6 * HOUR_IN_SECONDS,
             'display' => 'Every 6 Hours',
         ];
-        
+
         // Add custom schedules for active projects directly
         try {
             $cronScheduler = $this->app->make('CrawlFlow\Cron\CronScheduler');
             $projects = $cronScheduler->getProjectService()->getAllProjects();
-            
+
             \Rake\Facade\Logger::info('CrawlFlow: Found ' . count($projects) . ' projects for schedule registration');
-            
+
             foreach ($projects as $project) {
                 if (($project['status'] ?? '') === 'active') {
                     $projectId = $project['id'] ?? 0;
                     $projectCacheService = new \CrawlFlow\Cron\ProjectCacheService();
                     $flowConfig = $projectCacheService->getFlowConfig($projectId);
                     $projectSettings = $flowConfig['projectSettings'] ?? [];
-                    
+
                     if ($projectSettings['enabled'] ?? false) {
-                        $crawlDelayMs = (int)($projectSettings['crawlDelay'] ?? 300000);
-                        $intervalSeconds = max(60, (int)round($crawlDelayMs / 1000));
+                        $crawlDelayMs = (int) ($projectSettings['crawlDelay'] ?? 300000);
+                        $intervalSeconds = max(60, (int) round($crawlDelayMs / 1000));
                         $scheduleSlug = 'crawlflow_project_' . $projectId;
-                        
+
                         $schedules[$scheduleSlug] = [
                             'interval' => $intervalSeconds,
                             'display' => "CrawlFlow Project interval ({$intervalSeconds}s)",
                         ];
-                        
+
                         \Rake\Facade\Logger::info("CrawlFlow: Registered schedule {$scheduleSlug} with interval {$intervalSeconds}s");
                     } else {
                         \Rake\Facade\Logger::warning("CrawlFlow: Project {$projectId} is not enabled, skipping schedule registration");
@@ -209,7 +247,7 @@ class CronServiceProvider extends AbstractServiceProvider
         } catch (\Exception $e) {
             \Rake\Facade\Logger::error("CrawlFlow: Error adding custom project schedules: " . $e->getMessage());
         }
-        
+
         return $schedules;
     }
 
@@ -228,10 +266,10 @@ class CronServiceProvider extends AbstractServiceProvider
         try {
             $projectService = $this->app->make('CrawlFlow\Admin\ProjectService');
             $cronScheduler = $this->app->make('CrawlFlow\Cron\CronScheduler');
-            
+
             // Get all projects (limit to reasonable number)
             $projects = $projectService->getProjects(1, 100);
-            
+
             foreach ($projects as $project) {
                 // Only schedule active projects
                 if ($project['status'] !== 'active') {

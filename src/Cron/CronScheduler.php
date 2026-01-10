@@ -68,9 +68,9 @@ class CronScheduler
         $rake = Rake::getInstance();
         $this->projectService = $rake->make('CrawlFlow\Admin\ProjectService');
         $this->flowService = $rake->make('CrawlFlow\Flow\FlowService');
-        $this->phase1Service = new Phase1CrawlService();
-        $this->phase2Service = new Phase2ProcessService();
-        $this->phase3Service = new Phase3ResourcesService();
+        $this->phase1Service = $rake->make('CrawlFlow\Cron\Phase1CrawlService');
+        $this->phase2Service = $rake->make('CrawlFlow\Cron\Phase2ProcessService');
+        $this->phase3Service = $rake->make('CrawlFlow\Cron\Phase3ResourcesService');
     }
 
     /**

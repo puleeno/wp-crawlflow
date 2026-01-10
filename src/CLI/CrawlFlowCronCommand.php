@@ -209,7 +209,9 @@ class CrawlFlowCronCommand extends WP_CLI_Command
         WP_CLI::log("Executing project {$projectId}...");
         
         try {
-            $this->cronScheduler->executeProject($projectId);
+            $this->cronScheduler->executePhase1($projectId);
+            $this->cronScheduler->executePhase2($projectId);
+            $this->cronScheduler->executePhase3($projectId);
             WP_CLI::success("Project {$projectId} executed successfully.");
         } catch (\Exception $e) {
             WP_CLI::error("Failed to execute project {$projectId}: " . $e->getMessage());

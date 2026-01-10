@@ -64,7 +64,17 @@ class UrlDataSourceHandler extends AbstractDataSourceHandler
             // Phase 1: Fetch HTML only to extract child URLs, but do NOT save raw_data
             // This is a one-time fetch just to discover URLs
             $dataSource = new HttpDataSource();
-            $response = $dataSource->fetch($url);
+            
+            // Prepare options with project settings
+            $fetchOptions = [];
+            if (isset($flowConfig['projectSettings']['userAgent'])) {
+                $fetchOptions['userAgent'] = $flowConfig['projectSettings']['userAgent'];
+            }
+            if (isset($flowConfig['projectSettings']['httpHeaders'])) {
+                $fetchOptions['headers'] = $flowConfig['projectSettings']['httpHeaders'];
+            }
+            
+            $response = $dataSource->fetch($url, $fetchOptions);
 
             if (isset($response['status_code']) && $response['status_code'] === 200) {
                 $body = $response['body'] ?? '';

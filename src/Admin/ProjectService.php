@@ -156,10 +156,13 @@ class ProjectService
         global $wpdb;
         $table = $wpdb->prefix . 'rake_tooths';
 
+        \Rake\Facade\Logger::debug("CrawlFlow: Querying project {$projectId} from table {$table}");
         $result = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $projectId),
             ARRAY_A
         );
+
+        \Rake\Facade\Logger::debug("CrawlFlow: Query result for project {$projectId}: " . ($result ? 'found' : 'not found'));
 
         // Ensure we always return array or null
         if (is_object($result)) {
@@ -415,13 +418,21 @@ class ProjectService
     {
         $project = $this->getProject($projectId);
         if (!$project) {
+            \Rake\Facade\Logger::warning("CrawlFlow: Project {$projectId} not found in getFlowConfig");
             return null;
         }
 
         $config = $project['config'] ?? '{}';
+        \Rake\Facade\Logger::debug("CrawlFlow: Raw config for project {$projectId}: " . substr($config, 0, 200) . "...");
+        
         if (is_string($config)) {
             $decoded = json_decode($config, true);
-            return ($decoded !== null && json_last_error() === JSON_ERROR_NONE) ? $decoded : null;
+            if ($decoded === null || json_last_error() !== JSON_ERROR_NONE) {
+                \Rake\Facade\Logger::error("CrawlFlow: Failed to decode config for project {$projectId}. JSON error: " . json_last_error_msg());
+                return null;
+            }
+            \Rake\Facade\Logger::debug("CrawlFlow: Successfully decoded config for project {$projectId}, nodes count: " . (isset($decoded['nodes']) ? count($decoded['nodes']) : 0));
+            return $decoded;
         }
 
         return is_array($config) ? $config : null;

@@ -20,10 +20,12 @@ class HttpDataSource
     {
         $userAgent = $options['userAgent'] ?? 'CrawlFlow/2.0';
         $timeout = $options['timeout'] ?? 30;
+        $headers = $options['headers'] ?? [];
         
         $args = [
             'timeout' => $timeout,
             'user-agent' => $userAgent,
+            'headers' => $headers,
             'sslverify' => false, // For local/development
         ];
 

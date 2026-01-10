@@ -55,7 +55,9 @@ class Phase1CrawlService
             }
 
             // Get flow config (cached)
+            Logger::debug("CrawlFlow Phase 1: About to get flow config for project {$projectId}");
             $flowConfig = $this->projectCacheService->getFlowConfig($projectId);
+            Logger::debug("CrawlFlow Phase 1: getFlowConfig returned: " . ($flowConfig ? 'valid config' : 'null'));
             if (!$flowConfig) {
                 throw new \RuntimeException("No flow config for project {$projectId}");
             }

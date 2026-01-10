@@ -54,13 +54,19 @@ class ProjectCacheService
             return self::$projectCache[$projectId];
         }
 
+        \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Loading project data for project {$projectId} from database");
+        
         // Load from database
         $project = $this->projectService->getProject($projectId);
+        
+        \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: projectService->getProject() returned: " . ($project ? 'valid project' : 'null'));
         
         if ($project) {
             // Cache it
             self::$projectCache[$projectId] = $project;
             \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Cached project data for project {$projectId}");
+        } else {
+            \Rake\Facade\Logger::warning("CrawlFlow ProjectCache: Project {$projectId} not found");
         }
 
         return $project;
@@ -80,13 +86,19 @@ class ProjectCacheService
             return self::$flowConfigCache[$projectId];
         }
 
+        \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Loading flow config for project {$projectId} from database");
+        
         // Load from database
         $flowConfig = $this->projectService->getFlowConfig($projectId);
+        
+        \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: projectService->getFlowConfig() returned: " . ($flowConfig ? 'valid config' : 'null'));
         
         if ($flowConfig) {
             // Cache it
             self::$flowConfigCache[$projectId] = $flowConfig;
             \Rake\Facade\Logger::debug("CrawlFlow ProjectCache: Cached flow config for project {$projectId}");
+        } else {
+            \Rake\Facade\Logger::warning("CrawlFlow ProjectCache: No flow config found for project {$projectId}");
         }
 
         return $flowConfig;

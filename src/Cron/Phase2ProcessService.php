@@ -114,7 +114,7 @@ class Phase2ProcessService
             $this->currentProjectId = $projectId;
 
             // Process raw items with versioning tracking
-            $results = $this->processRawItemsWithVersioning($rawItems, $reception);
+            $results = $this->processRawItemsWithVersioning($rawItems, $reception, $flowConfig);
 
             // Execute complete actions and mark as saved
             $this->executeCompleteActions($projectId, $results, $flowConfig);
@@ -764,11 +764,28 @@ class Phase2ProcessService
     /**
      * Fetch raw_data for an origin that hasn't been crawled yet
      */
-    private function fetchRawDataForOrigin(int $originId, string $url): bool
+    private function fetchRawDataForOrigin(int $originId, string $url, array $flowConfig = []): bool
     {
         try {
+            // Filter URLs to only allow truyenfull.vision domain
+            $parsedUrl = parse_url($url);
+            if (!isset($parsedUrl['host']) || $parsedUrl['host'] !== 'truyenfull.vision') {
+                Logger::info("CrawlFlow Phase 2: Skipping URL outside project domain: {$url}");
+                return false;
+            }
+            
             $dataSource = new HttpDataSource();
-            $response = $dataSource->fetch($url);
+            
+            // Prepare options with project settings
+            $fetchOptions = [];
+            if (isset($flowConfig['projectSettings']['userAgent'])) {
+                $fetchOptions['userAgent'] = $flowConfig['projectSettings']['userAgent'];
+            }
+            if (isset($flowConfig['projectSettings']['httpHeaders'])) {
+                $fetchOptions['headers'] = $flowConfig['projectSettings']['httpHeaders'];
+            }
+            
+            $response = $dataSource->fetch($url, $fetchOptions);
             
             if (isset($response['status_code']) && $response['status_code'] === 200) {
                 $rawData = $response['body'] ?? '';
